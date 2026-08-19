@@ -6,6 +6,7 @@ import { aiGenerate, aiGenerateOrFallback, hasAI } from "@/lib/ai";
 import { getIndicators, getPolicies, getTemperatures } from "@/lib/data/queries";
 import { fetchQuotes, fetchSectors } from "@/lib/data/quotes";
 import { syncMacroReal, calcMacroTemperature } from "@/lib/data/macro-sync";
+import { syncPoliciesReal } from "@/lib/data/policy-sync";
 
 export const maxDuration = 300;
 
@@ -134,7 +135,13 @@ export async function GET(req: Request) {
   if (task === "all" || task === "daily") await run("daily-review", dailyReview);
   if (task === "all" || task === "temperature") await run("temperature-report", temperatureReport);
   if (task === "all" || task === "monthly") await run("macro-monthly", macroMonthly);
-  if (task === "all" || task === "policy") await run("policy-analysis", policyAnalysis);
+  if (task === "all" || task === "policy" || task === "policy-sync") await run("policy-sync", async () => {
+    const synced = await syncPoliciesReal();
+    const insertSum = synced.reduce((a, x: any) => a + (x.inserted || 0), 0);
+    const analysisMsg = insertSum > 0 ? await policyAnalysis() : "无新政策需分析";
+    return `同步 ${synced.map((x: any) => `${x.org}=${x.inserted}${x.error ? `(${x.error})` : ""}`).join(", ")}；${analysisMsg}`;
+  });
+  if (task === "all" || task === "policy-analysis") await run("policy-analysis", policyAnalysis);
   if (task === "all" || task === "macro-sync") await run("macro-sync", async () => {
     const res = await syncMacroReal();
     return res.map((r) => `${r.type}=${r.count}`).join(", ");

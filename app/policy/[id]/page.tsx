@@ -37,13 +37,21 @@ export default async function PolicyDetailPage({ params }: { params: Promise<{ i
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 space-y-6">
       <header>
-        <div className="flex items-center gap-2 mb-2">
+        <div className="flex items-center gap-2 mb-2 flex-wrap">
           <Badge>{p.category || "政策"}</Badge>
+          {p.source && <Badge tone="green">{p.source}</Badge>}
           <span className="text-sm text-muted">{fmtDate(p.publishDate)}</span>
           <span className="text-sm text-muted ml-auto">发布机构：{p.department || "—"}</span>
         </div>
         <h1 className="text-2xl md:text-3xl font-bold leading-snug">{p.title}</h1>
         <p className="text-muted mt-3 text-sm md:text-base">{p.summary}</p>
+        {p.sourceUrl && (
+          <p className="mt-2 text-sm">
+            <a href={p.sourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline">
+              查看官方原文 ↗<span className="text-muted text-xs">（{p.sourceUrl.replace(/^https?:\/\//, "")}）</span>
+            </a>
+          </p>
+        )}
       </header>
 
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-4">
