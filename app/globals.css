@@ -1,0 +1,85 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f7f7f5;
+  --foreground: #171717;
+  --card: #ffffff;
+  --border: #e5e5e0;
+  --muted: #6b6b64;
+  --primary: #c8102e;
+  --primary-dark: #a00d26;
+  --up: #d7000b;
+  --down: #0aa06e;
+}
+
+.dark {
+  --background: #101014;
+  --foreground: #e8e8e6;
+  --card: #18181d;
+  --border: #2a2a31;
+  --muted: #9a9aa2;
+  --primary: #e84a5f;
+  --primary-dark: #c8102e;
+  --up: #ff5252;
+  --down: #2fd39a;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-border: var(--border);
+  --color-muted: var(--muted);
+  --color-primary: var(--primary);
+  --color-primary-dark: var(--primary-dark);
+  --color-up: var(--up);
+  --color-down: var(--down);
+  --font-sans: var(--font-geist-sans), "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  --font-mono: var(--font-geist-mono), "JetBrains Mono", Consolas, monospace;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+
+.up { color: var(--up); }
+.down { color: var(--down); }
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.input {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--foreground);
+  width: 100%;
+}
+.input:focus { outline: none; border-color: var(--primary); }
+
+.prose-sm :where(p) { margin: 0.4rem 0; line-height: 1.7; }
+.prose-sm :where(li) { margin: 0.2rem 0; line-height: 1.7; }
+.prose-sm :where(strong) { font-weight: 700; }
+.prose-sm :where(ul, ol) { padding-left: 1.2rem; }
+.prose-sm :where(a) { color: var(--primary); text-decoration: underline; }
+
+.prose-max :where(h1) { font-size: 1.6rem; font-weight: 700; margin: 1.2rem 0; line-height: 1.3; }
+.prose-max :where(h2) { font-size: 1.25rem; font-weight: 700; margin: 1.4rem 0 0.6rem; line-height: 1.4; }
+.prose-max :where(h3) { font-size: 1.05rem; font-weight: 600; margin: 1.1rem 0 0.4rem; }
+.prose-max :where(p) { margin: 0.55rem 0; line-height: 1.85; }
+.prose-max :where(ul, ol) { margin: 0.6rem 0; padding-left: 1.4rem; line-height: 1.85; }
+.prose-max :where(li) { margin: 0.25rem 0; }
+.prose-max :where(table) { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.875rem; }
+.prose-max :where(th, td) { border: 1px solid var(--border); padding: 0.5rem 0.75rem; text-align: left; }
+.prose-max :where(th) { background: var(--card); font-weight: 600; }
+.prose-max :where(blockquote) { border-left: 3px solid var(--primary); padding-left: 1rem; color: var(--muted); margin: 0.8rem 0; }
+.prose-max :where(code) { background: var(--border); padding: 0.1rem 0.35rem; border-radius: 4px; font-size: 0.85em; }
+.prose-max :where(a) { color: var(--primary); text-decoration: underline; }
+.prose-max :where(strong) { font-weight: 700; }

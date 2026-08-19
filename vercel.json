@@ -1,0 +1,7 @@
+{
+  "crons": [
+    { "path": "/api/tasks/run?task=daily&secret=__CRON_SECRET__", "schedule": "30 15 * * 1-5" },
+    { "path": "/api/tasks/run?task=temperature&secret=__CRON_SECRET__", "schedule": "0 9 1 * *" },
+    { "path": "/api/tasks/run?task=monthly&secret=__CRON_SECRET__", "schedule": "0 10 2 * *" }
+  ]
+}
