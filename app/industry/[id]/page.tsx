@@ -119,6 +119,10 @@ export default async function ChainDetailPage({ params }: { params: Promise<{ id
                     <details key={n.id} className="group border border-border rounded-lg px-3 py-2 open:bg-border/20 transition-colors">
                       <summary className="cursor-pointer text-sm font-medium flex items-center gap-2">
                         {n.name}
+                        <span className="text-xs font-mono text-muted">{n.value ? `规模 ${n.value} 亿` : ""}</span>
+                        <span className={`text-xs font-mono ${(n.growth ?? 0) >= 0 ? "up" : "down"}`}>
+                          {n.growth != null ? `增速 ${n.growth >= 0 ? "+" : ""}${n.growth}%` : ""}
+                        </span>
                         <span className="text-xs text-muted font-normal ml-auto">{companies.length ? `${companies.length} 家公司` : ""}</span>
                       </summary>
                       <div className="mt-2">

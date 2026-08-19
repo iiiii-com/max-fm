@@ -2,7 +2,7 @@
 import { getArticles, getRecentAggregated, getFeelingAggregates, getTemperatures } from "@/lib/data/queries";
 import { Card, StatCard, SectionTitle, Badge, AIFlag } from "@/components/ui";
 import { fmt, fmtDate } from "@/lib/utils";
-import { Newspaper, Map, Network, Landmark, TrendingUp, PiggyBank } from "lucide-react";
+import { Newspaper, Map, Network, Landmark, TrendingUp, PiggyBank, RefreshCcw, History } from "lucide-react";
 import { bootstrap } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +12,9 @@ const MODULES = [
   { href: "/policy", icon: Newspaper, title: "政策解读", desc: "政策库 + 三层 AI 解读" },
   { href: "/invest", icon: TrendingUp, title: "投资分析", desc: "实时行情、每日复盘、板块热度" },
   { href: "/map", icon: Map, title: "经济分布图", desc: "31 省数据地图可视化" },
-  { href: "/industry", icon: Network, title: "产业链分析", desc: "6 条主线上下游关系图" },
+  { href: "/industry", icon: Network, title: "产业链分析", desc: "23 条产业链上下游关系图" },
+  { href: "/cycle", icon: RefreshCcw, title: "周期洞察", desc: "美林时钟四阶段资产配置" },
+  { href: "/history", icon: History, title: "历史回顾", desc: "40+ 经济金融大事件复盘" },
   { href: "/advice", icon: PiggyBank, title: "个人建议", desc: "问卷 → AI 个性化配置建议" },
 ];
 
@@ -66,12 +68,16 @@ export default async function Home() {
 
       {/* 数据速览 */}
       <section>
-        <SectionTitle title="核心指标速览" sub="数据来源：国家统计局 / 中国人民银行 / 海关总署" />
+        <SectionTitle title="核心指标速览" sub="数据来源：国家统计局 / 中国人民银行 / 海关总署 / 中国指数研究院" />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <StatCard label="GDP 同比" value={`${fmt(macro.latestGdp)}%`} sub="最新季度" href="/macro" />
-          <StatCard label="CPI 同比" value={`${fmt(macro.latestCpi)}%`} sub="物价温和" href="/macro" />
+          <StatCard label="CPI 同比" value={`${fmt(macro.latestCpi)}%`} sub="物价" href="/macro" />
           <StatCard label="制造业 PMI" value={fmt(macro.latestPmi)} sub={macro.latestPmi >= 50 ? "扩张区间" : "收缩区间"} href="/macro" />
-          <StatCard label="M2 同比" value={`${fmt(macro.latestM2)}%`} sub="流动性宽松" href="/macro" />
+          <StatCard label="M2 同比" value={`${fmt(macro.latestM2)}%`} sub="货币供给" href="/macro" />
+          <StatCard label="房价同比" value={`${fmt(macro.latestHouseprice)}%`} sub={macro.latestHouseprice >= 0 ? "上涨" : "下跌"} href="/macro" />
+          <StatCard label="出口同比" value={`${fmt(macro.latestExport)}%`} sub="外贸" href="/macro" />
+          <StatCard label="失业率" value={`${fmt(macro.latestUnemp)}%`} sub="城镇调查" href="/macro" />
+          <StatCard label="新增贷款" value={`${fmt(macro.latestLoans)} 万亿`} sub="月度新增" href="/macro" />
         </div>
       </section>
 

@@ -58,6 +58,14 @@ export default async function MacroPage() {
     { type: "export", title: "出口同比", unit: "%", color: "#7c3aed" },
     { type: "import", title: "进口同比", unit: "%", color: "#a21caf" },
     { type: "unemp", title: "城镇调查失业率", unit: "%", color: "#ca8a04" },
+    { type: "houseprice", title: "百城房价同比", unit: "%", color: "#be123c" },
+    { type: "yield10y", title: "10年期国债收益率", unit: "%", color: "#334155" },
+    { type: "usdcny", title: "美元兑人民币", unit: "", color: "#e11d48" },
+    { type: "m1", title: "M1 同比增速", unit: "%", color: "#1d4ed8" },
+    { type: "tsfstock", title: "社融存量同比", unit: "%", color: "#0f766e" },
+    { type: "loans", title: "新增人民币贷款", unit: "万亿", color: "#2563eb" },
+    { type: "gold", title: "伦敦金现货", unit: "美元/盎司", color: "#d97706" },
+    { type: "carsales", title: "乘用车零售销量", unit: "万辆", color: "#16a34a" },
   ];
 
   const linkData: Record<string, number> = {
@@ -87,6 +95,7 @@ export default async function MacroPage() {
       <header>
         <h1 className="text-2xl font-bold">宏观经济</h1>
         <p className="text-sm text-muted mt-1">数据来源：国家统计局 / 中国人民银行 / 海关总署 / 财政部</p>
+        <p className="text-xs text-muted/70 mt-1">注：宏观序列为演示数据，仅供学习参考；行情、个股与 K 线数据来自实时公开行情接口。</p>
       </header>
 
       <div className="flex gap-3 flex-wrap">

@@ -149,18 +149,27 @@ export async function getTaskLogs(limit = 20) {
 
 export async function getRecentAggregated(): Promise<{
   latestGdp: number; latestCpi: number; latestPmi: number; latestM2: number;
+  latestHouseprice: number; latestExport: number; latestUnemp: number; latestLoans: number;
 }> {
-  const [gdp, cpi, pmi, m2] = await Promise.all([
+  const [gdp, cpi, pmi, m2, houseprice, export_, unemp, loans] = await Promise.all([
     getLatestIndicator("GDP 同比增速"),
     getLatestIndicator("CPI 同比"),
     getLatestIndicator("制造业 PMI"),
     getLatestIndicator("M2 同比增速"),
+    getLatestIndicator("百城房价指数同比"),
+    getLatestIndicator("出口同比"),
+    getLatestIndicator("城镇调查失业率"),
+    getLatestIndicator("新增人民币贷款"),
   ]);
   return {
     latestGdp: gdp?.value ?? 5.2,
     latestCpi: cpi?.value ?? 1.4,
     latestPmi: pmi?.value ?? 50.4,
     latestM2: m2?.value ?? 8.8,
+    latestHouseprice: houseprice?.value ?? 0.5,
+    latestExport: export_?.value ?? 6.0,
+    latestUnemp: unemp?.value ?? 5.0,
+    latestLoans: loans?.value ?? 2.0,
   };
 }
 

@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import EChart from "./EChart";
+import ChartToolbar, { downloadCSV, type ChartType, type ChartRange } from "./ChartToolbar";
 import type { EChartsOption } from "echarts";
 
 export const METRICS = [
@@ -21,6 +22,14 @@ export const METRICS = [
   { type: "export", name: "出口同比", unit: "%", color: "#7c3aed" },
   { type: "import", name: "进口同比", unit: "%", color: "#a21caf" },
   { type: "unemp", name: "城镇调查失业率", unit: "%", color: "#ca8a04" },
+  { type: "houseprice", name: "百城房价同比", unit: "%", color: "#be123c" },
+  { type: "yield10y", name: "10年期国债收益率", unit: "%", color: "#334155" },
+  { type: "usdcny", name: "美元兑人民币", unit: "", color: "#e11d48" },
+  { type: "m1", name: "M1 同比增速", unit: "%", color: "#1d4ed8" },
+  { type: "tsfstock", name: "社融存量同比", unit: "%", color: "#0f766e" },
+  { type: "loans", name: "新增人民币贷款", unit: "万亿", color: "#2563eb" },
+  { type: "gold", name: "伦敦金现货", unit: "美元/盎司", color: "#d97706" },
+  { type: "carsales", name: "乘用车零售销量", unit: "万辆", color: "#16a34a" },
 ];
 
 export default function CompareTool({ indicators }: {
@@ -28,6 +37,9 @@ export default function CompareTool({ indicators }: {
 }) {
   const [a, setA] = useState("gdp");
   const [b, setB] = useState("cpi");
+  const [type, setType] = useState<ChartType>("line");
+  const [range, setRange] = useState<ChartRange>(0);
+  const [log, setLog] = useState(false);
   const metaA = METRICS.find((m) => m.type === a) ?? METRICS[0];
   const metaB = METRICS.find((m) => m.type === b) ?? METRICS[1];
 
@@ -39,50 +51,60 @@ export default function CompareTool({ indicators }: {
     }
     const ma = byType[a] ?? new Map();
     const mb = byType[b] ?? new Map();
-    const all = new Set([...ma.keys(), ...mb.keys()]);
-    const dates = [...all].sort();
-    const pick = (m: Map<string, number>) => dates.map((d) => m.get(d) ?? null);
-    return { dates, seriesA: pick(ma), seriesB: pick(mb) };
-  }, [indicators, a, b]);
+    const all = [...new Set([...ma.keys(), ...mb.keys()])].sort();
+    const picked = range === 0 ? all : all.slice(-range);
+    const pick = (m: Map<string, number>) => picked.map((d) => m.get(d) ?? null);
+    return { dates: picked, seriesA: pick(ma), seriesB: pick(mb) };
+  }, [indicators, a, b, range]);
 
-  const option: EChartsOption = {
-    tooltip: { trigger: "axis" },
-    legend: { data: [metaA.name, metaB.name], top: 4, textStyle: { fontSize: 12 } },
-    grid: { left: 52, right: 52, top: 40, bottom: 56 },
-    xAxis: {
-      type: "category", data: dates,
-      axisLabel: { fontSize: 10 },
-      axisLine: { lineStyle: { color: "#d4d4d0" } },
-    },
-    yAxis: [
-      {
-        type: "value", scale: true, name: `${metaA.name}(${metaA.unit || "-"})`,
-        nameTextStyle: { fontSize: 10 }, axisLabel: { fontSize: 10 },
-        splitLine: { lineStyle: { color: "#e5e5e0", type: "dashed" } },
+  const canLog = useMemo(() => {
+    const vals = [...seriesA, ...seriesB].filter((v): v is number => v != null);
+    return vals.length > 0 && vals.every((v) => v > 0);
+  }, [seriesA, seriesB]);
+
+  const option: EChartsOption = useMemo(() => {
+    const seriesType = type === "bar" ? "bar" : "line";
+    const mk = (name: string, series: (number | null)[], color: string, yAxisIndex: number, dashed = false) => ({
+      name, type: seriesType, data: series, smooth: true, showSymbol: false,
+      barMaxWidth: 12,
+      lineStyle: { color, width: 2, type: dashed ? "dashed" : "solid" as const },
+      itemStyle: { color, borderRadius: type === "bar" ? [3, 3, 0, 0] : 0 },
+      areaStyle: type === "area"
+        ? { color: { type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color }, { offset: 1, color: "rgba(0,0,0,0)" }] } }
+        : undefined,
+      yAxisIndex,
+    });
+    return {
+      tooltip: { trigger: "axis" },
+      legend: { data: [metaA.name, metaB.name], top: 4, textStyle: { fontSize: 12 } },
+      grid: { left: 52, right: 52, top: 40, bottom: 56 },
+      xAxis: {
+        type: "category", data: dates,
+        axisLabel: { fontSize: 10 },
+        axisLine: { lineStyle: { color: "#d4d4d0" } },
       },
-      {
-        type: "value", scale: true, name: `${metaB.name}(${metaB.unit || "-"})`,
-        nameTextStyle: { fontSize: 10 }, axisLabel: { fontSize: 10 },
-        splitLine: { show: false },
-      },
-    ],
-    dataZoom: [
-      { type: "inside", start: 0, end: 100 },
-      { type: "slider", height: 16, bottom: 6, start: 0, end: 100 },
-    ],
-    series: [
-      {
-        name: metaA.name, type: "line", data: seriesA, smooth: true, showSymbol: false,
-        lineStyle: { color: metaA.color, width: 2 },
-        itemStyle: { color: metaA.color },
-      },
-      {
-        name: metaB.name, type: "line", data: seriesB, smooth: true, showSymbol: false, yAxisIndex: 1,
-        lineStyle: { color: metaB.color, width: 2, type: "dashed" },
-        itemStyle: { color: metaB.color },
-      },
-    ],
-  };
+      yAxis: [
+        {
+          type: log && canLog ? "log" : "value", scale: true, name: `${metaA.name}(${metaA.unit || "-"})`,
+          nameTextStyle: { fontSize: 10 }, axisLabel: { fontSize: 10 },
+          splitLine: { lineStyle: { color: "#e5e5e0", type: "dashed" } },
+        },
+        {
+          type: log && canLog ? "log" : "value", scale: true, name: `${metaB.name}(${metaB.unit || "-"})`,
+          nameTextStyle: { fontSize: 10 }, axisLabel: { fontSize: 10 },
+          splitLine: { show: false },
+        },
+      ],
+      dataZoom: [
+        { type: "inside", start: 0, end: 100 },
+        { type: "slider", height: 16, bottom: 6, start: 0, end: 100 },
+      ],
+      series: [
+        mk(metaA.name, seriesA, metaA.color, 0),
+        mk(metaB.name, seriesB, metaB.color, 1, true),
+      ],
+    } as EChartsOption;
+  }, [metaA, metaB, dates, seriesA, seriesB, type, log, canLog]);
 
   return (
     <div className="card p-4">
@@ -103,6 +125,14 @@ export default function CompareTool({ indicators }: {
         >
           {METRICS.map((m) => <option key={m.type} value={m.type}>{m.name}</option>)}
         </select>
+      </div>
+      <div className="flex justify-end -mt-1 mb-1">
+        <ChartToolbar
+          type={type} setType={setType}
+          range={range} setRange={setRange}
+          log={log} setLog={setLog} canLog={canLog}
+          onExport={() => downloadCSV("compare.csv", ["date", metaA.name, metaB.name], dates.map((d, i) => [d, seriesA[i] ?? "", seriesB[i] ?? ""]))}
+        />
       </div>
       <EChart option={option} height={320} />
     </div>
