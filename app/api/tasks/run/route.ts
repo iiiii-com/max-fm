@@ -76,7 +76,7 @@ export async function GET(req: Request) {
       title: `宏观月报：${ym} 经济数据全景解读`,
       summary: "AI 自动生成的月度宏观经济报告。",
       content, tags: JSON.stringify(["宏观", "月报"]), sourceModel: "auto",
-      qualityScore: "85", status: "published", publishDate: new Date().toISOString().slice(0, 10), createdAt: now(), updated_at: now(),
+      qualityScore: "85", status: "published", publishDate: new Date().toISOString().slice(0, 10), createdAt: now(), updatedAt: now(),
     } as any);
     return `已生成宏观月报`;
   };
