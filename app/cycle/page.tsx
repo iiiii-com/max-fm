@@ -76,7 +76,7 @@ export default async function CyclePage() {
       </section>
 
       <section>
-        <SectionTitle title="美林投资时钟" sub="以真实宏观数据定位当前阶段（GDP {agg.latestGdp}% · CPI {agg.latestCpi}%）" />
+        <SectionTitle title="美林投资时钟" sub={`以真实宏观数据定位当前阶段（GDP ${agg.latestGdp}% · CPI ${agg.latestCpi}%）`} />
         <Card>
           <MerrillClock growth={agg.latestGdp} inflation={agg.latestCpi} />
         </Card>
