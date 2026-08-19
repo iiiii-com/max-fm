@@ -13,8 +13,8 @@ export const metadata = { title: "宏观经济" };
 const r1 = (v: number) => Math.round(v * 100) / 100;
 
 const LEVEL_TYPES = new Set(["pmi", "tsf", "lpr", "fx", "unemp"]);
-const REAL = new Set(["gdp", "cpi", "ppi", "pmi", "m2", "m1", "fin", "houseprice"]);
-const SRC = { real: "东方财富数据中心", demo: "演示数据" };
+const REAL = new Set(["gdp", "cpi", "ppi", "pmi", "m2", "m1", "fin", "houseprice", "usdcny"]);
+const SRC = { real: "东方财富数据中心", market: "东方财富行情接口", demo: "演示数据" };
 
 function yoyOf(s: Array<{ date: string; value: number }>): number | null {
   const last = s[s.length - 1];
@@ -66,7 +66,7 @@ export default async function MacroPage() {
     { type: "unemp", title: "城镇调查失业率", unit: "%", color: "#ca8a04" },
     { type: "houseprice", title: "百城房价同比", unit: "%", color: "#be123c" },
     { type: "yield10y", title: "10年期国债收益率", unit: "%", color: "#334155" },
-    { type: "usdcny", title: "美元兑人民币", unit: "", color: "#e11d48" },
+    { type: "usdcny", title: "美元兑人民币(离岸)", unit: "", color: "#e11d48" },
     { type: "m1", title: "M1 同比增速", unit: "%", color: "#1d4ed8" },
     { type: "tsfstock", title: "社融存量同比", unit: "%", color: "#0f766e" },
     { type: "loans", title: "新增人民币贷款", unit: "万亿", color: "#2563eb" },
@@ -124,7 +124,7 @@ export default async function MacroPage() {
               data={seriesTail(c.type)}
               yoy={isLevel ? null : yoyOf(s)}
               mom={momOf(s)}
-              source={REAL.has(c.type) ? SRC.real : SRC.demo}
+              source={REAL.has(c.type) ? (c.type === "usdcny" ? SRC.market : SRC.real) : SRC.demo}
             />
           );
         })}

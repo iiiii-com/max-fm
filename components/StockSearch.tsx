@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import * as echarts from "echarts";
-import type { EChartsOption } from "echarts";
+import { echarts, type EChartsOption } from "@/components/charts/echarts";
+import { useTheme } from "@/components/theme-provider";
 import type { StockHit } from "@/app/api/stock/search/route";
 import type { KlineBar } from "@/app/api/stock/kline/route";
 
@@ -16,12 +16,14 @@ function ma(data: number[], n: number): (number | null)[] {
 }
 
 export default function StockSearch() {
+  const { theme } = useTheme();
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<StockHit[]>([]);
   const [searching, setSearching] = useState(false);
   const [showList, setShowList] = useState(false);
   const [selected, setSelected] = useState<StockHit | null>(null);
   const [bars, setBars] = useState<KlineBar[]>([]);
+  const [fund, setFund] = useState<Record<string, number | string> | null>(null);
   const [err, setErr] = useState("");
   const [loadingK, setLoadingK] = useState(false);
   const chartRef = useRef<echarts.ECharts | null>(null);
@@ -50,11 +52,19 @@ export default function StockSearch() {
     setQuery(`${hit.name}（${hit.code}）`);
     setErr("");
     setLoadingK(true);
+    setFund(null);
     try {
-      const res = await fetch(`/api/stock/kline?secid=${hit.secid}`, { cache: "no-store" });
-      const json = await res.json();
+      const [kr, fr] = await Promise.all([
+        fetch(`/api/stock/kline?secid=${hit.secid}`, { cache: "no-store" }),
+        hit.kind === "stock" ? fetch(`/api/stock/fundamentals?secid=${hit.secid}`, { cache: "no-store" }) : Promise.resolve(null),
+      ]);
+      const json = await kr.json();
       if (json?.klines) setBars(json.klines);
       else setErr(json?.error ?? "加载失败");
+      if (fr) {
+        const fj = await fr.json();
+        if (fj?.ok) setFund(fj.data);
+      }
     } catch {
       setErr("加载失败，请重试");
     } finally {
@@ -118,14 +128,17 @@ export default function StockSearch() {
 
   useEffect(() => {
     if (!divRef.current || !bars.length) return;
-    if (!chartRef.current) chartRef.current = echarts.init(divRef.current);
+    chartRef.current?.dispose();
+    chartRef.current = echarts.init(divRef.current, theme === "dark" ? "dark" : undefined);
     chartRef.current.setOption(option, true);
     const onResize = () => chartRef.current?.resize();
     window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, [option, bars]);
-
-  useEffect(() => () => { chartRef.current?.dispose(); chartRef.current = null; }, []);
+    return () => {
+      window.removeEventListener("resize", onResize);
+      chartRef.current?.dispose();
+      chartRef.current = null;
+    };
+  }, [option, bars, theme]);
 
   const last = bars[bars.length - 1];
   const prev = bars[bars.length - 2];
@@ -180,6 +193,18 @@ export default function StockSearch() {
               {pct >= 0 ? "+" : ""}{pct.toFixed(2)}%
             </span>
           </div>
+          {fund && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3 text-xs">
+              <div className="rounded-lg border border-border px-3 py-2"><p className="text-muted">总市值</p><p className="font-mono font-medium">{fmtMv(fund.totalMv)}</p></div>
+              <div className="rounded-lg border border-border px-3 py-2"><p className="text-muted">流通市值</p><p className="font-mono font-medium">{fmtMv(fund.floatMv)}</p></div>
+              <div className="rounded-lg border border-border px-3 py-2"><p className="text-muted">市盈率 TTM</p><p className="font-mono font-medium">{fund.pe == null ? "—" : Number(fund.pe).toFixed(2)}</p></div>
+              <div className="rounded-lg border border-border px-3 py-2"><p className="text-muted">市净率</p><p className="font-mono font-medium">{fund.pb == null ? "—" : Number(fund.pb).toFixed(2)}</p></div>
+              <div className="rounded-lg border border-border px-3 py-2"><p className="text-muted">每股收益 TTM</p><p className="font-mono font-medium">{fund.eps == null ? "—" : Number(fund.eps).toFixed(2)}</p></div>
+              <div className="rounded-lg border border-border px-3 py-2"><p className="text-muted">每股净资产</p><p className="font-mono font-medium">{fund.bps == null ? "—" : Number(fund.bps).toFixed(2)}</p></div>
+              <div className="rounded-lg border border-border px-3 py-2"><p className="text-muted">换手率</p><p className="font-mono font-medium">{fund.turnover == null ? "—" : `${Number(fund.turnover).toFixed(2)}%`}</p></div>
+              <div className="rounded-lg border border-border px-3 py-2"><p className="text-muted">昨收</p><p className="font-mono font-medium">{fund.prevClose == null ? "—" : Number(fund.prevClose).toFixed(2)}</p></div>
+            </div>
+          )}
           <div ref={divRef} style={{ height: 420, width: "100%" }} />
           <p className="text-xs text-muted mt-2">日 K · 前复权 · 数据来自东方财富公开接口，约 2 分钟延迟，仅供研究参考</p>
         </div>
@@ -198,4 +223,12 @@ function fmtVol(n: number) {
   if (n >= 1e8) return `${(n / 1e8).toFixed(2)}亿`;
   if (n >= 1e4) return `${(n / 1e4).toFixed(1)}万`;
   return String(n);
+}
+
+function fmtMv(n: unknown) {
+  const v = Number(n);
+  if (!Number.isFinite(v) || v <= 0) return "—";
+  if (v >= 1e12) return `${(v / 1e12).toFixed(2)}万亿`;
+  if (v >= 1e8) return `${(v / 1e8).toFixed(2)}亿`;
+  return String(v);
 }

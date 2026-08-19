@@ -68,6 +68,45 @@ export async function syncMacroReal(): Promise<{ type: string; count: number }[]
     results.push({ type: def.type, count: inserts.length });
   }
   results.push(await syncHousePrice());
+  results.push(...(await syncMarketSeries()));
+  return results;
+}
+
+const MARKET_SERIES: Array<{ type: string; name: string; secid: string; unit: string; category: string }> = [
+  { type: "usdcny", name: "美元兑人民币（离岸）", secid: "133.USDCNH", unit: "", category: "金融" },
+];
+
+async function syncMarketSeries(): Promise<{ type: string; count: number }[]> {
+  const results: { type: string; count: number }[] = [];
+  for (const def of MARKET_SERIES) {
+    const url = `https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=${def.secid}&klt=103&fqt=0&beg=20100101&end=20500101&fields1=f1,f2,f3&fields2=f51,f53&ut=fa5fd1943c7b386f172d6893dbfba10b`;
+    const res = await fetch(url, { next: { revalidate: 3600 } });
+    if (!res.ok) throw new Error(`eastmoney kline ${def.secid} status ${res.status}`);
+    const json = await res.json();
+    const klines: string[] = json?.data?.klines || [];
+    if (!klines.length) throw new Error(`empty klines for ${def.type}`);
+    const rows = klines
+      .map((k) => {
+        const [d, close] = k.split(",");
+        const value = Number(close);
+        const date = toDate(d, false);
+        if (!date || !Number.isFinite(value)) return null;
+        return { date, value: Math.round(value * 10000) / 10000 };
+      })
+      .filter((x: any): x is { date: string; value: number } => !!x)
+      .sort((a: any, b: any) => a.date.localeCompare(b.date));
+    await db.delete(s.economicIndicators).where(eq(s.economicIndicators.type, def.type));
+    const ts = now();
+    const inserts = rows.map((r) => ({
+      id: uid("ind"), name: def.name, type: def.type, date: r.date, value: r.value,
+      category: def.category, unit: def.unit, source: "东方财富行情接口",
+      createdAt: ts, updatedAt: ts,
+    }));
+    for (let i = 0; i < inserts.length; i += 100) {
+      await db.insert(s.economicIndicators).values(inserts.slice(i, i + 100) as any).onConflictDoNothing();
+    }
+    results.push({ type: def.type, count: inserts.length });
+  }
   return results;
 }
 
