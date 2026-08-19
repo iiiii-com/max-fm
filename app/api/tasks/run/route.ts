@@ -34,11 +34,11 @@ export async function GET(req: Request) {
 
   const dailyReview = async () => {
     const [quotes, sectors] = await Promise.all([fetchQuotes(), fetchSectors()]);
+    const today = new Date().toISOString().slice(0, 10);
     const top = [...sectors].sort((a: any, b: any) => b.changePct - a.changePct)[0];
     const fb = `# 今日复盘\n\n**指数表现**：${quotes.slice(0, 4).map((q: any) => `${q.name} ${q.price}（${q.changePct >= 0 ? "+" : ""}${q.changePct}%）`).join("，")}。\n\n**领涨板块**：${top?.name ?? "—"}（${top?.changePct ?? 0}%）。\n\n**数据来源**：东方财富公开行情接口。\n\n*内容由 AI 自动生成，不构成投资建议。*`;
-    const prompt = `基于以下行情生成 A 股收盘复盘（300-500 字 Markdown）：指数=${quotes.slice(0, 4).map((q: any) => `${q.name} ${q.price} ${q.changePct}%`).join(";")}；板块=${sectors.slice(0, 6).map((x: any) => `${x.name} ${x.changePct}%`).join(";")}。包含：指数表现、板块热点、资金面、明日关注。`;
+    const prompt = `今天是 ${today}。基于以下行情生成 A 股收盘复盘（300-500 字 Markdown，日期写 ${today}）：指数=${quotes.slice(0, 4).map((q: any) => `${q.name} ${q.price} ${q.changePct}%`).join(";")}；板块=${sectors.slice(0, 6).map((x: any) => `${x.name} ${x.changePct}%`).join(";")}。包含：指数表现、板块热点、资金面、明日关注。`;
     const content = await aiGenerateOrFallback(prompt, fb, { model: "cheap", maxTokens: 1200 });
-    const today = new Date().toISOString().slice(0, 10);
     await db.insert(s.articles).values({
       id: uid("art"), type: "daily", slug: `daily-${today}`,
       title: `今日复盘：${top?.name ?? "市场"}领涨`,
@@ -66,13 +66,13 @@ export async function GET(req: Request) {
 
   const macroMonthly = async () => {
     const inds = await getIndicators();
+    const ym = new Date().toISOString().slice(0, 7);
     const cpi = inds.filter((x: any) => x.type === "cpi").slice(-1)[0];
     const pmi = inds.filter((x: any) => x.type === "pmi").slice(-1)[0];
     const gdp = inds.filter((x: any) => x.type === "gdp").slice(-1)[0];
     const fb = `# 宏观月报\n\n## 一句话总结\n\n经济延续温和复苏，内需修复与政策发力是主要支撑。\n\n## 核心数据\n\n| 指标 | 最新值 |\n|---|---|\n| GDP 同比 | ${gdp?.value ?? "—"}% |\n| CPI 同比 | ${cpi?.value ?? "—"}% |\n| PMI | ${pmi?.value ?? "—"} |\n\n## 展望\n\n物价低位运行，货币政策保持宽松取向，关注财政加码与地产企稳信号。\n\n*本报告由 Max AI 自动生成。*`;
-    const prompt = `基于最新宏观数据生成《宏观月报》Markdown（500-800 字）：GDP=${gdp?.value}%，CPI=${cpi?.value}%，PMI=${pmi?.value}%。包含：一句话总结、核心数据表、三大看点、风险与展望。`;
+    const prompt = `今天是 ${ym}。基于最新宏观数据生成《宏观月报》Markdown（500-800 字，报告期 ${ym}）：GDP=${gdp?.value}%，CPI=${cpi?.value}%，PMI=${pmi?.value}%。包含：一句话总结、核心数据表、三大看点、风险与展望。`;
     const content = await aiGenerateOrFallback(prompt, fb, { model: "strong", maxTokens: 2048 });
-    const ym = new Date().toISOString().slice(0, 7);
     await db.insert(s.articles).values({
       id: uid("art"), type: "monthly", slug: `macro-${ym}`,
       title: `宏观月报：${ym} 经济数据全景解读`,
