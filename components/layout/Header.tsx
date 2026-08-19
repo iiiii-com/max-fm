@@ -10,6 +10,7 @@ const NAV = [
   { href: "/macro", label: "宏观经济" },
   { href: "/policy", label: "政策解读" },
   { href: "/invest", label: "投资分析" },
+  { href: "/stock", label: "个股行情" },
   { href: "/map", label: "经济分布图" },
   { href: "/industry", label: "产业链" },
   { href: "/advice", label: "个人建议" },
@@ -48,7 +49,7 @@ export default function Header({ user }: { user?: { name: string } | null }) {
               {theme === "light" ? <Moon className="w-4.5 h-4.5" /> : <Sun className="w-4.5 h-4.5" />}
             </button>
             {user ? (
-              <Link href="/advice" className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary text-white text-sm font-medium">
+              <Link href="/account" className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary text-white text-sm font-medium">
                 <User className="w-4 h-4" /> {user.name}
               </Link>
             ) : (

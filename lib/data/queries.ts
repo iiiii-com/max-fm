@@ -45,7 +45,7 @@ export async function getPolicyWithAnalysis(id: string) {
 export async function getArticles(type?: string, limit = 30) {
   const q = db.select().from(s.articles).where(eq(s.articles.status, "published"));
   const all = type ? await q.where(eq(s.articles.type, type)) : await q;
-  return all.sort((a: any, b: any) => (b.publish_date ?? "").localeCompare(a.publish_date ?? "")).slice(0, limit);
+  return all.sort((a: any, b: any) => (b.publishDate ?? "").localeCompare(a.publishDate ?? "")).slice(0, limit);
 }
 
 export async function getArticleBySlug(slug: string) {
@@ -107,6 +107,14 @@ export async function getUserAdvice(userId: string) {
 
 export async function getWatchlist(userId: string) {
   return db.select().from(s.watchlists).where(eq(s.watchlists.uid, userId));
+}
+
+export async function getUserFeelings(userId: string) {
+  return db
+    .select()
+    .from(s.feelingSurveys)
+    .where(eq(s.feelingSurveys.uid, userId))
+    .orderBy(desc(s.feelingSurveys.createdAt));
 }
 
 export async function searchAll(q: string) {

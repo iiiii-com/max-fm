@@ -104,7 +104,7 @@ export default async function Home() {
                 <div className="flex items-center gap-2 mb-2">
                   <Badge>{a!.type === "daily" ? "每日复盘" : a!.type === "monthly" ? "月度报告" : a!.type === "weekly" ? "每周周报" : "温差报告"}</Badge>
                   <AIFlag />
-                  <span className="text-xs text-muted ml-auto">{fmtDate(a!.publish_date)}</span>
+                  <span className="text-xs text-muted ml-auto">{fmtDate(a!.publishDate)}</span>
                 </div>
                 <h3 className="font-bold leading-snug line-clamp-2">{a!.title}</h3>
                 <p className="text-sm text-muted mt-2 line-clamp-2">{a!.summary}</p>

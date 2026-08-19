@@ -300,8 +300,8 @@ async function main() {
   const polRows = POLICIES.map((p: any, idx: any) => ({
     id: uid("pol"),
     title: p.title, department: p.department, category: p.category,
-    publish_date: ymd(0, -idx * 2 - 1, 3 + idx * 5),
-    source_url: "https://www.gov.cn/",
+    publishDate: ymd(0, -idx * 2 - 1, 3 + idx * 5),
+    sourceUrl: "https://www.gov.cn/",
     summary: p.summary,
     content: `${p.summary}\n\n## 政策原文要点\n\n（示例摘要，实际由抓取任务获取全文）\n\n1. ${p.popular.split("：")[1] ?? p.popular}\n2. 配套细则陆续出台，关注各部门后续执行文件。`,
     status: "published", createdAt: ts, updatedAt: ts,
@@ -325,7 +325,7 @@ async function main() {
       summary: "消费稳步回暖，出口韧性犹存，物价低位运行，政策组合拳效果初显。",
       content: `# 宏观月报\n\n## 一句话总结\n\n**经济延续温和复苏，内需修复与政策发力是主要支撑，物价仍处低位，货币政策保持宽松取向。**\n\n## 核心数据\n\n| 指标 | 最新值 | 环比变化 |\n|---|---|---|\n| GDP 同比 | 5.2% | +0.1pp |\n| CPI 同比 | 1.4% | +0.2pp |\n| PMI | 50.6 | +0.4 |\n| M2 同比 | 8.9% | +0.3pp |\n| 社融增量 | 3.1 万亿 | 多增 0.2 万亿 |\n\n## 三大看点\n\n1. **消费端**：以旧换新政策持续发力，社会消费品零售同比增速连续三个月回升。\n2. **生产端**：制造业 PMI 重返扩张区间，高技术制造业景气度领先。\n3. **外贸端**：出口同比转正，对新兴市场出口表现亮眼，对冲欧美需求波动。\n\n## 风险与展望\n\n物价低位的根本原因是内需偏弱与产能过剩并存，关注后续财政加码与地产销售企稳信号。预计下月数据延续温和改善。\n\n*本报告由 Max AI 自动生成，数据来源：国家统计局、中国人民银行。*`,
       tags: JSON.stringify(["宏观", "月报", "GDP"]), sourceModel: "deepseek-v4-flash",
-      qualityScore: "88", status: "published", publish_date: ymd(0, -1, 28), createdAt: ts, updatedAt: ts,
+      qualityScore: "88", status: "published", publishDate: ymd(0, -1, 28), createdAt: ts, updatedAt: ts,
     },
     {
       id: uid("art"), type: "weekly", slug: "weekly-report",
@@ -333,7 +333,7 @@ async function main() {
       summary: "央行释放流动性、AI 产业政策加码、两市成交活跃度回升。",
       content: `# Max 周报\n\n## 本周大事\n\n1. **央行降准落地**：释放长期资金约 1 万亿，债市收益率下行。\n2. **AI 产业政策加码**：国务院部署“人工智能+”行动，算力板块领涨。\n3. **楼市边际改善**：重点城市二手房成交环比回升。\n\n## 市场表现\n\n上证指数周涨 1.2%，创业板指涨 2.8%，人工智能、半导体、消费电子板块领涨。\n\n## 下周关注\n\n- 月度经济数据发布\n- 美联储议息会议\n- 重点城市土拍结果\n\n*本报告由 Max AI 自动生成。*`,
       tags: JSON.stringify(["周报", "市场"]), sourceModel: "glm-5",
-      qualityScore: "85", status: "published", publish_date: ymd(0, 0, -1), createdAt: ts, updatedAt: ts,
+      qualityScore: "85", status: "published", publishDate: ymd(0, 0, -1), createdAt: ts, updatedAt: ts,
     },
     {
       id: uid("art"), type: "daily", slug: "daily-review",
@@ -341,7 +341,7 @@ async function main() {
       summary: "三大指数集体收涨，成交额重回万亿上方，AI 算力、光模块表现强势。",
       content: `# 今日复盘\n\n**指数表现**：上证指数 +0.85%，深证成指 +1.21%，创业板指 +1.68%。\n\n**板块热点**：AI 算力（+3.2%）、光模块（+2.9%）、半导体设备（+2.1%）领涨；银行、煤炭小幅回调。\n\n**资金面**：两市成交额 1.05 万亿，较昨日放量 1200 亿；北向资金净流入 32 亿元。\n\n**明日关注**：AI 应用端能否接力、指数能否站稳关键点位。\n\n*内容由 AI 自动生成，不构成投资建议。*`,
       tags: JSON.stringify(["复盘", "A股"]), sourceModel: "deepseek-v4-flash",
-      qualityScore: "90", status: "published", publish_date: ymd(0, 0, 0), createdAt: ts, updatedAt: ts,
+      qualityScore: "90", status: "published", publishDate: ymd(0, 0, 0), createdAt: ts, updatedAt: ts,
     },
     {
       id: uid("art"), type: "temperature", slug: "temperature-report",
@@ -349,7 +349,7 @@ async function main() {
       summary: "数据说经济在回暖，可为什么很多人感觉不到？本文拆解“温差”的四大来源。",
       content: `# 温差报告\n\n## 温差现状\n\n本月宏观温度计 **62°**（偏暖），大众体感温度 **45°**（偏冷），温差 **17 度**。\n\n## 温差从哪里来？\n\n### 1. 平均值掩盖了结构差异\n\nCPI 同比 1.4% 是“平均”，但不同群体消费篮子差异巨大：以食品为主的群体感受约 2.5%，以服务为主的群体感受约 0.8%。\n\n### 2. 宏观增长 ≠ 个体增收\n\nGDP 增长来自高技术产业与出口部门，但传统行业与中小企业的收入感受滞后。\n\n### 3. 指标滞后于感受\n\n官方指标反映过去一个季度，而大众感受基于当下的房租、菜价、就业预期。\n\n### 4. 地区与行业分化\n\n广东、江苏体感明显好于东北、中部资源型省份；互联网与 AI 行业从业者体感远好于传统制造。\n\n## 结论\n\n宏观数据与个人体感**可以同时为真**：一个是“平均的经济”，一个是“具体的生活”。理解温差，才能避免被任何单一数字误导。\n\n*本报告由 Max AI 基于官方数据与用户体感问卷自动生成。*`,
       tags: JSON.stringify(["温差", "体感", "科普"]), sourceModel: "deepseek-v4-flash",
-      qualityScore: "92", status: "published", publish_date: ymd(0, 0, -2), createdAt: ts, updatedAt: ts,
+      qualityScore: "92", status: "published", publishDate: ymd(0, 0, -2), createdAt: ts, updatedAt: ts,
     },
   ];
   if (artRows.length) await db.insert(s.articles).values(artRows).onConflictDoNothing();
@@ -388,7 +388,7 @@ async function main() {
       id: uid("fs"), uid: null,
       answers: JSON.stringify({ income: pick([-2, -1, -1, 0, 0, 1]), job: pick([-2, -1, -1, 0, 0, 0, 1]), price: pick([-1, -1, 0, 0, 1]), housing: pick([-2, -1, -1, 0, 1]), consume: pick([-2, -1, 0, 0, 0, 1]) }),
       score, age_group: pick(ages), occupation: pick(occs), region: pick(regions),
-      created_at: ts - Math.floor(rng() * 30) * 86400000,
+      createdAt: ts - Math.floor(rng() * 30) * 86400000,
     });
   }
   if (surveyRows.length) await db.insert(s.feelingSurveys).values(surveyRows).onConflictDoNothing();
@@ -397,8 +397,8 @@ async function main() {
   const allScores = surveyRows.map((x: any) => x.score ?? 0);
   aggRows.push({
     id: uid("agg"), dimension: "overall", bucket: "all",
-    avg_score: round1(allScores.reduce((a, b) => a + b, 0) / allScores.length),
-    sample_count: allScores.length, date: ymd(0, 0, 0),
+    avgScore: round1(allScores.reduce((a, b) => a + b, 0) / allScores.length),
+    sampleCount: allScores.length, date: ymd(0, 0, 0),
   });
   for (const key of ["age_group", "occupation", "region"] as const) {
     const buckets = key === "age_group" ? ages : key === "occupation" ? occs : regions;
@@ -407,8 +407,8 @@ async function main() {
       if (!list.length) continue;
       aggRows.push({
         id: uid("agg"), dimension: key, bucket: b,
-        avg_score: round1(list.reduce((a, x) => a + (x.score ?? 0), 0) / list.length),
-        sample_count: list.length, date: ymd(0, 0, 0),
+        avgScore: round1(list.reduce((a, x) => a + (x.score ?? 0), 0) / list.length),
+        sampleCount: list.length, date: ymd(0, 0, 0),
       });
     }
   }
@@ -421,7 +421,7 @@ async function main() {
     tempRows.push({
       id: uid("temp"), date: ym(0, -m), temperature: base,
       components: JSON.stringify({ ...comps, gdp: comps.gdp + Math.floor(rng() * 6) - 3 }),
-      created_at: ts,
+      createdAt: ts,
     });
   }
   tempRows[tempRows.length - 1].temperature = 62;
@@ -431,16 +431,16 @@ async function main() {
     {
       id: uid("tan"), date: ym(0, 0), temperature_diff: 17,
       content: `# 本月温差速览\n\n宏观温度 **62°**（偏暖）vs 大众体感 **45°**（偏冷），温差 **17 度**。\n\n**核心原因**：平均值掩盖结构差异、宏观增长未同步传导至居民收入、数据滞后于现实感受、地区与行业分化显著。详见《温差报告》。`,
-      created_at: ts,
+      createdAt: ts,
     },
   ];
   if (diffRows.length) await db.insert(s.temperatureAnalyses).values(diffRows).onConflictDoNothing();
 
   const logRows = [
-    { id: uid("log"), task_name: "macro-fetch", status: "success", detail: "国家统计局 1296 条指标入库", duration_ms: 3200, tokens: 0, created_at: ts },
-    { id: uid("log"), task_name: "policy-fetch", status: "success", detail: "抓取 3 条新政策并生成 AI 解读", duration_ms: 8400, tokens: 5200, created_at: ts },
-    { id: uid("log"), task_name: "daily-review", status: "success", detail: "收盘复盘已生成并发布", duration_ms: 6100, tokens: 3100, created_at: ts },
-    { id: uid("log"), task_name: "temperature-report", status: "success", detail: "温差报告已生成（温差 17°）", duration_ms: 7900, tokens: 4600, created_at: ts },
+    { id: uid("log"), task_name: "macro-fetch", status: "success", detail: "国家统计局 1296 条指标入库", duration_ms: 3200, tokens: 0, createdAt: ts },
+    { id: uid("log"), task_name: "policy-fetch", status: "success", detail: "抓取 3 条新政策并生成 AI 解读", duration_ms: 8400, tokens: 5200, createdAt: ts },
+    { id: uid("log"), task_name: "daily-review", status: "success", detail: "收盘复盘已生成并发布", duration_ms: 6100, tokens: 3100, createdAt: ts },
+    { id: uid("log"), task_name: "temperature-report", status: "success", detail: "温差报告已生成（温差 17°）", duration_ms: 7900, tokens: 4600, createdAt: ts },
   ];
   if (logRows.length) await db.insert(s.taskLogs).values(logRows).onConflictDoNothing();
 

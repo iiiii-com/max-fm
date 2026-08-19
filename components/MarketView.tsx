@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import type { Quote } from "@/lib/data/quotes";
 import { fmt, fmtPct } from "@/lib/utils";
 
-export default function MarketView({ initialQuotes, initialSectors }: { initialQuotes: Quote[]; initialSectors: Quote[] }) {
+export default function MarketView({ initialQuotes, initialGlobal, initialSectors }: { initialQuotes: Quote[]; initialGlobal: Quote[]; initialSectors: Quote[] }) {
   const [quotes, setQuotes] = useState(initialQuotes);
+  const [global, setGlobal] = useState(initialGlobal);
   const [sectors, setSectors] = useState(initialSectors);
   const [watch, setWatch] = useState<string[]>(() => {
     if (typeof window === "undefined") return [];
@@ -19,6 +20,7 @@ export default function MarketView({ initialQuotes, initialSectors }: { initialQ
         const res = await fetch("/api/quotes", { cache: "no-store" });
         const json = await res.json();
         if (json?.quotes) setQuotes(json.quotes);
+        if (json?.global) setGlobal(json.global);
         if (json?.sectors) setSectors(json.sectors);
       } catch { /* ignore */ }
     }, 60000);
@@ -41,26 +43,35 @@ export default function MarketView({ initialQuotes, initialSectors }: { initialQ
 
   const sortedSectors = [...sectors].sort((a, b) => b.changePct - a.changePct);
 
+  const QuoteCard = ({ q }: { q: Quote }) => (
+    <div className="card p-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted">{q.name}</p>
+        <button onClick={() => toggle(q)} className="text-xs text-primary hover:underline">
+          {watch.includes(q.code) ? "已自选 ✓" : "加入自选"}
+        </button>
+      </div>
+      <p className="text-xl font-bold font-mono mt-1">{fmt(q.price)}</p>
+      <p className={`text-sm font-mono mt-1 ${q.changePct >= 0 ? "up" : "down"}`}>
+        {q.changePct >= 0 ? "+" : ""}{fmtPct(q.changePct)}　{q.changeAmount >= 0 ? "+" : ""}{fmt(q.changeAmount)}
+      </p>
+    </div>
+  );
+
   return (
     <div className="space-y-6">
       {msg && <p className="text-xs text-amber-600">{msg}</p>}
       <section>
-        <h2 className="font-bold mb-3">主要指数</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {quotes.map((q) => (
-            <div key={q.code} className="card p-4">
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-muted">{q.name}</p>
-                <button onClick={() => toggle(q)} className="text-xs text-primary hover:underline">
-                  {watch.includes(q.code) ? "已自选 ✓" : "加入自选"}
-                </button>
-              </div>
-              <p className="text-xl font-bold font-mono mt-1">{fmt(q.price)}</p>
-              <p className={`text-sm font-mono mt-1 ${q.changePct >= 0 ? "up" : "down"}`}>
-                {q.changePct >= 0 ? "+" : ""}{fmtPct(q.changePct)}　{q.changeAmount >= 0 ? "+" : ""}{fmt(q.changeAmount)}
-              </p>
-            </div>
-          ))}
+        <h2 className="font-bold mb-3">A股主要指数</h2>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+          {quotes.map((q) => <QuoteCard key={q.code} q={q} />)}
+        </div>
+      </section>
+
+      <section>
+        <h2 className="font-bold mb-3">全球资产</h2>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+          {global.map((q) => <QuoteCard key={q.code} q={q} />)}
         </div>
       </section>
 

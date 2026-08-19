@@ -1,5 +1,5 @@
 ﻿import Link from "next/link";
-import { fetchQuotes, fetchSectors } from "@/lib/data/quotes";
+import { fetchQuotes, fetchGlobalQuotes, fetchSectors } from "@/lib/data/quotes";
 import { getArticles } from "@/lib/data/queries";
 import { SectionTitle, Badge, AIFlag } from "@/components/ui";
 import { fmtDate } from "@/lib/utils";
@@ -11,7 +11,7 @@ export const metadata = { title: "投资分析" };
 
 export default async function InvestPage() {
   await bootstrap();
-  const [quotes, sectors, articles] = await Promise.all([fetchQuotes(), fetchSectors(), getArticles(undefined, 6)]);
+  const [quotes, global, sectors, articles] = await Promise.all([fetchQuotes(), fetchGlobalQuotes(), fetchSectors(), getArticles(undefined, 6)]);
   const reviews = articles.filter((a: any) => a.type === "daily" || a.type === "weekly");
 
   return (
@@ -21,7 +21,12 @@ export default async function InvestPage() {
         <p className="text-sm text-muted mt-1">实时行情来自东方财富公开接口 · 复盘报告由 AI 每日自动生成 · 不构成投资建议</p>
       </header>
 
-      <MarketView initialQuotes={quotes} initialSectors={sectors} />
+      <MarketView initialQuotes={quotes} initialGlobal={global} initialSectors={sectors} />
+
+      <div className="flex gap-3 flex-wrap">
+        <Link href="/stock" className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium">个股行情 & K 线</Link>
+        <Link href="/macro" className="px-4 py-2 rounded-lg border border-border text-sm hover:border-primary/50">宏观指标对比</Link>
+      </div>
 
       <section>
         <SectionTitle title="AI 复盘报告" sub="每日收盘后自动生成" extra={<AIFlag />} />
@@ -31,7 +36,7 @@ export default async function InvestPage() {
               <div className="card p-4 hover:shadow-md transition-shadow h-full">
                 <div className="flex items-center gap-2 mb-2">
                   <Badge>{a.type === "daily" ? "每日复盘" : "每周周报"}</Badge>
-                  <span className="text-xs text-muted ml-auto">{fmtDate(a.publish_date)}</span>
+                  <span className="text-xs text-muted ml-auto">{fmtDate(a.publishDate)}</span>
                 </div>
                 <h3 className="font-bold leading-snug line-clamp-2">{a.title}</h3>
                 <p className="text-sm text-muted mt-1.5 line-clamp-2">{a.summary}</p>

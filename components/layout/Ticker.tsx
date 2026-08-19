@@ -13,7 +13,7 @@ export default function Ticker() {
       try {
         const res = await fetch("/api/quotes", { cache: "no-store" });
         const json = await res.json();
-        if (alive && json?.quotes) setQuotes(json.quotes);
+        if (alive && json?.quotes) setQuotes([...(json.quotes || []), ...(json.global || [])]);
       } catch {
         /* ignore */
       }

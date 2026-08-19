@@ -2,6 +2,7 @@
 import { getIndicators, getArticles } from "@/lib/data/queries";
 import { SectionTitle, Card, Badge, AIFlag } from "@/components/ui";
 import { TrendCard } from "@/components/charts/IndicatorLine";
+import CompareTool from "@/components/charts/CompareTool";
 import { fmtDate } from "@/lib/utils";
 import { bootstrap } from "@/lib/db";
 
@@ -43,6 +44,11 @@ export default async function MacroPage() {
         <TrendCard title="城镇调查失业率" value={latest("unemp")} unit="%" data={series("unemp")} color="#ca8a04" />
       </section>
 
+      <section>
+        <h2 className="font-bold mb-3">指标对比</h2>
+        <CompareTool indicators={inds} />
+      </section>
+
       <section id="report">
         <SectionTitle title="AI 月度报告" sub="每月自动生成，数据解读 + 趋势研判" extra={<AIFlag />} />
         {monthly ? (
@@ -50,7 +56,7 @@ export default async function MacroPage() {
             <Card className="hover:shadow-md transition-shadow">
               <div className="flex items-center gap-2 mb-2">
                 <Badge>月度报告</Badge>
-                <span className="text-xs text-muted">{fmtDate(monthly.publish_date)}</span>
+                <span className="text-xs text-muted">{fmtDate(monthly.publishDate)}</span>
               </div>
               <h3 className="font-bold text-lg">{monthly.title}</h3>
               <p className="text-sm text-muted mt-1 line-clamp-2">{monthly.summary}</p>

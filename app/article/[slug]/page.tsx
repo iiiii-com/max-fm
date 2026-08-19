@@ -22,7 +22,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
         <div className="flex items-center gap-2 mb-3">
           <Badge>{article.type === "daily" ? "每日复盘" : article.type === "monthly" ? "月度报告" : article.type === "weekly" ? "每周周报" : "温差报告"}</Badge>
           <AIFlag />
-          <span className="text-sm text-muted ml-auto">{fmtDate(article.publish_date)}</span>
+          <span className="text-sm text-muted ml-auto">{fmtDate(article.publishDate)}</span>
         </div>
         <h1 className="text-2xl md:text-3xl font-bold leading-snug">{article.title}</h1>
         <p className="text-muted mt-3">{article.summary}</p>
@@ -40,7 +40,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
             <Link key={a.id} href={`/article/${a.slug}`}>
               <div className="card p-4 hover:shadow-md transition-shadow h-full">
                 <h3 className="font-medium text-sm line-clamp-2 leading-snug">{a.title}</h3>
-                <p className="text-xs text-muted mt-2">{fmtDate(a.publish_date)}</p>
+                <p className="text-xs text-muted mt-2">{fmtDate(a.publishDate)}</p>
               </div>
             </Link>
           ))}
