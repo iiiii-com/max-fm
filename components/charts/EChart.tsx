@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import * as echarts from "echarts";
-import type { EChartsOption } from "echarts";
+import { echarts, type EChartsOption } from "./echarts";
 
 export default function EChart({ option, height = 360, className = "" }: { option: EChartsOption; height?: number | string; className?: string }) {
   const ref = useRef<HTMLDivElement>(null);

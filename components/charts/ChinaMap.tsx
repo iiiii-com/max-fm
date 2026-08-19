@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import * as echarts from "echarts";
 import chinaGeo from "@/data/china-geo.json";
-import type { EChartsOption } from "echarts";
+import { echarts, type EChartsOption } from "./echarts";
 
 echarts.registerMap("china", chinaGeo as any);
 

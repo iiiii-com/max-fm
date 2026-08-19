@@ -5,7 +5,7 @@ import * as s from "@/lib/db/schema";
 import { aiGenerate, aiGenerateOrFallback, hasAI } from "@/lib/ai";
 import { getIndicators, getPolicies, getTemperatures } from "@/lib/data/queries";
 import { fetchQuotes, fetchSectors } from "@/lib/data/quotes";
-import { syncMacroReal } from "@/lib/data/macro-sync";
+import { syncMacroReal, calcMacroTemperature } from "@/lib/data/macro-sync";
 
 export const maxDuration = 300;
 
@@ -50,10 +50,10 @@ export async function GET(req: Request) {
   };
 
   const temperatureReport = async () => {
+    const temp = await calcMacroTemperature();
     const [temps, policies] = await Promise.all([getTemperatures(), getPolicies()]);
     const latest = temps[temps.length - 1];
     if (!latest) return "无温度数据";
-    const temp = latest.temperature ?? 62;
     const diff = temp - 45;
     const policyTitle = policies[0]?.title ?? "近期政策";
     const fb = `# 温差报告\n\n本月宏观温度 **${temp}°**，大众体感温度 **45°**，温差 **${diff} 度**。\n\n**温差来源**：1）平均值掩盖结构差异；2）宏观增长未同步传导至居民收入；3）指标滞后于现实感受；4）地区与行业分化。\n\n**近期相关**：${policyTitle}。`;
