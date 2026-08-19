@@ -1,9 +1,11 @@
 ﻿import { NextResponse } from "next/server";
+import { eq } from "drizzle-orm";
 import { db, uid, now } from "@/lib/db";
 import * as s from "@/lib/db/schema";
-import { aiGenerateOrFallback } from "@/lib/ai";
+import { aiGenerate, aiGenerateOrFallback, hasAI } from "@/lib/ai";
 import { getIndicators, getPolicies, getTemperatures } from "@/lib/data/queries";
 import { fetchQuotes, fetchSectors } from "@/lib/data/quotes";
+import { syncMacroReal } from "@/lib/data/macro-sync";
 
 export const maxDuration = 300;
 
@@ -81,9 +83,62 @@ export async function GET(req: Request) {
     return `已生成宏观月报`;
   };
 
+  const policyAnalysis = async () => {
+    const [policies, existing] = await Promise.all([
+      getPolicies(),
+      db.select().from(s.policyAnalyses),
+    ]);
+    const byUid: Map<string, any> = new Map(existing.map((x: any) => [x.uid, x]));
+    const targets = policies
+      .filter((p: any) => !byUid.has(p.id) || !byUid.get(p.id)?.detail)
+      .slice(0, 5);
+    let n = 0;
+    for (const p of targets) {
+      const fb = {
+        popular: `# 普通人怎么看\n\n**一句话**：${p.title}。\n\n**影响**：对普通人的直接影响包括收入、就业、消费与投资（如楼市、股市、存款）等渠道，整体偏中性，长期利好经济修复。\n\n**建议**：关注政策落地细节与配套措施，理性看待短期波动，不轻信小道消息。\n\n*内容由 AI 自动生成，不构成投资建议。*`,
+        professional: `# 专业解读\n\n**政策要点**：${p.summary}。\n\n**解读**：本次政策由${p.department || "相关部门"}发布，旨在稳定预期、畅通循环。从宏观视角看，政策取向延续了稳中求进的主基调，短期有助于提振信心，中长期效果取决于执行与配套。\n\n**关注点**：1）落地节奏与资金规模；2）对相关行业与产业链的传导路径；3）后续是否有配套细则。`,
+        detail: `# 趋势与风险\n\n**趋势判断**：政策方向利好${p.category || "相关"}领域，相关产业链（新能源/半导体/AI/消费等视政策内容而定）存在结构性机会。\n\n**风险提示**：1）政策落地不及预期；2）市场已提前定价；3）外部环境变化。建议投资者结合自身风险承受能力理性决策。`,
+        dataLinks: JSON.stringify(["GDP 同比增速", "CPI 同比", "制造业 PMI"]),
+      };
+      let popular = fb.popular, professional = fb.professional, detail = fb.detail, dataLinks = fb.dataLinks;
+      if (hasAI()) {
+        try {
+          const out = await aiGenerate(
+            `你是宏观政策分析师。请对以下政策生成三层解读，严格输出 JSON：{"popular":"普通人视角解读(Markdown,150-250字)","professional":"专业机构视角解读(Markdown,250-400字)","detail":"趋势判断与风险提示(Markdown,150-250字)","dataLinks":["关联指标名数组"]}。\n\n政策标题：${p.title}\n机构：${p.department || "—"}\n摘要：${p.summary}\n分类：${p.category || "—"}\n发布时间：${p.publishDate}`,
+            { model: "strong", maxTokens: 1600, temperature: 0.4 },
+          );
+          const parsed = JSON.parse(out.replace(/```json|```/g, "").trim());
+          if (parsed.popular) popular = parsed.popular;
+          if (parsed.professional) professional = parsed.professional;
+          if (parsed.detail) detail = parsed.detail;
+          if (Array.isArray(parsed.dataLinks)) dataLinks = JSON.stringify(parsed.dataLinks);
+        } catch {
+          // 解析失败保留 fallback
+        }
+      }
+      const prev = byUid.get(p.id);
+      if (prev) {
+        await db.update(s.policyAnalyses).set({ detail, updatedAt: now() }).where(eq(s.policyAnalyses.id, prev.id));
+      } else {
+        await db.insert(s.policyAnalyses).values({
+          id: uid("pan"), uid: p.id, popular, professional, detail, dataLinks,
+          source: "max-ai", sourceModel: hasAI() ? "deepseek-chat" : "template",
+          createdAt: now(), updatedAt: now(),
+        } as any);
+      }
+      n++;
+    }
+    return `已分析 ${n} 条政策（待分析 ${targets.length}）`;
+  };
+
   if (task === "all" || task === "daily") await run("daily-review", dailyReview);
   if (task === "all" || task === "temperature") await run("temperature-report", temperatureReport);
   if (task === "all" || task === "monthly") await run("macro-monthly", macroMonthly);
+  if (task === "all" || task === "policy") await run("policy-analysis", policyAnalysis);
+  if (task === "all" || task === "macro-sync") await run("macro-sync", async () => {
+    const res = await syncMacroReal();
+    return res.map((r) => `${r.type}=${r.count}`).join(", ");
+  });
 
   return NextResponse.json({ ok: true, results });
 }

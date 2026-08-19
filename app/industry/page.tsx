@@ -1,7 +1,7 @@
 ﻿import Link from "next/link";
 import { getChains, getChainNodes } from "@/lib/data/queries";
 import { Card, Badge, SectionTitle } from "@/components/ui";
-import ChainGraph from "@/components/charts/ChainGraph";
+import ChainGraphViewer from "@/components/ChainGraphViewer";
 import { fmtDate } from "@/lib/utils";
 import { bootstrap } from "@/lib/db";
 
@@ -33,9 +33,9 @@ export default async function IndustryPage() {
       </header>
 
       <section>
-        <SectionTitle title="产业链全景图" sub="力导向图：节点为环节，连线为上下游关系" />
+        <SectionTitle title="产业链全景图" sub="力导向图：节点为环节，连线为上下游关系；可聚焦单条链查看" />
         <Card>
-          <ChainGraph nodes={nodes} links={links} />
+          <ChainGraphViewer chains={chains} nodes={nodes} links={links} />
         </Card>
       </section>
 

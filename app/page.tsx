@@ -81,6 +81,27 @@ export default async function Home() {
         </div>
       </section>
 
+      {/* AI 速评 */}
+      {(latestDaily || latestMonthly) && (
+        <section>
+          <Card className="p-5 border-l-4 border-l-primary">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="font-bold">AI 速评</span>
+              <AIFlag />
+              <span className="text-xs text-muted ml-auto">
+                {latestDaily ? `今日复盘 · ${fmtDate(latestDaily.publishDate)}` : latestMonthly ? `宏观月报 · ${fmtDate(latestMonthly.publishDate)}` : ""}
+              </span>
+            </div>
+            <p className="text-sm text-muted leading-relaxed line-clamp-3">
+              {latestDaily?.summary ?? latestMonthly?.summary ?? "AI 分析生成中。"}
+            </p>
+            <Link href={`/article/${latestDaily?.slug ?? latestMonthly?.slug}`} className="text-sm text-primary hover:underline mt-2 inline-block">
+              阅读全文 →
+            </Link>
+          </Card>
+        </section>
+      )}
+
       {/* 六大模块入口 */}
       <section>
         <SectionTitle title="六大分析模块" sub="多方位多角度，总有一款适合你" />

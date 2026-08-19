@@ -7,7 +7,7 @@ import type { EChartsOption } from "echarts";
 
 echarts.registerMap("china", chinaGeo as any);
 
-export default function ChinaMap({ option, height = 520, className = "" }: { option: EChartsOption; height?: number; className?: string }) {
+export default function ChinaMap({ option, height = 520, className = "", onEvents }: { option: EChartsOption; height?: number; className?: string; onEvents?: Record<string, (params: any) => void> }) {
   const ref = useRef<HTMLDivElement>(null);
   const chartRef = useRef<echarts.ECharts | null>(null);
 
@@ -19,8 +19,13 @@ export default function ChinaMap({ option, height = 520, className = "" }: { opt
     chart.setOption(option);
     const onResize = () => chart.resize();
     window.addEventListener("resize", onResize);
+    const handlers = Object.entries(onEvents || {}).map(([evt, fn]) => {
+      chart.on(evt, fn as any);
+      return [evt, fn] as const;
+    });
     return () => {
       window.removeEventListener("resize", onResize);
+      for (const [evt, fn] of handlers) chart.off(evt as any, fn as any);
       chart.dispose();
       chartRef.current = null;
     };

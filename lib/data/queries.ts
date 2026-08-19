@@ -67,6 +67,10 @@ export async function getProvinceHistory(province: string) {
     .orderBy(asc(s.provinceStats.year));
 }
 
+export async function getProvinceHistoryAll() {
+  return db.select().from(s.provinceStats).orderBy(asc(s.provinceStats.province), asc(s.provinceStats.year));
+}
+
 export async function getChains() {
   return db.select().from(s.industryChains);
 }

@@ -1,4 +1,4 @@
-﻿import { getProvinces } from "@/lib/data/queries";
+﻿import { getProvinces, getProvinceHistoryAll } from "@/lib/data/queries";
 import { SectionTitle, Card } from "@/components/ui";
 import ProvinceMap from "@/components/ProvinceMap";
 import { bootstrap } from "@/lib/db";
@@ -20,7 +20,7 @@ const fmt1 = (v: number) => Math.round(v * 10) / 10;
 
 export default async function MapPage() {
   await bootstrap();
-  const provinces = await getProvinces();
+  const [provinces, historyAll] = await Promise.all([getProvinces(), getProvinceHistoryAll()]);
   const latest = provinces.filter((p: any) => p.year === 2025);
   const data = latest.map((p: any) => ({
     name: NAME_MAP[p.province] ?? p.province,
@@ -30,6 +30,16 @@ export default async function MapPage() {
     population: p.population ?? 0,
     trade: p.trade ?? 0,
     fiscalRevenue: p.fiscalRevenue ?? 0,
+  }));
+  const history = historyAll.map((h: any) => ({
+    name: NAME_MAP[h.province] ?? h.province,
+    year: h.year,
+    gdp: h.gdp ?? 0,
+    growth: h.growth ?? 0,
+    perCapitaGdp: h.perCapitaGdp ?? 0,
+    population: h.population ?? 0,
+    trade: h.trade ?? 0,
+    fiscalRevenue: h.fiscalRevenue ?? 0,
   }));
 
   const totalGdp = fmt1(data.reduce((s: number, d: any) => s + d.gdp, 0));
@@ -64,8 +74,8 @@ export default async function MapPage() {
       </section>
 
       <section>
-        <SectionTitle title="区域经济全景" sub="悬停地图查看数值与排名，切换指标对比区域差异，表格点击表头排序" />
-        <ProvinceMap data={data} />
+        <SectionTitle title="区域经济全景" sub="悬停地图查看数值与排名，切换指标对比区域差异，表格点击表头排序；点击省份或表格行查看 2018-2025 走势" />
+        <ProvinceMap data={data} history={history} />
       </section>
     </div>
   );

@@ -67,6 +67,18 @@ export default async function PolicyDetailPage({ params }: { params: Promise<{ i
         </Card>
         <Card>
           <div className="flex items-center justify-between mb-3">
+            <h2 className="font-bold">趋势与风险</h2>
+            <AIFlag />
+          </div>
+          {analysis?.detail ? (
+            <div className="prose-sm"><Markdown content={analysis.detail} /></div>
+          ) : <p className="text-sm text-muted">分析生成中</p>}
+        </Card>
+      </section>
+
+      <section className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <Card>
+          <div className="flex items-center justify-between mb-3">
             <h2 className="font-bold">关联数据</h2>
           </div>
           {analysis?.dataLinks ? (

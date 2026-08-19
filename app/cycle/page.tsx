@@ -1,7 +1,11 @@
 import Link from "next/link";
 import { CYCLE_TYPES, MILESTONES, CURRENT_POSITION } from "@/lib/data/cycles";
 import { Card, Badge, SectionTitle } from "@/components/ui";
+import MerrillClock from "@/components/MerrillClock";
+import { getRecentAggregated } from "@/lib/data/queries";
+import { bootstrap } from "@/lib/db";
 
+export const dynamic = "force-dynamic";
 export const metadata = { title: "周期洞察 · 康波周期" };
 
 const WAVES = [
@@ -18,7 +22,9 @@ const TYPE_TONE: Record<string, string> = {
   债务危机: "amber", 政策冲击: "blue", 黑天鹅: "gray",
 };
 
-export default function CyclePage() {
+export default async function CyclePage() {
+  await bootstrap();
+  const agg = await getRecentAggregated();
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 space-y-10">
       <header>
@@ -67,6 +73,13 @@ export default function CyclePage() {
             </Card>
           ))}
         </div>
+      </section>
+
+      <section>
+        <SectionTitle title="美林投资时钟" sub="以真实宏观数据定位当前阶段（GDP {agg.latestGdp}% · CPI {agg.latestCpi}%）" />
+        <Card>
+          <MerrillClock growth={agg.latestGdp} inflation={agg.latestCpi} />
+        </Card>
       </section>
 
       <section>
