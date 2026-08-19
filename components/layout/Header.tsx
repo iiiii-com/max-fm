@@ -8,15 +8,10 @@ import { Search, Moon, Sun, User, Menu, X } from "lucide-react";
 import Ticker from "./Ticker";
 
 const NAV = [
-  { href: "/macro", label: "宏观经济" },
-  { href: "/policy", label: "政策解读" },
-  { href: "/invest", label: "投资分析" },
-  { href: "/stock", label: "个股行情" },
-  { href: "/etf", label: "ETF" },
-  { href: "/industry", label: "产业链" },
-  { href: "/history", label: "历史回顾" },
-  { href: "/cycle", label: "周期洞察" },
-  { href: "/advice", label: "个人建议" },
+  { href: "/macro", label: "宏观总览" },
+  { href: "/market", label: "市场洞察" },
+  { href: "/industry", label: "产业地图" },
+  { href: "/history", label: "历史演进" },
 ];
 
 export default function Header({ user }: { user?: { name: string } | null }) {
