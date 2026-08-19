@@ -29,12 +29,15 @@ export function StatCard({
   return href ? <Link href={href}>{inner}</Link> : inner;
 }
 
-export function Badge({ children, tone = "red" }: { children: React.ReactNode; tone?: "red" | "green" | "gray" | "amber" }) {
+export function Badge({ children, tone = "red" }: { children: React.ReactNode; tone?: "red" | "green" | "gray" | "amber" | "blue" | "purple" | "cyan" }) {
   const tones = {
     red: "bg-primary/10 text-primary",
     green: "bg-down/10 text-down",
     gray: "bg-border/60 text-muted",
     amber: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
+    blue: "bg-sky-500/15 text-sky-600 dark:text-sky-400",
+    purple: "bg-violet-500/15 text-violet-600 dark:text-violet-400",
+    cyan: "bg-cyan-500/15 text-cyan-600 dark:text-cyan-400",
   };
   return <span className={cn("inline-flex items-center px-2 py-0.5 rounded text-xs font-medium", tones[tone])}>{children}</span>;
 }

@@ -1,69 +1,80 @@
-import Link from "next/link";
-import { getHistoryEvents } from "@/lib/data/queries";
+﻿import Link from "next/link";
 import { Card, Badge, SectionTitle } from "@/components/ui";
-import { fmtDate } from "@/lib/utils";
-import { bootstrap } from "@/lib/db";
+import HistoryTimeline from "@/components/HistoryTimeline";
+import { filterHistory, HISTORY_EVENTS, REGIONS, HISTORY_CATEGORIES, CAT_TONE, REGION_TONE, REGION_LABEL } from "@/lib/data/history";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "全球历史回顾" };
 
-const CATEGORIES = ["全部", "债务危机", "金融危机", "泡沫破裂", "股市崩盘", "政策冲击", "供给冲击", "黑天鹅"];
-
-const CAT_TONE: Record<string, string> = {
-  债务危机: "amber", 金融危机: "red", 泡沫破裂: "purple", 股市崩盘: "red",
-  政策冲击: "blue", 供给冲击: "green", 黑天鹅: "gray",
-};
-
-export default async function HistoryPage({ searchParams }: { searchParams: Promise<{ cat?: string }> }) {
-  const { cat } = await searchParams;
-  await bootstrap();
-  const all = await getHistoryEvents();
-  const events = cat && cat !== "全部" ? all.filter((e: any) => e.category === cat) : all;
+export default async function HistoryPage({ searchParams }: { searchParams: Promise<{ region?: string; cat?: string }> }) {
+  const { region = "all", cat = "全部" } = await searchParams;
+  const events = filterHistory({ region, cat });
+  const regionLabel = region === "all" ? "全部地区" : region === "cn" ? "中国" : "西方";
+  const chips = [
+    { key: "all", label: "全部地区" },
+    ...REGIONS.filter((x) => x.key !== "all").map((x) => ({ key: x.key, label: x.label })),
+  ];
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 space-y-8">
       <header>
         <h1 className="text-2xl font-bold">全球历史回顾</h1>
-        <p className="text-sm text-muted mt-1">从 1637 年郁金香泡沫到 2023 年银行危机：回放每一次重大危机与崩盘，看清规律，指导当下</p>
+        <p className="text-sm text-muted mt-1">
+          从夏朝建立到 ChatGPT：{HISTORY_EVENTS.length} 条真实中西方历史事件的时间轴。
+          点击事件展开详情（关键人物 · 历史影响 · 史料出处），按地区与类型筛选。{" "}
+          <Link href="/cycle" className="text-primary hover:underline">配合康波周期使用 →</Link>
+        </p>
       </header>
 
       <section>
-        <div className="flex flex-wrap gap-2 mb-4">
-          {CATEGORIES.map((c) => (
+        <div className="flex flex-wrap gap-2 mb-2">
+          {chips.map((c) => (
             <Link
-              key={c}
-              href={c === "全部" ? "/history" : `/history?cat=${encodeURIComponent(c)}`}
+              key={c.key}
+              href={`/history?region=${c.key}&cat=${encodeURIComponent(cat)}`}
               className={`px-3 py-1.5 rounded-lg text-sm border transition-colors ${
-                (cat ?? "全部") === c ? "bg-primary text-white border-primary" : "border-border hover:border-primary/50"
+                region === c.key ? "bg-primary text-white border-primary" : "border-border hover:border-primary/50"
               }`}
             >
-              {c}
+              {c.label}
+            </Link>
+          ))}
+          <span className="w-px bg-border mx-1" />
+          {["全部", ...HISTORY_CATEGORIES].map((c) => (
+            <Link
+              key={c}
+              href={`/history?region=${region}&cat=${encodeURIComponent(c)}`}
+              className={`px-3 py-1.5 rounded-lg text-sm border transition-colors ${
+                cat === c ? "bg-primary text-white border-primary" : "border-border hover:border-primary/50"
+              }`}
+            >
+              {c === "全部" ? "全部类型" : c}
             </Link>
           ))}
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {events.map((e: any) => (
-            <Link key={e.id} href={`/history/${e.slug}`}>
-              <Card className="hover:shadow-md hover:border-primary/40 transition-all h-full flex flex-col">
-                <div className="flex items-center gap-2 mb-2 flex-wrap">
-                  <Badge tone={(CAT_TONE[e.category] ?? "gray") as any}>{e.category || "事件"}</Badge>
-                  <Badge tone="gray">{e.region}</Badge>
-                  <span className="text-xs text-muted ml-auto font-mono">{e.date}</span>
-                </div>
-                <h3 className="font-bold text-lg leading-snug">{e.title}</h3>
-                <p className="text-sm text-muted mt-1.5 line-clamp-3 flex-1">{e.summary}</p>
-                <div className="flex gap-2 mt-3">
-                  {(JSON.parse(e.dataLinks ?? "[]") as Array<{ label: string; value: string }>).slice(0, 2).map((d: any) => (
-                    <span key={d.label} className="text-xs px-2 py-0.5 rounded bg-border/40 text-muted">
-                      {d.label} {d.value}
-                    </span>
-                  ))}
-                </div>
-              </Card>
-            </Link>
+        <p className="text-xs text-muted mb-4">当前：{regionLabel} · {cat} · 共 {events.length} 条 · 按时间正序</p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+          {events.slice(0, 6).map((e) => (
+            <Card key={e.year + e.title} className="p-4">
+              <div className="flex items-center gap-2 mb-2 flex-wrap">
+                <span className={`font-mono font-bold text-sm ${e.year < 0 ? "text-green-600" : "text-primary"}`}>
+                  {e.year < 0 ? `公元前${-e.year}` : e.year}
+                </span>
+                <Badge tone={(CAT_TONE[e.category] ?? "gray") as any}>{e.category}</Badge>
+                <Badge tone={(REGION_TONE[e.region] ?? "gray") as any}>{REGION_LABEL[e.region]}</Badge>
+              </div>
+              <h3 className="font-bold leading-snug">{e.title}</h3>
+              <p className="text-sm text-muted mt-1 line-clamp-2">{e.summary}</p>
+            </Card>
           ))}
         </div>
-        {!events.length && <p className="text-sm text-muted">该分类暂无事件</p>}
+
+        <SectionTitle title="完整时间轴" sub="点击任意事件展开详情" />
+        <Card className="p-5">
+          <HistoryTimeline events={events} />
+        </Card>
+        {!events.length && <p className="text-sm text-muted">该筛选条件下暂无事件</p>}
       </section>
     </div>
   );

@@ -2,20 +2,14 @@ import Link from "next/link";
 import { CYCLE_TYPES, MILESTONES, CURRENT_POSITION } from "@/lib/data/cycles";
 import { Card, Badge, SectionTitle } from "@/components/ui";
 import MerrillClock from "@/components/MerrillClock";
+import KonratiefWaves from "@/components/KonratiefWaves";
+import DynastyTable from "@/components/DynastyTable";
 import { getRecentAggregated } from "@/lib/data/queries";
 import { bootstrap } from "@/lib/db";
+import konratief from "@/data/konratief.json";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "周期洞察 · 康波周期" };
-
-const WAVES = [
-  { no: "第一波", years: "1782—1845", tech: "蒸汽机 · 棉纺织", phase: "英国工业革命" },
-  { no: "第二波", years: "1845—1892", tech: "铁路 · 钢铁", phase: "重工业化时代" },
-  { no: "第三波", years: "1892—1948", tech: "电力 · 化工 · 内燃机", phase: "电气化时代" },
-  { no: "第四波", years: "1948—1991", tech: "汽车 · 家电 · 电子", phase: "大众消费时代" },
-  { no: "第五波", years: "1991—2040s?", tech: "信息技术 · 互联网", phase: "信息时代（当前正处于尾声）" },
-  { no: "第六波", years: "孕育中", tech: "AI · 新能源 · 生物科技", phase: "智能时代（导入期）" },
-];
 
 const TYPE_TONE: Record<string, string> = {
   泡沫破裂: "purple", 金融危机: "red", 股市崩盘: "red", 供给冲击: "green",
@@ -58,21 +52,15 @@ export default async function CyclePage() {
       </section>
 
       <section>
-        <SectionTitle title="康波五轮历史回顾" sub="技术革命驱动的主导产业更替，每轮 50—60 年" />
-        <div className="space-y-3">
-          {WAVES.map((w) => (
-            <Card key={w.no} className="p-4 flex flex-col md:flex-row md:items-center gap-3">
-              <div className="flex items-center gap-3 md:w-64 shrink-0">
-                <Badge tone={w.no === "第六波" ? "amber" : "red"}>{w.no}</Badge>
-                <span className="font-mono text-sm text-muted">{w.years}</span>
-              </div>
-              <div className="flex-1">
-                <p className="font-semibold">{w.tech}</p>
-                <p className="text-sm text-muted">{w.phase}</p>
-              </div>
-            </Card>
-          ))}
-        </div>
+        <SectionTitle title="康波六波全景对照" sub="每波含技术革命、主导产业、核心国家、关键里程碑与中国同期，点击卡片展开详情" />
+        <KonratiefWaves waves={konratief.waves} />
+      </section>
+
+      <section>
+        <SectionTitle title="康波 × 王朝周期 · 千年尺度对照" sub="中国历代王朝兴衰与康波长波的嵌套关系：王朝 ≈ 300 年，康波 ≈ 50—60 年" />
+        <Card className="p-4">
+          <DynastyTable dynasties={konratief.dynasties} />
+        </Card>
       </section>
 
       <section>
