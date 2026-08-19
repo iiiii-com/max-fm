@@ -70,6 +70,49 @@ export default function CyclePage() {
       </section>
 
       <section>
+        <SectionTitle title="康波各阶段 · 大类资产表现" sub="四阶段循环下的历史统计规律（仅供参考，不构成投资建议）" />
+        <Card className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left border-b border-border">
+                <th className="py-3 pl-4 pr-4 font-medium">阶段</th>
+                <th className="py-3 pr-4 font-medium">经济特征</th>
+                <th className="py-3 px-3 font-medium text-center">股票</th>
+                <th className="py-3 px-3 font-medium text-center">债券</th>
+                <th className="py-3 px-3 font-medium text-center">黄金</th>
+                <th className="py-3 px-3 font-medium text-center">大宗商品</th>
+                <th className="py-3 pr-4 pl-3 font-medium text-center">现金</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                { phase: "回升期", note: "新技术导入，产能与需求共振，利润率修复", s: "强", b: "中性", g: "弱", c: "弱", cash: "弱" },
+                { phase: "繁荣期", note: "投资过热，通胀抬头，利率中枢上行", s: "强", b: "弱", g: "弱", c: "强", cash: "弱" },
+                { phase: "滞胀期", note: "成本推动通胀，增长停滞，股债双杀", s: "弱", b: "弱", g: "强", c: "强", cash: "强" },
+                { phase: "衰退期", note: "需求塌缩，利率下行，避险主导", s: "弱", b: "强", g: "中性", c: "弱", cash: "中性" },
+              ].map((r) => (
+                <tr key={r.phase} className="border-b border-border/50 last:border-0">
+                  <td className="py-3 pl-4 pr-4 font-semibold whitespace-nowrap">{r.phase}</td>
+                  <td className="py-3 pr-4 text-xs text-muted leading-relaxed">{r.note}</td>
+                  {[r.s, r.b, r.g, r.c, r.cash].map((v, i) => (
+                    <td key={i} className="py-3 px-3 text-center">
+                      <span className={`px-2 py-0.5 rounded text-xs font-medium ${v === "强" ? "bg-red-100 text-red-600" : v === "弱" ? "bg-green-100 text-green-600" : "bg-border/40 text-muted"}`}>
+                        {v === "强" ? "↑" : v === "弱" ? "↓" : "—"}
+                      </span>
+                      <span className="hidden">{v}</span>
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="text-[11px] text-muted px-4 py-3 border-t border-border">
+            注：此表为 1920 年以来主要经济体各阶段资产相对收益的统计规律；周期位置模糊时（如当前康波尾声 + 第六波导入期叠加），资产表现可能出现阶段特征混合。
+          </p>
+        </Card>
+      </section>
+
+      <section>
         <SectionTitle title="古今中外 · 周期事件时间线" sub="从 1637 郁金香到 2023 银行危机：周期从未消失" />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {MILESTONES.map((m) => (

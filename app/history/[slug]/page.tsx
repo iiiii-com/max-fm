@@ -23,6 +23,9 @@ export default async function HistoryDetailPage({ params }: { params: Promise<{ 
   const idx = events.findIndex((x: any) => x.id === e.id);
   const prev = idx > 0 ? events[idx - 1] : null;
   const next = idx >= 0 && idx < events.length - 1 ? events[idx + 1] : null;
+  const sameCat = events
+    .filter((x: any) => x.category === e.category && x.id !== e.id)
+    .slice(0, 3);
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-6 space-y-6">
@@ -42,15 +45,39 @@ export default async function HistoryDetailPage({ params }: { params: Promise<{ 
 
       <section>
         <SectionTitle title="关键数据" sub="事件核心数字一览" />
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {keyData.map((d) => (
-            <Card key={d.label} className="p-4">
-              <p className="text-xs text-muted">{d.label}</p>
-              <p className="font-bold text-lg mt-1">{d.value}</p>
-            </Card>
-          ))}
-        </div>
+        {keyData.length ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {keyData.map((d) => (
+              <Card key={d.label} className="p-4">
+                <p className="text-xs text-muted">{d.label}</p>
+                <p className="font-bold text-lg mt-1">{d.value}</p>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <Card><p className="text-sm text-muted">本事件暂无结构化数据，详见下方事件回放。</p></Card>
+        )}
       </section>
+
+      {sameCat.length > 0 && (
+        <section>
+          <SectionTitle title={`同类事件 · ${e.category}`} sub="同一类风险的历史参照" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {sameCat.map((s: any) => (
+              <Link key={s.id} href={`/history/${s.slug}`} className="hover:shadow-md transition-shadow">
+                <Card className="p-4 h-full">
+                  <div className="flex items-center justify-between mb-1">
+                    <Badge tone={(CAT_TONE[s.category] ?? "gray") as any}>{s.category}</Badge>
+                    <span className="text-[11px] text-muted font-mono">{s.date}</span>
+                  </div>
+                  <h3 className="font-bold text-sm leading-snug">{s.title}</h3>
+                  <p className="text-xs text-muted mt-1 line-clamp-2">{s.summary}</p>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section>
         <SectionTitle title="事件回放" sub="背景 · 经过 · 影响 · 启示" />

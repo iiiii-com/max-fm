@@ -10,6 +10,26 @@ export const dynamic = "force-dynamic";
 
 export const metadata = { title: "宏观经济" };
 
+const r1 = (v: number) => Math.round(v * 100) / 100;
+
+const LEVEL_TYPES = new Set(["pmi", "tsf", "lpr", "fx", "unemp"]);
+
+function yoyOf(s: Array<{ date: string; value: number }>): number | null {
+  const last = s[s.length - 1];
+  if (!last) return null;
+  const m = last.date.match(/^(\d{4})-(\d{2})$/);
+  const q = last.date.match(/^(\d{4})-Q(\d)$/);
+  const target = m ? `${+m[1] - 1}-${m[2]}` : q ? `${+q[1] - 1}-Q${q[2]}` : null;
+  if (!target) return null;
+  const row = s.find((x) => x.date === target);
+  return row ? r1(last.value - row.value) : null;
+}
+
+function momOf(s: Array<{ date: string; value: number }>): number | null {
+  if (s.length < 2) return null;
+  return r1(s[s.length - 1].value - s[s.length - 2].value);
+}
+
 export default async function MacroPage() {
   await bootstrap();
   const [inds, articles] = await Promise.all([getIndicators(), getArticles("monthly")]);
@@ -20,6 +40,47 @@ export default async function MacroPage() {
     return s[s.length - 1]?.value ?? 0;
   };
   const monthly = articles[0];
+
+  const cards = [
+    { type: "gdp", title: "GDP 同比增速", unit: "%", color: "#4f46e5" },
+    { type: "cpi", title: "CPI 同比", unit: "%", color: "#dc2626" },
+    { type: "ppi", title: "PPI 同比", unit: "%", color: "#ea580c" },
+    { type: "pmi", title: "制造业 PMI", unit: "", color: "#0891b2" },
+    { type: "m2", title: "M2 同比增速", unit: "%", color: "#2563eb" },
+    { type: "tsf", title: "社融增量", unit: "万亿", color: "#0d9488" },
+    { type: "lpr", title: "1年期 LPR", unit: "%", color: "#6d28d9" },
+    { type: "fx", title: "外汇储备", unit: "万亿$", color: "#0e7490" },
+    { type: "ind", title: "工业增加值同比", unit: "%", color: "#16a34a" },
+    { type: "retail", title: "社零同比", unit: "%", color: "#ea580c" },
+    { type: "invest", title: "固定资产投资同比", unit: "%", color: "#9333ea" },
+    { type: "realestate", title: "房地产开发投资同比", unit: "%", color: "#b91c1c" },
+    { type: "fin", title: "财政收入同比", unit: "%", color: "#15803d" },
+    { type: "export", title: "出口同比", unit: "%", color: "#7c3aed" },
+    { type: "import", title: "进口同比", unit: "%", color: "#a21caf" },
+    { type: "unemp", title: "城镇调查失业率", unit: "%", color: "#ca8a04" },
+  ];
+
+  const linkData: Record<string, number> = {
+    lpr: latest("lpr"), re: latest("realestate"), m2: latest("m2"), tsf: latest("tsf"),
+    ppi: latest("ppi"), ind: latest("ind"), cpi: latest("cpi"), retail: latest("retail"),
+    exp: latest("export"), fx: latest("fx"), unemp: latest("unemp"),
+  };
+  const LINK_DESC: Record<string, (v: Record<string, number>) => string> = {
+    "LPR ↔ 房地产": (v) => `1 年期 LPR 当前 ${v.lpr}%，房地产开发投资同比 ${v.re}%。历史规律：LPR 每下调 10bp，按揭利率同步下行，地产销售通常滞后 2-3 个季度企稳，投资降幅随之收窄。`,
+    "M2 ↔ 社融": (v) => `M2 同比 ${v.m2}%，当月社融增量 ${v.tsf} 万亿。M2 快于社融（剪刀差为正）时资金淤积金融体系，权益市场往往受益；社融提速则代表实体需求回暖。`,
+    "PPI ↔ 工业增加值": (v) => `PPI 同比 ${v.ppi}%，工业增加值同比 ${v.ind}%。PPI 上行期上游涨价带动工业利润扩张，生产端通常跟随改善；PPI 深度为负则企业去库、开工承压。`,
+    "CPI ↔ 社零": (v) => `CPI 同比 ${v.cpi}%，社零同比 ${v.retail}%。温和通胀伴随消费回暖；若 CPI 持续为负而社零低迷，往往对应居民收入预期偏弱，需政策发力提振内需。`,
+    "出口 ↔ 外汇储备": (v) => `出口同比 ${v.exp}%，外汇储备 ${v.fx} 万亿美元。出口景气度高时结汇需求增加，储备稳中有升、人民币汇率获得支撑；出口转弱则汇率波动加大。`,
+    "失业率 ↔ 社零": (v) => `城镇调查失业率 ${v.unemp}%，社零同比 ${v.retail}%。就业与消费强相关：失业率上行往往领先社零走弱 1-2 个季度，反之就业改善带动可选消费率先修复。`,
+  };
+  const LINK_META = [
+    { title: "LPR ↔ 房地产", sub: "利率是地产链的定价之锚", keys: ["lpr", "re"], latest: (v: Record<string, number>) => `${v.lpr}% / ${v.re}%` },
+    { title: "M2 ↔ 社融", sub: "货币供给 vs 实体融资需求", keys: ["m2", "tsf"], latest: (v: Record<string, number>) => `${v.m2}% / ${v.tsf}万亿` },
+    { title: "PPI ↔ 工业增加值", sub: "价格传导决定工业利润", keys: ["ppi", "ind"], latest: (v: Record<string, number>) => `${v.ppi}% / ${v.ind}%` },
+    { title: "CPI ↔ 社零", sub: "物价与消费互为镜像", keys: ["cpi", "retail"], latest: (v: Record<string, number>) => `${v.cpi}% / ${v.retail}%` },
+    { title: "出口 ↔ 外汇储备", sub: "外需强弱影响储备与汇率", keys: ["exp", "fx"], latest: (v: Record<string, number>) => `${v.exp}% / ${v.fx}万亿$` },
+    { title: "失业率 ↔ 社零", sub: "就业是消费的前置变量", keys: ["unemp", "retail"], latest: (v: Record<string, number>) => `${v.unemp}% / ${v.retail}%` },
+  ];
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 space-y-8">
@@ -35,22 +96,38 @@ export default async function MacroPage() {
       </div>
 
       <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <TrendCard title="GDP 同比增速" value={latest("gdp")} unit="%" data={series("gdp")} color="#4f46e5" />
-        <TrendCard title="CPI 同比" value={latest("cpi")} unit="%" data={series("cpi")} color="#dc2626" />
-        <TrendCard title="PPI 同比" value={latest("ppi")} unit="%" data={series("ppi")} color="#ea580c" />
-        <TrendCard title="制造业 PMI" value={latest("pmi")} unit="" data={series("pmi")} color="#0891b2" />
-        <TrendCard title="M2 同比增速" value={latest("m2")} unit="%" data={series("m2")} color="#2563eb" />
-        <TrendCard title="社融增量" value={latest("tsf")} unit="万亿" data={series("tsf")} color="#0d9488" />
-        <TrendCard title="1年期 LPR" value={latest("lpr")} unit="%" data={series("lpr")} color="#6d28d9" />
-        <TrendCard title="外汇储备" value={latest("fx")} unit="万亿$" data={series("fx")} color="#0e7490" />
-        <TrendCard title="工业增加值同比" value={latest("ind")} unit="%" data={series("ind")} color="#16a34a" />
-        <TrendCard title="社零同比" value={latest("retail")} unit="%" data={series("retail")} color="#ea580c" />
-        <TrendCard title="固定资产投资同比" value={latest("invest")} unit="%" data={series("invest")} color="#9333ea" />
-        <TrendCard title="房地产开发投资同比" value={latest("realestate")} unit="%" data={series("realestate")} color="#b91c1c" />
-        <TrendCard title="财政收入同比" value={latest("fin")} unit="%" data={series("fin")} color="#15803d" />
-        <TrendCard title="出口同比" value={latest("export")} unit="%" data={series("export")} color="#7c3aed" />
-        <TrendCard title="进口同比" value={latest("import")} unit="%" data={series("import")} color="#a21caf" />
-        <TrendCard title="城镇调查失业率" value={latest("unemp")} unit="%" data={series("unemp")} color="#ca8a04" />
+        {cards.map((c) => {
+          const s = series(c.type);
+          const isLevel = LEVEL_TYPES.has(c.type);
+          return (
+            <TrendCard
+              key={c.type}
+              title={c.title}
+              value={latest(c.type)}
+              unit={c.unit}
+              color={c.color}
+              data={s}
+              yoy={isLevel ? null : yoyOf(s)}
+              mom={momOf(s)}
+            />
+          );
+        })}
+      </section>
+
+      <section>
+        <SectionTitle title="指标联动观察" sub="成对指标互相印证，判断经济传导链条的方向" />
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {LINK_META.map((l) => (
+            <Card key={l.title} className="p-4">
+              <div className="flex items-center justify-between mb-1">
+                <h3 className="font-bold text-sm">{l.title}</h3>
+                <span className="text-xs font-mono text-muted">{l.latest(linkData)}</span>
+              </div>
+              <p className="text-[11px] text-muted mb-2">{l.sub}</p>
+              <p className="text-xs text-muted leading-relaxed">{LINK_DESC[l.title](linkData)}</p>
+            </Card>
+          ))}
+        </div>
       </section>
 
       <section>

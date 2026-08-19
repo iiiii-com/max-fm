@@ -10,12 +10,29 @@ export const dynamic = "force-dynamic";
 
 export const metadata = { title: "政策详情" };
 
+const SECTOR_HINTS: Array<{ label: string; slug: string; words: string[] }> = [
+  { label: "新能源汽车", slug: "nev", words: ["新能源", "汽车", "购置税", "充电"] },
+  { label: "半导体", slug: "semiconductor", words: ["芯片", "半导体", "集成电路", "晶圆"] },
+  { label: "人工智能", slug: "ai", words: ["人工智能", "AI", "算力", "大模型"] },
+  { label: "房地产", slug: "realestate", words: ["地产", "住房", "房贷", "楼市", "商品房"] },
+  { label: "医药生物", slug: "pharma", words: ["医药", "医保", "集采", "创新药", "医疗"] },
+  { label: "光伏", slug: "solar", words: ["光伏", "装机", "组件"] },
+  { label: "机器人", slug: "robot", words: ["机器人", "人形"] },
+  { label: "银行保险", slug: "finance", words: ["银行", "保险", "息差", "降准", "资本充足"] },
+  { label: "消费", slug: "baijiu", words: ["消费", "白酒", "以旧换新", "补贴", "内需"] },
+  { label: "农业食品", slug: "agrifood", words: ["农业", "粮食", "种业", "食品"] },
+  { label: "军工", slug: "defense", words: ["军工", "国防", "装备"] },
+  { label: "低空经济", slug: "lowaltitude", words: ["低空", "eVTOL", "无人机"] },
+];
+
 export default async function PolicyDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   await bootstrap();
   const [row, others] = await Promise.all([getPolicyWithAnalysis(id), getPolicies()]);
   if (!row) notFound();
   const { policy: p, analysis } = row;
+  const corpus = `${p.title} ${p.summary} ${p.content} ${analysis?.popular ?? ""} ${analysis?.professional ?? ""}`;
+  const hitSectors = SECTOR_HINTS.filter((s) => s.words.some((w) => corpus.includes(w)));
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 space-y-6">
@@ -63,6 +80,18 @@ export default async function PolicyDetailPage({ params }: { params: Promise<{ i
               <p className="text-xs text-muted mt-4">数据由 Max 数据管道自动关联，分析由 AI 生成。</p>
             </>
           ) : <p className="text-sm text-muted">数据关联生成中</p>}
+          {hitSectors.length > 0 && (
+            <>
+              <p className="text-sm text-muted mb-2 mt-4">政策可能受益的产业链：</p>
+              <div className="flex flex-wrap gap-2">
+                {hitSectors.map((s) => (
+                  <Link key={s.slug} href={`/industry/${s.slug}`} className="hover:opacity-70 transition-opacity">
+                    <Badge tone="red">{s.label}</Badge>
+                  </Link>
+                ))}
+              </div>
+            </>
+          )}
         </Card>
       </section>
 

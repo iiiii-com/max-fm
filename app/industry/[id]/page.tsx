@@ -41,6 +41,21 @@ export default async function ChainDetailPage({ params }: { params: Promise<{ id
     nodes: sorted.filter((n: any) => n.level === role),
   }));
 
+  const realNodes = nodes.filter((n: any) => !String(n.name).startsWith("关联："));
+  const companyCount = new Set(
+    realNodes.flatMap((n: any) => JSON.parse(n.companies ?? "[]") as string[])
+  ).size;
+  const roleCount: Record<string, number> = { 上游: 0, 中游: 0, 下游: 0 };
+  realNodes.forEach((n: any) => { roleCount[n.level ?? ""] = (roleCount[n.level ?? ""] ?? 0) + 1; });
+  const chainFlow = ["上游", "中游", "下游"].map((r) => ({ role: r, count: roleCount[r] ?? 0 }));
+
+  const overview = [
+    { label: "环节总数", value: `${realNodes.length}`, note: `${roleCount["上游"] ?? 0} 上游 · ${roleCount["中游"] ?? 0} 中游 · ${roleCount["下游"] ?? 0} 下游` },
+    { label: "代表公司", value: `${companyCount}`, note: "去重后覆盖 A 股与港股" },
+    { label: "链级规模", value: chain.detail ? chain.detail.split("，")[0] : "—", note: chain.detail ?? "规模数据整理中" },
+    { label: "景气状态", value: SENTIMENT[chain.sentiment] ?? "—", note: "由行业库存、价格与订单综合判断" },
+  ];
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 space-y-8">
       <header>
@@ -53,6 +68,31 @@ export default async function ChainDetailPage({ params }: { params: Promise<{ id
         <h1 className="text-2xl md:text-3xl font-bold leading-snug">{chain.name}</h1>
         <p className="text-muted mt-3 text-sm md:text-base">{chain.description}</p>
       </header>
+
+      <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {overview.map((o) => (
+          <Card key={o.label} className="p-4">
+            <p className="text-xs text-muted">{o.label}</p>
+            <p className="font-bold text-lg mt-1 truncate">{o.value}</p>
+            <p className="text-[11px] text-muted mt-0.5 truncate">{o.note}</p>
+          </Card>
+        ))}
+      </section>
+
+      <section className="card p-4">
+        <p className="text-xs text-muted mb-2">传导路径：上游供给与成本 → 中游加工与性能 → 下游需求反馈</p>
+        <div className="flex items-center gap-2 flex-wrap">
+          {chainFlow.map((f, i) => (
+            <span key={f.role} className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium" style={{ background: `${ROLE_COLOR[f.role]}1a`, color: ROLE_COLOR[f.role] }}>
+                <span className="w-2 h-2 rounded-full" style={{ background: ROLE_COLOR[f.role] }} />
+                {f.role} {f.count} 环节
+              </span>
+              {i < chainFlow.length - 1 && <span className="text-muted">→</span>}
+            </span>
+          ))}
+        </div>
+      </section>
 
       <section>
         <SectionTitle title="上下游结构图" sub="力导向图：节点为环节，连线为供需传导关系" />

@@ -635,6 +635,38 @@ const chainLinkTargets: Record<string, string[]> = {
   baijiu: ["消费", "食品饮料", "餐饮"],
 };
 
+const CHAIN_SCALE: Record<string, string> = {
+  nev: "2025 年产值约 1.5 万亿元，出口占比超 20%",
+  semiconductor: "市场规模约 1.3 万亿元，国产化率不足 30%",
+  ai: "产业规模突破 1 万亿元，算力投资年增超 40%",
+  pharma: "医药工业产值约 3 万亿元，创新药占比持续提升",
+  realestate: "开发投资规模约 9 万亿元，处于收缩筑底期",
+  baijiu: "白酒市场规模约 7500 亿元，高端占比约 30%",
+  solar: "全球组件出货超 600GW，中国占比约 80%",
+  wind: "风电累计装机超 5 亿千瓦，海风占比持续提升",
+  storage: "新型储能装机超 1 亿千瓦，年增速超 100%",
+  hydrogen: "绿氢项目规划产能超 500 万吨/年，产业化拐点临近",
+  robot: "工业机器人年销量超 30 万台，人形机器人量产在即",
+  lowaltitude: "低空经济规模超 5000 亿元，2030 年目标 2 万亿元",
+  innovdrug: "创新药出海交易额年超 400 亿美元",
+  meddevice: "医疗器械市场规模约 1.2 万亿元，高端替代加速",
+  defense: "国防预算年增约 7%，装备升级周期开启",
+  telecom: "通信设备市场规模约 5000 亿元，5G-A 建设启动",
+  consumer: "消费电子市场规模约 2 万亿元，AI 终端渗透率提升",
+  computing: "算力产业规模超 2 万亿元，液冷渗透率超 20%",
+  finance: "银行业总资产超 400 万亿元，保险资金运用超 30 万亿元",
+  steelcoal: "粗钢产量约 10 亿吨，动力煤需求进入平台期",
+  petrochem: "炼化能力约 9 亿吨/年，新材料占比提升",
+  agrifood: "粮食总产量连续十年超 1.3 万亿斤",
+  crossborder: "跨境电商进出口超 2.5 万亿元，年增速约 15%",
+};
+
+const NODE_LEVEL_ROLE: Record<string, string> = {
+  上游: "是整条链的成本与供给起点，其价格与产能波动沿产业链向下游逐级传导",
+  中游: "是价值加工与性能决定环节，技术升级直接决定整链毛利与竞争力",
+  下游: "直接对接终端需求，向上游反馈订单与库存信号",
+};
+
 async function main() {
   await bootstrap();
   console.log(`driver: ${isPg ? "postgres" : "sqlite"}`);
@@ -749,7 +781,7 @@ async function main() {
 
   await db.delete(s.chainNodes);
   await db.delete(s.industryChains);
-  const chainRows = CHAINS.map((c: any) => ({ id: uid("chain"), name: c.name, slug: c.slug, sentiment: c.sentiment, description: c.description, updatedAt: ts }));
+  const chainRows = CHAINS.map((c: any) => ({ id: uid("chain"), name: c.name, slug: c.slug, sentiment: c.sentiment, description: c.description, detail: CHAIN_SCALE[c.slug] ?? null, updatedAt: ts }));
   if (chainRows.length) await db.insert(s.industryChains).values(chainRows).onConflictDoNothing();
   const chainsInDb = await db.select().from(s.industryChains);
   const nodeRows: any[] = [];
@@ -759,7 +791,8 @@ async function main() {
     for (const n of def.nodes) {
       nodeRows.push({
         id: uid("node"), chainId: c.id, name: n.name, level: n.level,
-        companies: JSON.stringify(n.companies), description: `${n.name}环节：${def.description.split("，")[0]}。`,
+        companies: JSON.stringify(n.companies),
+        description: (n as any).description ?? `${n.name}是${c.name}的${n.level}环节，${(n.companies ?? []).slice(0, 2).join("、")}等为代表性企业。${NODE_LEVEL_ROLE[n.level] ?? ""}。`,
       });
     }
     for (const tgt of chainLinkTargets[c.slug] ?? []) {
