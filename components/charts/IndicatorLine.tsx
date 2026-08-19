@@ -81,9 +81,9 @@ export default function IndicatorLine({
   );
 }
 
-export function TrendCard({ title, value, unit, yoy, mom, data, color, note }: {
+export function TrendCard({ title, value, unit, yoy, mom, data, color, note, source }: {
   title: string; value: number; unit: string; yoy?: number | null; mom?: number | null;
-  data: Array<{ date: string; value: number }>; color?: string; note?: string;
+  data: Array<{ date: string; value: number }>; color?: string; note?: string; source?: string;
 }) {
   const win = data.slice(-36);
   const vals = win.map((d) => d.value);
@@ -108,7 +108,7 @@ export function TrendCard({ title, value, unit, yoy, mom, data, color, note }: {
       </div>
       <p className="text-2xl font-bold font-mono mb-1">{value}<span className="text-sm font-normal text-muted ml-1">{unit}</span></p>
       <p className="text-[11px] text-muted mb-2 truncate">
-        近 36 期区间 {min}（{minD}）— {max}（{maxD}）{note ? ` · ${note}` : ""}
+        近 36 期区间 {min}（{minD}）— {max}（{maxD}）{note ? ` · ${note}` : ""}{source ? ` · ${source}` : ""}
       </p>
       <IndicatorLine title="" unit={unit} data={data} color={color} />
     </div>

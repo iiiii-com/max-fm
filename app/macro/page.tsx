@@ -13,6 +13,8 @@ export const metadata = { title: "宏观经济" };
 const r1 = (v: number) => Math.round(v * 100) / 100;
 
 const LEVEL_TYPES = new Set(["pmi", "tsf", "lpr", "fx", "unemp"]);
+const REAL = new Set(["gdp", "cpi", "ppi", "pmi", "m2", "m1", "fin", "houseprice"]);
+const SRC = { real: "东方财富数据中心", demo: "演示数据" };
 
 function yoyOf(s: Array<{ date: string; value: number }>): number | null {
   const last = s[s.length - 1];
@@ -98,8 +100,8 @@ export default async function MacroPage() {
     <div className="mx-auto max-w-7xl px-4 py-6 space-y-8">
       <header>
         <h1 className="text-2xl font-bold">宏观经济</h1>
-        <p className="text-sm text-muted mt-1">数据来源：国家统计局 / 中国人民银行 / 海关总署 / 财政部</p>
-        <p className="text-xs text-muted/70 mt-1">注：宏观序列为演示数据，仅供学习参考；行情、个股与 K 线数据来自实时公开行情接口。</p>
+        <p className="text-sm text-muted mt-1">数据来源：东方财富数据中心（GDP / CPI / PPI / PMI / M1 / M2 / 税收收入 / 70城房价）</p>
+        <p className="text-xs text-muted/70 mt-1">注：其余序列为演示数据，仅供学习参考；行情、个股与 K 线数据来自实时公开行情接口。</p>
       </header>
 
       <div className="flex gap-3 flex-wrap">
@@ -122,6 +124,7 @@ export default async function MacroPage() {
               data={seriesTail(c.type)}
               yoy={isLevel ? null : yoyOf(s)}
               mom={momOf(s)}
+              source={REAL.has(c.type) ? SRC.real : SRC.demo}
             />
           );
         })}
