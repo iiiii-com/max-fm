@@ -9,10 +9,12 @@ export const maxDuration = 300;
 
 export async function GET(req: Request) {
   const auth = req.headers.get("authorization");
-  if (process.env.CRON_SECRET && auth !== `Bearer ${process.env.CRON_SECRET}`) {
+  const { searchParams } = new URL(req.url);
+  const secretParam = searchParams.get("secret");
+  const secret = process.env.CRON_SECRET;
+  if (secret && auth !== `Bearer ${secret}` && secretParam !== secret) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
-  const { searchParams } = new URL(req.url);
   const task = searchParams.get("task") || "all";
   const results: string[] = [];
 
@@ -40,7 +42,7 @@ export async function GET(req: Request) {
       title: `今日复盘：${top?.name ?? "市场"}领涨`,
       summary: `AI 自动生成的当日市场复盘（${today}）。`,
       content, tags: JSON.stringify(["复盘", "A股"]), sourceModel: "auto",
-      qualityScore: "80", status: "published", publishDate: today, createdAt: now(), updated_at: now(),
+      qualityScore: "80", status: "published", publishDate: today, createdAt: now(), updatedAt: now(),
     } as any);
     return `已生成当日复盘并发布`;
   };
