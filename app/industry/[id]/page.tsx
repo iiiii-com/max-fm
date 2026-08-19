@@ -63,6 +63,8 @@ export default async function ChainDetailPage({ params }: { params: Promise<{ id
           <Link href="/industry" className="text-sm text-primary hover:underline">← 产业链分析</Link>
           <Badge tone={chain.name.includes("AI") || chain.name.includes("半导体") ? "amber" : "red"}>{chain.name}</Badge>
           <Badge tone="gray">{SENTIMENT[chain.sentiment] ?? "景气中性"}</Badge>
+          <Link href={`/stock?q=${encodeURIComponent(chain.name)}`} className="text-sm text-primary hover:underline">板块行情 →</Link>
+          <Link href="/invest" className="text-sm text-muted hover:text-primary">大盘资金流</Link>
           <span className="text-sm text-muted ml-auto">{nodes.length} 个环节 · 上下游解剖</span>
         </div>
         <h1 className="text-2xl md:text-3xl font-bold leading-snug">{chain.name}</h1>

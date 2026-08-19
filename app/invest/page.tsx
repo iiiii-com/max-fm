@@ -4,6 +4,8 @@ import { getArticles } from "@/lib/data/queries";
 import { SectionTitle, Badge, AIFlag } from "@/components/ui";
 import { fmtDate } from "@/lib/utils";
 import MarketView from "@/components/MarketView";
+import MarketDashboard from "@/components/MarketDashboard";
+import NewsPanel from "@/components/NewsPanel";
 import { bootstrap } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -23,8 +25,19 @@ export default async function InvestPage() {
 
       <MarketView initialQuotes={quotes} initialGlobal={global} initialSectors={sectors} />
 
+      <section>
+        <SectionTitle title="资金流总览" sub="板块主力资金流向 · 北向资金 · 自选标的快捷下钻" />
+        <MarketDashboard />
+      </section>
+
+      <section>
+        <SectionTitle title="市场快讯" sub="财经要闻滚动 · 点击阅读原文" />
+        <NewsPanel />
+      </section>
+
       <div className="flex gap-3 flex-wrap">
         <Link href="/stock" className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium">个股行情 & K 线</Link>
+        <Link href="/industry" className="px-4 py-2 rounded-lg border border-border text-sm hover:border-primary/50">产业链全景</Link>
         <Link href="/macro" className="px-4 py-2 rounded-lg border border-border text-sm hover:border-primary/50">宏观指标对比</Link>
       </div>
 

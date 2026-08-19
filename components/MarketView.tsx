@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import type { Quote } from "@/lib/data/quotes";
 import { fmt, fmtPct } from "@/lib/utils";
 
@@ -89,7 +90,11 @@ export default function MarketView({ initialQuotes, initialGlobal, initialSector
             <tbody>
               {sortedSectors.slice(0, 15).map((x) => (
                 <tr key={x.code} className="border-b border-border/50">
-                  <td className="py-2 pr-4">{x.name}</td>
+                  <td className="py-2 pr-4">
+                    <Link href={`/stock?q=${encodeURIComponent(x.name)}`} className="hover:text-primary">
+                      {x.name}
+                    </Link>
+                  </td>
                   <td className={`py-2 pr-4 text-right font-mono ${x.changePct >= 0 ? "up" : "down"}`}>{fmtPct(x.changePct)}</td>
                   <td className="py-2 text-right font-mono">{fmtWanSafe(x.amount)}</td>
                 </tr>

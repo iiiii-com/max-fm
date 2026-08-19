@@ -1,10 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { echarts, type EChartsOption } from "@/components/charts/echarts";
 import { useTheme } from "@/components/theme-provider";
 import type { StockHit } from "@/app/api/stock/search/route";
 import type { KlineBar } from "@/app/api/stock/kline/route";
+import ScorePanel, { FlowPanel } from "@/components/ScorePanel";
+import { useWatchlist } from "@/lib/hooks/useWatchlist";
 
 function ma(data: number[], n: number): (number | null)[] {
   return data.map((_, i) => {
@@ -17,6 +21,8 @@ function ma(data: number[], n: number): (number | null)[] {
 
 export default function StockSearch() {
   const { theme } = useTheme();
+  const searchParams = useSearchParams();
+  const { items, toggle, has } = useWatchlist();
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<StockHit[]>([]);
   const [searching, setSearching] = useState(false);
@@ -24,10 +30,31 @@ export default function StockSearch() {
   const [selected, setSelected] = useState<StockHit | null>(null);
   const [bars, setBars] = useState<KlineBar[]>([]);
   const [fund, setFund] = useState<Record<string, number | string> | null>(null);
+  const [flow, setFlow] = useState<any>(null);
+  const [signals, setSignals] = useState<any>(null);
+  const [score, setScore] = useState<any>(null);
+  const [loadingFlow, setLoadingFlow] = useState(false);
   const [err, setErr] = useState("");
   const [loadingK, setLoadingK] = useState(false);
   const chartRef = useRef<echarts.ECharts | null>(null);
   const divRef = useRef<HTMLDivElement>(null);
+  const autoPicked = useRef<string | null>(null);
+
+  useEffect(() => {
+    const q = searchParams.get("q");
+    if (q && q !== autoPicked.current) {
+      autoPicked.current = q;
+      setQuery(q);
+      fetch(`/api/stock/search?q=${encodeURIComponent(q)}`, { cache: "no-store" })
+        .then((r) => r.json())
+        .then(async (json) => {
+          const first = json?.hits?.[0];
+          if (first) await pick(first);
+        })
+        .catch(() => {});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   useEffect(() => {
     if (!query.trim()) return;
@@ -53,10 +80,14 @@ export default function StockSearch() {
     setErr("");
     setLoadingK(true);
     setFund(null);
+    setFlow(null);
+    setScore(null);
+    setLoadingFlow(true);
     try {
-      const [kr, fr] = await Promise.all([
+      const [kr, fr, flowR] = await Promise.all([
         fetch(`/api/stock/kline?secid=${hit.secid}`, { cache: "no-store" }),
         hit.kind === "stock" ? fetch(`/api/stock/fundamentals?secid=${hit.secid}`, { cache: "no-store" }) : Promise.resolve(null),
+        fetch(`/api/stock/flow?secid=${hit.secid}`, { cache: "no-store" }),
       ]);
       const json = await kr.json();
       if (json?.klines) setBars(json.klines);
@@ -65,10 +96,17 @@ export default function StockSearch() {
         const fj = await fr.json();
         if (fj?.ok) setFund(fj.data);
       }
+      const flowJson = await flowR.json();
+      if (flowJson?.ok) {
+        setFlow(flowJson.flow);
+        setSignals(flowJson.signals);
+        setScore(flowJson.score);
+      }
     } catch {
       setErr("加载失败，请重试");
     } finally {
       setLoadingK(false);
+      setLoadingFlow(false);
     }
   };
 
@@ -183,11 +221,38 @@ export default function StockSearch() {
       {loadingK && <p className="text-sm text-muted">正在加载 K 线…</p>}
       {err && <p className="text-sm text-red-600">{err}</p>}
 
+      {items.length > 0 && (
+        <div className="card p-3">
+          <p className="text-xs text-muted mb-2">我的自选（{items.length}）</p>
+          <div className="flex flex-wrap gap-2">
+            {items.map((w) => (
+              <span key={w.secid} className="inline-flex items-center gap-1.5 text-xs rounded-md border border-border px-2 py-1">
+                <button onClick={() => pick({ secid: w.secid, code: w.code, name: w.name, kind: w.kind } as StockHit)} className="font-medium hover:text-primary">
+                  {w.name}
+                </button>
+                <span className="text-[10px] text-muted font-mono">{w.code}</span>
+                <button onClick={() => toggle(w)} className="text-muted hover:text-red-500" title="移除自选">×</button>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
       {selected && last && (
         <div className="card p-4">
           <div className="flex items-baseline gap-3 mb-2">
             <h2 className="font-bold">{selected.name}</h2>
             <span className="text-xs text-muted font-mono">{selected.code}</span>
+            <div className="flex gap-1 text-[10px]">
+              <Link href="/invest" className="px-1.5 py-0.5 rounded bg-muted/50 text-muted hover:text-primary">大盘</Link>
+              <Link href="/industry" className="px-1.5 py-0.5 rounded bg-muted/50 text-muted hover:text-primary">产业链</Link>
+            </div>
+            <button
+              onClick={() => toggle({ secid: selected.secid, code: selected.code, name: selected.name, kind: selected.kind === "index" ? "index" : "stock" })}
+              className={`ml-2 text-xs px-2 py-1 rounded-md border ${has(selected.secid) ? "border-red-300 text-red-600 bg-red-50 dark:border-red-900/50 dark:bg-red-950/40" : "border-border text-muted hover:border-primary/50"}`}
+            >
+              {has(selected.secid) ? "★ 已自选" : "☆ 加自选"}
+            </button>
             <span className="ml-auto text-xl font-bold font-mono">{last.close}</span>
             <span className={`text-sm font-mono ${pct >= 0 ? "up" : "down"}`}>
               {pct >= 0 ? "+" : ""}{pct.toFixed(2)}%
@@ -203,6 +268,17 @@ export default function StockSearch() {
               <div className="rounded-lg border border-border px-3 py-2"><p className="text-muted">每股净资产</p><p className="font-mono font-medium">{fund.bps == null ? "—" : Number(fund.bps).toFixed(2)}</p></div>
               <div className="rounded-lg border border-border px-3 py-2"><p className="text-muted">换手率</p><p className="font-mono font-medium">{fund.turnover == null ? "—" : `${Number(fund.turnover).toFixed(2)}%`}</p></div>
               <div className="rounded-lg border border-border px-3 py-2"><p className="text-muted">昨收</p><p className="font-mono font-medium">{fund.prevClose == null ? "—" : Number(fund.prevClose).toFixed(2)}</p></div>
+            </div>
+          )}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+            <ScorePanel data={score} loading={loadingFlow} />
+            <FlowPanel data={flow} loading={loadingFlow} />
+          </div>
+          {signals?.signals?.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              {signals.signals.map((s: string, i: number) => (
+                <span key={i} className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary/80">{s}</span>
+              ))}
             </div>
           )}
           <div ref={divRef} style={{ height: 420, width: "100%" }} />

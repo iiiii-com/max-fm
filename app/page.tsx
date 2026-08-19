@@ -10,7 +10,9 @@ export const dynamic = "force-dynamic";
 const MODULES = [
   { href: "/macro", icon: Landmark, title: "宏观经济", desc: "GDP / CPI / PMI 仪表盘，AI 月度报告" },
   { href: "/policy", icon: Newspaper, title: "政策解读", desc: "政策库 + 三层 AI 解读" },
-  { href: "/invest", icon: TrendingUp, title: "投资分析", desc: "实时行情、每日复盘、板块热度" },
+  { href: "/invest", icon: TrendingUp, title: "投资分析", desc: "实时行情、资金流总览、AI 复盘" },
+  { href: "/stock", icon: TrendingUp, title: "个股行情", desc: "K 线、资金流、综合评分" },
+  { href: "/etf", icon: TrendingUp, title: "ETF 行情", desc: "溢价率监控、K 线走势" },
   { href: "/map", icon: Map, title: "经济分布图", desc: "31 省数据地图可视化" },
   { href: "/industry", icon: Network, title: "产业链分析", desc: "23 条产业链上下游关系图" },
   { href: "/cycle", icon: RefreshCcw, title: "周期洞察", desc: "美林时钟四阶段资产配置" },
