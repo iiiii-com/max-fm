@@ -35,6 +35,10 @@ export default async function MacroPage() {
   const [inds, articles] = await Promise.all([getIndicators(), getArticles("monthly")]);
   const series = (type: string) =>
     inds.filter((x: any) => x.type === type).map((x: any) => ({ date: x.date, value: x.value ?? 0 }));
+  const seriesTail = (type: string, n = 120) => {
+    const s = series(type);
+    return s.length > n ? s.slice(-n) : s;
+  };
   const latest = (type: string) => {
     const s = series(type);
     return s[s.length - 1]?.value ?? 0;
@@ -115,7 +119,7 @@ export default async function MacroPage() {
               value={latest(c.type)}
               unit={c.unit}
               color={c.color}
-              data={s}
+              data={seriesTail(c.type)}
               yoy={isLevel ? null : yoyOf(s)}
               mom={momOf(s)}
             />
@@ -141,7 +145,7 @@ export default async function MacroPage() {
 
       <section>
         <h2 className="font-bold mb-3">指标对比</h2>
-        <CompareTool indicators={inds} />
+        <CompareTool />
       </section>
 
       <section id="report">

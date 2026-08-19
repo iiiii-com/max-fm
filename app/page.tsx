@@ -104,7 +104,7 @@ export default async function Home() {
 
       {/* 六大模块入口 */}
       <section>
-        <SectionTitle title="六大分析模块" sub="多方位多角度，总有一款适合你" />
+        <SectionTitle title="八大分析模块" sub="多方位多角度，总有一款适合你" />
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {MODULES.map((m: any) => (
             <Link key={m.href} href={m.href}>

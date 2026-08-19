@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import EChart from "./EChart";
 import ChartToolbar, { downloadCSV, type ChartType, type ChartRange } from "./ChartToolbar";
 import type { EChartsOption } from "echarts";
@@ -32,20 +32,29 @@ export const METRICS = [
   { type: "carsales", name: "乘用车零售销量", unit: "万辆", color: "#16a34a" },
 ];
 
-export default function CompareTool({ indicators }: {
-  indicators: Array<{ type: string; date: string; value: number | null }>;
-}) {
+export default function CompareTool() {
   const [a, setA] = useState("gdp");
   const [b, setB] = useState("cpi");
   const [type, setType] = useState<ChartType>("line");
   const [range, setRange] = useState<ChartRange>(0);
   const [log, setLog] = useState(false);
+  const [indicators, setIndicators] = useState<Array<{ type: string; date: string; value: number | null }> | null>(null);
   const metaA = METRICS.find((m) => m.type === a) ?? METRICS[0];
   const metaB = METRICS.find((m) => m.type === b) ?? METRICS[1];
 
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/indicators")
+      .then((r) => r.json())
+      .then((rows) => { if (alive) setIndicators(rows); })
+      .catch(() => { if (alive) setIndicators([]); });
+    return () => { alive = false; };
+  }, []);
+
   const { dates, seriesA, seriesB } = useMemo(() => {
+    const rows = indicators ?? [];
     const byType: Record<string, Map<string, number>> = {};
-    for (const row of indicators) {
+    for (const row of rows) {
       if (row.value == null) continue;
       (byType[row.type] ??= new Map()).set(row.date, row.value);
     }
@@ -135,6 +144,9 @@ export default function CompareTool({ indicators }: {
         />
       </div>
       <EChart option={option} height={320} />
+      {!indicators && (
+        <p className="text-xs text-muted mt-2">指标数据加载中…</p>
+      )}
     </div>
   );
 }
