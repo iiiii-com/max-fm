@@ -11,7 +11,7 @@ export interface NewsItem {
 
 export async function GET() {
   try {
-    const url = "https://feed.mix.sina.com.cn/api/roll/get?pageid=153&lid=2510&num=20&page=1";
+    const url = `https://feed.mix.sina.com.cn/api/roll/get?pageid=153&lid=2509&num=20&page=1&r=${Date.now()}`;
     const res = await fetch(url, {
       headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/126 Safari/537.36" },
       signal: AbortSignal.timeout(15000),
