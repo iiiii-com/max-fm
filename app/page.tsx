@@ -1,32 +1,24 @@
 ﻿import Link from "next/link";
-import { getArticles, getRecentAggregated, getFeelingAggregates, getTemperatures } from "@/lib/data/queries";
+import { getArticles, getRecentAggregated, getFeelingAggregates, getTemperatures, getChains } from "@/lib/data/queries";
 import { Card, StatCard, SectionTitle, Badge, AIFlag } from "@/components/ui";
 import { fmt, fmtDate } from "@/lib/utils";
-import { Newspaper, Map, Network, Landmark, TrendingUp, PiggyBank, RefreshCcw, History } from "lucide-react";
+import { Network, Landmark, TrendingUp, History } from "lucide-react";
+import { HISTORY_EVENTS } from "@/lib/data/history";
+import BoardCard from "@/components/BoardCard";
 import { bootstrap } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
-const MODULES = [
-  { href: "/macro", icon: Landmark, title: "宏观经济", desc: "GDP / CPI / PMI 仪表盘，AI 月度报告" },
-  { href: "/policy", icon: Newspaper, title: "政策解读", desc: "政策库 + 三层 AI 解读" },
-  { href: "/invest", icon: TrendingUp, title: "投资分析", desc: "实时行情、资金流总览、AI 复盘" },
-  { href: "/stock", icon: TrendingUp, title: "个股行情", desc: "K 线、资金流、综合评分" },
-  { href: "/etf", icon: TrendingUp, title: "ETF 行情", desc: "溢价率监控、K 线走势" },
-  { href: "/map", icon: Map, title: "经济分布图", desc: "31 省数据地图可视化" },
-  { href: "/industry", icon: Network, title: "产业链分析", desc: "23 条产业链上下游关系图" },
-  { href: "/cycle", icon: RefreshCcw, title: "周期洞察", desc: "美林时钟四阶段资产配置" },
-  { href: "/history", icon: History, title: "历史回顾", desc: "40+ 经济金融大事件复盘" },
-  { href: "/advice", icon: PiggyBank, title: "个人建议", desc: "问卷 → AI 个性化配置建议" },
-];
+const crisisCount = 20;
 
 export default async function Home() {
   await bootstrap();
-  const [articles, macro, feeling, temps] = await Promise.all([
+  const [articles, macro, feeling, temps, chains] = await Promise.all([
     getArticles(undefined, 8),
     getRecentAggregated(),
     getFeelingAggregates(),
     getTemperatures(),
+    getChains(),
   ]);
   const temp = temps[temps.length - 1]?.temperature ?? 62;
   const diff = Math.round(temp - feeling.overall);
@@ -104,19 +96,22 @@ export default async function Home() {
         </section>
       )}
 
-      {/* 六大模块入口 */}
+      {/* 四大板块 */}
       <section>
-        <SectionTitle title="八大分析模块" sub="多方位多角度，总有一款适合你" />
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {MODULES.map((m: any) => (
-            <Link key={m.href} href={m.href}>
-              <Card className="h-full hover:shadow-md hover:border-primary/40 transition-all">
-                <m.icon className="w-6 h-6 text-primary mb-3" />
-                <h3 className="font-bold">{m.title}</h3>
-                <p className="text-sm text-muted mt-1">{m.desc}</p>
-              </Card>
-            </Link>
-          ))}
+        <SectionTitle title="四大板块" sub="宏观 · 市场 · 产业 · 历史，一站式经济洞察" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <BoardCard href="/macro" title="宏观总览" desc="经济指标 · 政策解读 · 周期洞察 · 经济地图 · 个人建议" accent="bg-blue-600" icon={<Landmark className="w-4.5 h-4.5" />}>
+            <p>最新温度：{temp}°C · 情绪指数：{fmt(feeling.overall)}</p>
+          </BoardCard>
+          <BoardCard href="/market" title="市场洞察" desc="大盘指数 · 个股行情 · ETF · 资金流 · 快讯" accent="bg-red-600" icon={<TrendingUp className="w-4.5 h-4.5" />}>
+            <p>AI 复盘报告每日自动生成</p>
+          </BoardCard>
+          <BoardCard href="/industry" title="产业地图" desc="22 条产业链 · 景气度 · 资金热度 · 危机冲击案例" accent="bg-purple-600" icon={<Network className="w-4.5 h-4.5" />}>
+            <p>{chains.length} 条主线产业链</p>
+          </BoardCard>
+          <BoardCard href="/history" title="历史演进" desc="时间线 · 康波全景 · 朝代对照 · 危机重演" accent="bg-emerald-600" icon={<History className="w-4.5 h-4.5" />}>
+            <p>{HISTORY_EVENTS.length} 条事件 · {crisisCount} 场危机重演</p>
+          </BoardCard>
         </div>
       </section>
 
