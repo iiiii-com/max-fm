@@ -1,4 +1,5 @@
 ﻿import { bootstrap, db, uid, now } from "../lib/db";
+import { inArray } from "drizzle-orm";
 import { isPg } from "../lib/db";
 import * as s from "../lib/db/schema";
 
@@ -632,9 +633,10 @@ async function main() {
   console.log(`driver: ${isPg ? "postgres" : "sqlite"}`);
   const ts = now();
 
-  for (const tbl of [s.economicIndicators, s.provinceStats, s.policies, s.policyAnalyses, s.articles, s.macroTemperatures, s.temperatureAnalyses, s.taskLogs, s.feelingAggregates, s.historyEvents]) {
+  for (const tbl of [s.economicIndicators, s.provinceStats, s.policies, s.policyAnalyses, s.macroTemperatures, s.temperatureAnalyses, s.taskLogs, s.feelingAggregates, s.historyEvents]) {
     await db.delete(tbl);
   }
+  await db.delete(s.articles).where(inArray(s.articles.slug, ["macro-monthly", "weekly-report", "daily-review", "temperature-report"]));
 
   const indRows: any[] = [];
   const start = new Date("2015-01");
