@@ -11,8 +11,9 @@ const NAV = [
   { href: "/policy", label: "政策解读" },
   { href: "/invest", label: "投资分析" },
   { href: "/stock", label: "个股行情" },
-  { href: "/map", label: "经济分布图" },
   { href: "/industry", label: "产业链" },
+  { href: "/history", label: "历史回顾" },
+  { href: "/cycle", label: "周期洞察" },
   { href: "/advice", label: "个人建议" },
 ];
 

@@ -7,15 +7,33 @@ import { bootstrap } from "@/lib/db";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "政策解读" };
 
-export default async function PolicyPage() {
+const CAT_ORDER = ["全部", "货币政策", "财政", "财税", "产业政策", "资本市场", "房地产", "消费促进", "对外开放", "改革", "民生"];
+
+export default async function PolicyPage({ searchParams }: { searchParams: Promise<{ cat?: string }> }) {
+  const { cat } = await searchParams;
   await bootstrap();
-  const policies = await getPolicies();
+  const all = await getPolicies();
+  const policies = cat && cat !== "全部" ? all.filter((p: any) => p.category === cat) : all;
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 space-y-8">
       <header>
         <h1 className="text-2xl font-bold">政策解读</h1>
         <p className="text-sm text-muted mt-1">政策原文 + 三层 AI 解读（普通人视角 · 投资者视角 · 专业视角），覆盖 2018 年以来重大政策</p>
       </header>
+
+      <div className="flex flex-wrap gap-2">
+        {CAT_ORDER.map((c) => (
+          <Link
+            key={c}
+            href={c === "全部" ? "/policy" : `/policy?cat=${encodeURIComponent(c)}`}
+            className={`px-3 py-1.5 rounded-lg text-sm border transition-colors ${
+              (cat ?? "全部") === c ? "bg-primary text-white border-primary" : "border-border hover:border-primary/50"
+            }`}
+          >
+            {c}
+          </Link>
+        ))}
+      </div>
 
       <section>
         <SectionTitle title="政策库" sub="按时间倒序，来源为政府公报与官方发布" />

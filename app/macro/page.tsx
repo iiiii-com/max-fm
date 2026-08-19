@@ -31,6 +31,7 @@ export default async function MacroPage() {
       <div className="flex gap-3 flex-wrap">
         <Link href="/macro/feeling" className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium">宏观温度 vs 个人体感</Link>
         <Link href="/macro#report" className="px-4 py-2 rounded-lg border border-border text-sm hover:border-primary/50">AI 月度报告</Link>
+        <Link href="/map" className="px-4 py-2 rounded-lg border border-border text-sm hover:border-primary/50">区域经济全景</Link>
       </div>
 
       <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -40,7 +41,15 @@ export default async function MacroPage() {
         <TrendCard title="制造业 PMI" value={latest("pmi")} unit="" data={series("pmi")} color="#0891b2" />
         <TrendCard title="M2 同比增速" value={latest("m2")} unit="%" data={series("m2")} color="#2563eb" />
         <TrendCard title="社融增量" value={latest("tsf")} unit="万亿" data={series("tsf")} color="#0d9488" />
+        <TrendCard title="1年期 LPR" value={latest("lpr")} unit="%" data={series("lpr")} color="#6d28d9" />
+        <TrendCard title="外汇储备" value={latest("fx")} unit="万亿$" data={series("fx")} color="#0e7490" />
+        <TrendCard title="工业增加值同比" value={latest("ind")} unit="%" data={series("ind")} color="#16a34a" />
+        <TrendCard title="社零同比" value={latest("retail")} unit="%" data={series("retail")} color="#ea580c" />
+        <TrendCard title="固定资产投资同比" value={latest("invest")} unit="%" data={series("invest")} color="#9333ea" />
+        <TrendCard title="房地产开发投资同比" value={latest("realestate")} unit="%" data={series("realestate")} color="#b91c1c" />
+        <TrendCard title="财政收入同比" value={latest("fin")} unit="%" data={series("fin")} color="#15803d" />
         <TrendCard title="出口同比" value={latest("export")} unit="%" data={series("export")} color="#7c3aed" />
+        <TrendCard title="进口同比" value={latest("import")} unit="%" data={series("import")} color="#a21caf" />
         <TrendCard title="城镇调查失业率" value={latest("unemp")} unit="%" data={series("unemp")} color="#ca8a04" />
       </section>
 

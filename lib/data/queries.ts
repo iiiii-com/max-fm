@@ -76,6 +76,21 @@ export async function getChainNodes(chainId?: string) {
   return chainId ? q.where(eq(s.chainNodes.chainId, chainId)) : q;
 }
 
+export async function getChainBySlug(slug: string) {
+  const rows = await db.select().from(s.industryChains).where(eq(s.industryChains.slug, slug)).limit(1);
+  return rows[0] ?? null;
+}
+
+export async function getHistoryEvents(category?: string) {
+  const q = db.select().from(s.historyEvents).orderBy(desc(s.historyEvents.date));
+  return category ? q.where(eq(s.historyEvents.category, category)) : q;
+}
+
+export async function getHistoryEvent(slug: string) {
+  const rows = await db.select().from(s.historyEvents).where(eq(s.historyEvents.slug, slug)).limit(1);
+  return rows[0] ?? null;
+}
+
 export async function getFeelingAggregates() {
   const rows = await db.select().from(s.feelingAggregates);
   const overall = rows.find((r: any) => r.dimension === "overall");

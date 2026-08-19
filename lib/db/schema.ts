@@ -170,6 +170,7 @@ export const feelingAggregates = t("feeling_aggregates");
 export const macroTemperatures = t("macro_temperature");
 export const temperatureAnalyses = t("temperature_analyses");
 export const taskLogs = t("task_logs");
+export const historyEvents = t("history_events");
 
 export type EconomicIndicator = typeof economicIndicators.$inferSelect;
 export type Policy = typeof policies.$inferSelect;
