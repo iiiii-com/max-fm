@@ -16,6 +16,7 @@ interface NorthboundResp {
   ok: boolean;
   date?: string;
   delay?: boolean;
+  disclosure?: string;
   today?: { sh: number; sz: number; total: number } | null;
   history30?: { date: string; value: number }[];
   trend5?: number[];
@@ -116,6 +117,11 @@ export default function NorthboundPanel() {
         <span className="text-[10px] text-muted">{resp?.date ? `数据日期 ${resp.date}` : ""}</span>
       </div>
       {err && <p className="text-xs text-red-600">{err}</p>}
+      {resp?.disclosure && (
+        <p className="text-[11px] px-3 py-1.5 rounded-md bg-amber-50 border border-amber-200 text-amber-700 dark:bg-amber-950/30 dark:border-amber-800 dark:text-amber-300">
+          {resp.disclosure}
+        </p>
+      )}
       {!resp && !err && <p className="text-xs text-muted">北向资金加载中…</p>}
       {resp && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -149,7 +155,7 @@ export default function NorthboundPanel() {
             <div>
               <p className="text-xs text-muted mb-1.5">近 5 日趋势</p>
               {trend5.length === 0 ? (
-                <p className="text-xs text-muted">数据延迟</p>
+                <p className="text-xs text-muted">{resp?.disclosure ?? "数据延迟"}</p>
               ) : (
                 <div className="flex items-end gap-2">
                   {trend5.map((v, i) => (
@@ -168,8 +174,8 @@ export default function NorthboundPanel() {
             <div>
               <p className="text-xs text-muted mb-1.5">30 日净买入历史</p>
               {(resp.history30 ?? []).length === 0 ? (
-                <div className="flex items-center justify-center h-[180px] rounded-md border border-border text-xs text-muted">
-                  数据延迟
+                <div className="flex items-center justify-center h-[180px] rounded-md border border-border text-xs text-muted px-4 text-center">
+                  {resp?.disclosure ?? "数据延迟"}
                 </div>
               ) : (
                 <EChart option={barOption} height={180} />

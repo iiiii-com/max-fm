@@ -63,7 +63,11 @@ async function fetchKamtKline(lmt: number): Promise<{
       for (let i = 0; i < n; i++) {
         const pa = (a[i] ?? "").split(",");
         const pb = (b[i] ?? "").split(",");
-        out.push({ date: String(pa[0]), value: (parseNum(pa[1]) + parseNum(pb[1])) * 1e4 });
+        const va = parseNum(pa[1]);
+        const vb = parseNum(pb[1]);
+        // 单位修正：kamt 南向行值若异常恒定（接口停更占位），视为无效
+        const v = (va + vb) * 1e4;
+        out.push({ date: String(pa[0]), value: Number.isFinite(v) ? v : 0 });
       }
       return out;
     };
@@ -74,6 +78,21 @@ async function fetchKamtKline(lmt: number): Promise<{
   } catch {
     return null;
   }
+}
+
+// 过滤占位/失真序列：全 0 或连续 ≥3 天完全相同的值视为接口占位
+function sanitizeSeries(rows: any[] | null | undefined): any[] {
+  if (!rows || !rows.length) return [];
+  const vals = rows.map((r) => Number(r?.value) || 0);
+  const allZero = vals.every((v) => v === 0);
+  let constant = true;
+  for (let i = 2; i < vals.length; i++) {
+    if (vals[i] !== vals[i - 1] || vals[i] !== vals[i - 2]) {
+      constant = false;
+      break;
+    }
+  }
+  return allZero || (constant && vals.length >= 3) ? [] : rows;
 }
 
 // 板块主力/大单/散户聚合：clist 板块列表（f62/f66 元，f69/f75 亿）
@@ -150,30 +169,38 @@ export async function GET() {
     fetchMarketFlowHistory(),
   ]);
 
-  const trend5 = (rows: { value: number }[] | null | undefined) => (rows && rows.length ? rows.slice(-5).map((r) => r.value) : []);
-  const lastVal = (rows: { value: number }[] | null | undefined) =>
-    rows && rows.length ? rows[rows.length - 1].value : null;
+  const trend5 = (rows: { value: number }[] | null | undefined) =>
+    sanitizeSeries(rows)
+      .slice(-5)
+      .map((r) => r.value);
+  const lastVal = (rows: { value: number }[] | null | undefined) => {
+    const s = sanitizeSeries(rows);
+    return s.length ? s[s.length - 1].value : null;
+  };
 
-  const northRows = kline?.north ?? null;
-  const southRows = kline?.south ?? null;
-  const histRows = hist ?? null;
+  const northRows = sanitizeSeries(kline?.north ?? null);
+  const southRows = sanitizeSeries(kline?.south ?? null);
+  const histRows = hist ? sanitizeSeries(hist) : null;
+
+  const northVal = rt?.north && rt.north !== 0 ? rt.north : lastVal(northRows);
+  const southVal = rt?.south && rt.south !== 0 ? rt.south : lastVal(southRows);
 
   const directions: FundDirection[] = [
     {
       key: "north",
       name: "北向",
-      value: rt?.north ?? lastVal(northRows),
+      value: northVal,
       trend5: trend5(northRows),
-      source: rt?.north != null ? "realtime" : northRows ? "aggregated" : "static",
-      comment: commentFor("north", rt?.north ?? lastVal(northRows)),
+      source: rt?.north && rt.north !== 0 ? "realtime" : northRows.length ? "aggregated" : "static",
+      comment: northVal == null ? "数据延迟（接口停更）" : commentFor("north", northVal),
     },
     {
       key: "south",
       name: "南向",
-      value: rt?.south ?? lastVal(southRows),
+      value: southVal,
       trend5: trend5(southRows),
-      source: rt?.south != null ? "realtime" : southRows ? "aggregated" : "static",
-      comment: commentFor("south", rt?.south ?? lastVal(southRows)),
+      source: rt?.south && rt.south !== 0 ? "realtime" : southRows.length ? "aggregated" : "static",
+      comment: southVal == null ? "数据延迟（接口停更）" : commentFor("south", southVal),
     },
     {
       key: "main",

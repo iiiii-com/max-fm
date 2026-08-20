@@ -117,9 +117,16 @@ export async function GET() {
     merged.push({ date: sh[i].date, value: sh[i].value + sz[i].value });
   }
 
+  // 2024-08 起北向净买入不再实时披露，东财接口返回全 0 占位：识别后置空并告知
+  const hasRealData = merged.some((r) => r.value !== 0) || rt?.north != null;
+  const effectiveHistory = hasRealData ? merged : [];
+  const disclosure = hasRealData
+    ? ""
+    : "自 2024-08 起北向资金净买入不再实时披露，以下展示季度持仓口径";
+
   let today: { sh: number; sz: number; total: number } | null = null;
-  if (merged.length) {
-    const last = merged[merged.length - 1];
+  if (effectiveHistory.length) {
+    const last = effectiveHistory[effectiveHistory.length - 1];
     today = {
       sh: sh[sh.length - 1]?.value ?? 0,
       sz: sz[sz.length - 1]?.value ?? 0,
@@ -131,11 +138,12 @@ export async function GET() {
 
   return NextResponse.json({
     ok: true,
-    date: today ? merged[merged.length - 1]?.date ?? rt?.date ?? "" : rt?.date ?? "",
+    date: today ? effectiveHistory[effectiveHistory.length - 1]?.date ?? rt?.date ?? "" : rt?.date ?? "",
     delay,
+    disclosure,
     today,
-    history30: merged,
-    trend5: merged.slice(-5).map((r) => r.value),
+    history30: effectiveHistory,
+    trend5: effectiveHistory.slice(-5).map((r) => r.value),
     holdings: holdings
       ? { list: holdings.list, source: "eastmoney", date: holdings.date }
       : { list: STATIC_HOLDINGS, source: "static", date: "" },
