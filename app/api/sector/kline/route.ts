@@ -19,7 +19,7 @@ export async function GET(req: Request) {
   try {
     const [kRes, fRes] = await Promise.all([
       fetch(
-        `https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=90.${bk}&klt=101&lmt=${lmt}` +
+        `https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=90.${bk}&klt=101&fqt=1&end=20500101&lmt=${lmt}` +
           `&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f52,f53,f54,f55,f56,f57`,
         { headers: UA, signal: AbortSignal.timeout(12000), cache: "no-store" },
       ),
