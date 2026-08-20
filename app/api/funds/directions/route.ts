@@ -80,11 +80,12 @@ async function fetchKamtKline(lmt: number): Promise<{
   }
 }
 
-// 过滤占位/失真序列：全 0 或连续 ≥3 天完全相同的值视为接口占位
+// 过滤占位/失真序列：剔除尾部 0 行（接口停更时最新一天常为 0）后，全 0 或连续 ≥3 天完全相同的值视为接口占位
 function sanitizeSeries(rows: any[] | null | undefined): any[] {
   if (!rows || !rows.length) return [];
-  const vals = rows.map((r) => Number(r?.value) || 0);
-  const allZero = vals.every((v) => v === 0);
+  const trimmed = rows.filter((r) => (Number(r?.value) || 0) !== 0);
+  if (!trimmed.length) return [];
+  const vals = trimmed.map((r) => Number(r?.value) || 0);
   let constant = true;
   for (let i = 2; i < vals.length; i++) {
     if (vals[i] !== vals[i - 1] || vals[i] !== vals[i - 2]) {
@@ -92,7 +93,7 @@ function sanitizeSeries(rows: any[] | null | undefined): any[] {
       break;
     }
   }
-  return allZero || (constant && vals.length >= 3) ? [] : rows;
+  return constant && vals.length >= 3 ? [] : rows;
 }
 
 // 板块主力/大单/散户聚合：clist 板块列表（f62/f66 元，f69/f75 亿）
