@@ -5,6 +5,8 @@ import StockSearch from "@/components/StockSearch";
 import EtfViewer from "@/components/EtfViewer";
 import NewsPanel from "@/components/NewsPanel";
 import WatchlistSidebar from "@/components/WatchlistSidebar";
+import FundDirections from "@/components/FundDirections";
+import NorthboundPanel from "@/components/NorthboundPanel";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "市场洞察" };
@@ -27,7 +29,13 @@ export default async function MarketPage({ searchParams }: { searchParams: Promi
       <BoardTabs tabs={TABS} active={active} />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2">
-          {active === "indexes" && <MarketIndexes />}
+          {active === "indexes" && (
+            <div className="space-y-6">
+              <MarketIndexes />
+              <FundDirections />
+              <NorthboundPanel />
+            </div>
+          )}
           {active === "stocks" && (
             <Suspense fallback={<p className="text-sm text-muted">加载中…</p>}>
               <StockSearch />

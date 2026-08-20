@@ -5,6 +5,7 @@ export interface CrisisNode {
   title: string;
   story: string;
   policy?: string;
+  news?: string[];
   quiz?: {
     question: string;
     options: string[];
@@ -31,4 +32,7 @@ export interface Crisis {
   advice: string[];
   cohorts: CrisisCohort[];
   snapshotData?: Record<string, Array<{ date: string; value: number }>>;
+  stocks?: Array<{ name: string; secid: string; role: string }>;
+  vixData?: Array<{ date: string; value: number }>;
+  context?: Array<{ date: string; event: string }>;
 }
