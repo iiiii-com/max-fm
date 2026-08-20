@@ -5,6 +5,7 @@ import Link from "next/link";
 import { CITY_RANK, STATIC_REGIONS } from "@/lib/data/regions";
 import { matchChainId } from "@/lib/data/chains";
 import { Badge } from "@/components/ui";
+import CityDrawer from "@/components/CityDrawer";
 
 type SortKey = "rank" | "gdp" | "listed";
 
@@ -13,9 +14,13 @@ const gdpNum = (s: string) => parseFloat(s);
 export default function CityRankTable() {
   const [sortKey, setSortKey] = useState<SortKey>("rank");
   const [desc, setDesc] = useState(false);
+  const [query, setQuery] = useState("");
+  const [drawerCity, setDrawerCity] = useState<string | null>(null);
 
   const sorted = useMemo(() => {
-    const arr = CITY_RANK.map((c, i) => ({ ...c, rank: i + 1 }));
+    const arr = CITY_RANK.map((c, i) => ({ ...c, rank: i + 1 }))
+      .filter((c) => (query.trim() ? c.name.includes(query.trim()) : true))
+      .map((c) => ({ ...c, rank: CITY_RANK.findIndex((x) => x.name === c.name) + 1 }));
     const cmp = (a: any, b: any) => {
       if (sortKey === "rank") return a.rank - b.rank;
       if (sortKey === "gdp") return gdpNum(a.gdp) - gdpNum(b.gdp);
@@ -23,7 +28,7 @@ export default function CityRankTable() {
     };
     arr.sort((a, b) => (desc ? cmp(b, a) : cmp(a, b)));
     return arr;
-  }, [sortKey, desc]);
+  }, [sortKey, desc, query]);
 
   const toggle = (k: SortKey) => {
     if (sortKey === k) setDesc(!desc);
@@ -46,31 +51,52 @@ export default function CityRankTable() {
   );
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="text-left text-muted border-b border-border">
-            {head("rank", "#")}
-            <th className="py-2 px-3 font-medium whitespace-nowrap">城市</th>
-            {head("gdp", "GDP", true)}
-            {head("listed", "上市公司数", true)}
-            <th className="py-2 px-3 font-medium text-left whitespace-nowrap">备注</th>
-          </tr>
-        </thead>
-        <tbody>
-          {sorted.map((c) => (
-            <tr key={c.name} className="border-b border-border/50 hover:bg-border/20 transition-colors">
-              <td className="py-2 pl-3 pr-3 font-medium w-8">
-                {c.rank <= 3 ? ["🥇", "🥈", "🥉"][c.rank - 1] : c.rank}
-              </td>
-              <td className="py-2 pr-3 font-medium">{c.name}</td>
-              <td className="py-2 px-3 text-right font-mono">{c.gdp}</td>
-              <td className="py-2 px-3 text-right font-mono">{c.listed}</td>
-              <td className="py-2 px-3 text-xs text-muted">{c.note}</td>
+    <div>
+      <div className="flex items-center gap-2 mb-3">
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="搜索城市（如 深圳 / 苏州 / 成都）"
+          className="w-full max-w-xs rounded-md border border-border bg-background px-3 py-1.5 text-sm outline-none focus:border-primary/60"
+        />
+        <span className="text-xs text-muted ml-auto whitespace-nowrap">匹配 {sorted.length} 城</span>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-left text-muted border-b border-border">
+              {head("rank", "#")}
+              <th className="py-2 px-3 font-medium whitespace-nowrap">城市</th>
+              {head("gdp", "GDP", true)}
+              {head("listed", "上市公司数", true)}
+              <th className="py-2 px-3 font-medium text-left whitespace-nowrap">备注</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {sorted.map((c) => (
+              <tr
+                key={c.name}
+                onClick={() => setDrawerCity(c.name)}
+                className="border-b border-border/50 hover:bg-border/20 transition-colors cursor-pointer"
+              >
+                <td className="py-2 pl-3 pr-3 font-medium w-8">
+                  {c.rank <= 3 ? ["🥇", "🥈", "🥉"][c.rank - 1] : c.rank}
+                </td>
+                <td className="py-2 pr-3 font-medium">{c.name}</td>
+                <td className="py-2 px-3 text-right font-mono">{c.gdp}</td>
+                <td className="py-2 px-3 text-right font-mono">{c.listed}</td>
+                <td className="py-2 px-3 text-xs text-muted">{c.note}</td>
+              </tr>
+            ))}
+            {sorted.length === 0 && (
+              <tr>
+                <td colSpan={5} className="py-6 text-center text-sm text-muted">未找到匹配城市</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+      <CityDrawer city={drawerCity ? { name: drawerCity } : null} onClose={() => setDrawerCity(null)} />
     </div>
   );
 }
