@@ -56,16 +56,7 @@ export async function GET(req: Request) {
         main: flowMap.get(date) ?? 0,
       });
     }
-    const debug =
-      process.env.NODE_ENV === "production"
-        ? {
-            kDataKeys: kJson?.data ? Object.keys(kJson.data) : null,
-            klinesLen: klines.length,
-            flowLen: flowRows.length,
-            firstKline: klines[0] ?? null,
-          }
-        : undefined;
-    return NextResponse.json({ ok: true, bk, list, debug });
+    return NextResponse.json({ ok: true, bk, list });
   } catch {
     return NextResponse.json({ ok: false, error: "板块 K 线暂不可用" }, { status: 502 });
   }
