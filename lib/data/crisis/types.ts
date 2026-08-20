@@ -32,7 +32,7 @@ export interface Crisis {
   advice: string[];
   cohorts: CrisisCohort[];
   snapshotData?: Record<string, Array<{ date: string; value: number }>>;
-  stocks?: Array<{ name: string; secid: string; role: string }>;
+  stocks?: Array<{ name: string; secid: string; role: string; nameOnly?: boolean }>;
   vixData?: Array<{ date: string; value: number }>;
   context?: Array<{ date: string; event: string }>;
 }
