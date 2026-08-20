@@ -1,5 +1,24 @@
 export type CrisisLevel = "major" | "standard" | "brief";
 
+export type Regime = "crash" | "rally" | "range";
+
+export interface InvestorMove {
+  label: string;
+  stance: "cut" | "hold" | "buy";
+  desc: string;
+  outcome: string;
+}
+
+export interface CrisisStage {
+  name: string;
+  regime: Regime;
+  from: string;
+  to: string;
+  narrative: string;
+  moves: InvestorMove[];
+  bestMove: number;
+}
+
 export interface CrisisNode {
   date: string;
   title: string;
@@ -28,6 +47,7 @@ export interface Crisis {
   markets: Array<{ name: string; secid: string }>;
   heroStory: string;
   nodes: CrisisNode[];
+  stages?: CrisisStage[];
   impact: string;
   advice: string[];
   cohorts: CrisisCohort[];

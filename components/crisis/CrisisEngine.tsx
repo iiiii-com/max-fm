@@ -1,18 +1,33 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, BookOpen, Check, Play, RotateCcw } from "lucide-react";
+import { ArrowLeft, BookOpen, Check, Pause, Play, RotateCcw, StepBack, StepForward } from "lucide-react";
 import type { EChartsOption } from "echarts";
 import EChart from "@/components/charts/EChart";
 import { Badge, Card } from "@/components/ui";
 import VirtualAccount, { type VirtualAccountHandle } from "./VirtualAccount";
 import DecisionQuiz from "./DecisionQuiz";
 import PanicGauge from "./PanicGauge";
-import type { Crisis } from "@/lib/data/crisis/types";
+import StageIllustration from "./StageIllustration";
+import type { Crisis, CrisisStage, InvestorMove } from "@/lib/data/crisis/types";
 
 type Phase = "intro" | "playing" | "finished";
 
 const CAPITAL = 1_000_000;
+
+const EXPOSURE: Record<InvestorMove["stance"], number> = { cut: 0.1, hold: 0.6, buy: 1 };
+
+const STANCE_META: Record<InvestorMove["stance"], { label: string; cls: string }> = {
+  cut: { label: "清仓避险", cls: "border-red-500/50 text-red-600 dark:text-red-400" },
+  hold: { label: "减仓观望", cls: "border-amber-500/50 text-amber-600 dark:text-amber-400" },
+  buy: { label: "重仓抄底", cls: "border-green-500/50 text-green-600 dark:text-green-400" },
+};
+
+const REGIME_META: Record<CrisisStage["regime"], { label: string; dot: string }> = {
+  crash: { label: "回调", dot: "bg-red-600" },
+  rally: { label: "上涨", dot: "bg-green-600" },
+  range: { label: "震荡", dot: "bg-stone-500" },
+};
 
 const LEVEL_META: Record<Crisis["level"], { label: string; tone: "red" | "blue" | "gray" }> = {
   major: { label: "特大危机", tone: "red" },
@@ -57,7 +72,14 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
   const [viewKey, setViewKey] = useState(crisis.markets[0].name);
   const [navHistory, setNavHistory] = useState<Array<{ date: string; nav: number }>>([]);
   const [lastStep, setLastStep] = useState<{ ret: number; at: number } | null>(null);
+  const [stageIndex, setStageIndex] = useState(0);
+  const [moveChosen, setMoveChosen] = useState<Record<number, number>>({});
+  const [revealed, setRevealed] = useState<Set<number>>(new Set());
+  const [autoplay, setAutoplay] = useState(false);
   const accountRef = useRef<VirtualAccountHandle>(null);
+
+  const hasStages = !!crisis.stages?.length;
+  const stage = hasStages ? crisis.stages![Math.min(stageIndex, crisis.stages!.length - 1)] : null;
 
   const mainMarket = crisis.markets[0];
   const marketBars = series[mainMarket.name];
@@ -252,6 +274,183 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
     return best;
   }, [crisis, node]);
 
+  const stageRet = (s: CrisisStage): number => {
+    if (!marketBars?.length) return 0;
+    const c0 = closeAt(marketBars, s.from) ?? closeAt(marketBars, crisis.period[0]);
+    const c1 = closeAt(marketBars, s.to) ?? closeAt(marketBars, crisis.period[1]);
+    if (c0 == null || c1 == null || c0 <= 0) return 0;
+    return c1 / c0 - 1;
+  };
+
+  const stageMoveRet = (s: CrisisStage, move: InvestorMove): number => stageRet(s) * EXPOSURE[move.stance];
+
+  const pathRet = (stance: InvestorMove["stance"]): number => {
+    if (!hasStages) return 0;
+    let nav = CAPITAL;
+    for (const s of crisis.stages!) nav *= 1 + stageRet(s) * EXPOSURE[stance];
+    return nav / CAPITAL - 1;
+  };
+
+  const playerStageNav = useMemo(() => {
+    if (!hasStages) return null;
+    let nav = CAPITAL;
+    const out: Array<{ name: string; date: string; ret: number; move: number | null; nav: number }> = [];
+    for (let i = 0; i < crisis.stages!.length; i++) {
+      const s = crisis.stages![i];
+      const ret = stageRet(s);
+      const chosen = moveChosen[i];
+      const exp = chosen != null ? EXPOSURE[s.moves[chosen].stance] : 0;
+      nav *= 1 + ret * exp;
+      out.push({ name: s.name, date: s.to, ret, move: chosen, nav });
+    }
+    return out;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [crisis, marketBars, moveChosen]);
+
+  const stageOption: EChartsOption = useMemo(() => {
+    if (!activeBars?.length || !stage) return {};
+    const dates = activeBars.map((b) => b.date);
+    const data = activeBars.map((b) => (b.date <= stage.to ? b.close : null));
+    const markArea: any[] = [];
+    const sFrom = dates.includes(stage.from)
+      ? stage.from
+      : ([...activeBars].reverse().find((b) => b.date <= stage.from)?.date ?? dates[0]);
+    const sTo = dates.includes(stage.to)
+      ? stage.to
+      : ([...activeBars].reverse().find((b) => b.date <= stage.to)?.date ?? dates[dates.length - 1]);
+    const bg =
+      stage.regime === "crash"
+        ? { color: "rgba(220,38,38,0.10)" }
+        : stage.regime === "rally"
+          ? { color: "rgba(22,163,74,0.10)" }
+          : { color: "rgba(139,139,133,0.10)" };
+    if (sFrom && sTo) markArea.push([{ xAxis: sFrom, ...bg }, { xAxis: sTo }]);
+    const markLines: any[] = [];
+    for (const s of crisis.stages ?? []) {
+      const d = dates.includes(s.to) ? s.to : [...activeBars].reverse().find((b) => b.date <= s.to)?.date;
+      if (!d) continue;
+      markLines.push({
+        xAxis: d,
+        lineStyle: { color: s.regime === "crash" ? "rgba(220,38,38,0.45)" : s.regime === "rally" ? "rgba(22,163,74,0.45)" : "rgba(139,139,133,0.5)", type: "dashed", width: 1 },
+        label: { formatter: `${s.name}`, color: "#737373", fontSize: 9, position: "insideEndTop" },
+      });
+    }
+    return {
+      tooltip: { trigger: "axis" },
+      grid: { left: 56, right: 16, top: 34, bottom: 30 },
+      xAxis: { type: "category", data: dates, axisLabel: { fontSize: 10 } },
+      yAxis: {
+        type: "value", scale: true,
+        splitLine: { lineStyle: { color: "#e5e5e0", type: "dashed" } },
+      },
+      series: [{
+        name: viewKey,
+        type: "line",
+        data,
+        showSymbol: false,
+        connectNulls: false,
+        lineStyle: { color: "#c8102e", width: 2 },
+        itemStyle: { color: "#c8102e" },
+        areaStyle: {
+          color: {
+            type: "linear", x: 0, y: 0, x2: 0, y2: 1,
+            colorStops: [
+              { offset: 0, color: "rgba(200,16,46,0.22)" },
+              { offset: 1, color: "rgba(200,16,46,0)" },
+            ],
+          },
+        },
+        markArea: { silent: true, data: markArea },
+        markLine: { symbol: "none", silent: true, data: markLines },
+      }],
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeBars, stage, viewKey, crisis]);
+
+  const stageCompareOption: EChartsOption = useMemo(() => {
+    if (!playerStageNav?.length) return {};
+    const dates = playerStageNav.map((h) => h.date);
+    const seriesData: Array<{ name: string; data: number[]; color: string; dash?: boolean }> = [
+      { name: "你", data: [], color: "#dc2626" },
+      { name: "全程重仓", data: [], color: "#16a34a" },
+      { name: "全程半仓", data: [], color: "#d97706" },
+      { name: "全程清仓", data: [], color: "#6b7280", dash: true },
+    ];
+    const path = (stance: InvestorMove["stance"]) => {
+      let nav = CAPITAL;
+      const out: number[] = [];
+      for (const s of crisis.stages!) {
+        nav *= 1 + stageRet(s) * EXPOSURE[stance];
+        out.push((nav / CAPITAL) * 100);
+      }
+      return out;
+    };
+    const player: number[] = [];
+    for (let i = 0; i < crisis.stages!.length; i++) {
+      const nav = playerStageNav[i].nav;
+      player.push((nav / CAPITAL) * 100);
+    }
+    seriesData[0].data = player;
+    seriesData[1].data = path("buy");
+    seriesData[2].data = path("hold");
+    seriesData[3].data = path("cut");
+    return {
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0, textStyle: { fontSize: 11 } },
+      grid: { left: 56, right: 16, top: 30, bottom: 44 },
+      xAxis: { type: "category", data: dates, axisLabel: { fontSize: 9, rotate: 30 } },
+      yAxis: {
+        type: "value", scale: true,
+        splitLine: { lineStyle: { color: "#e5e5e0", type: "dashed" } },
+      },
+      series: seriesData.map((s) => ({
+        name: s.name, type: "line" as const, data: s.data, smooth: true,
+        symbol: "circle", symbolSize: 5,
+        lineStyle: { color: s.color, width: 2, type: s.dash ? ("dashed" as const) : ("solid" as const) },
+        itemStyle: { color: s.color },
+      })),
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playerStageNav, crisis]);
+
+  useEffect(() => {
+    if (!autoplay || phase !== "playing" || !hasStages) return;
+    const t = setInterval(() => {
+      if (!revealed.has(stageIndex)) return;
+      if (stageIndex >= crisis.stages!.length - 1) {
+        setAutoplay(false);
+        handleStageFinish();
+      } else {
+        setStageIndex((i) => i + 1);
+      }
+    }, 5200);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoplay, phase, stageIndex, revealed, hasStages]);
+
+  const chooseMove = (mi: number) => {
+    setMoveChosen((m) => ({ ...m, [stageIndex]: mi }));
+    setRevealed((r) => new Set(r).add(stageIndex));
+    setAutoplay(false);
+  };
+
+  const handleStageNext = () => {
+    if (!revealed.has(stageIndex)) return;
+    if (stageIndex >= crisis.stages!.length - 1) {
+      handleStageFinish();
+    } else {
+      setStageIndex((i) => i + 1);
+      setAutoplay(true);
+    }
+  };
+
+  const handleStageFinish = () => {
+    const nav = playerStageNav?.[playerStageNav.length - 1]?.nav ?? CAPITAL;
+    setFinalState({ cash: 0, position: 0, nav });
+    setPhase("finished");
+    setAutoplay(false);
+  };
+
   const handleNext = () => {
     const c0 = closeAt(marketBars ?? [], anchorDate);
     const c1 = closeAt(marketBars ?? [], node.date);
@@ -289,6 +488,10 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
     setNavHistory([]);
     setLastStep(null);
     setViewKey(mainMarket.name);
+    setStageIndex(0);
+    setMoveChosen({});
+    setRevealed(new Set());
+    setAutoplay(false);
     accountRef.current?.start();
   };
 
@@ -452,10 +655,123 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
               </div>
             </Card>
           ) : null}
+
+          {hasStages && (
+            <Card className="p-6">
+              <h3 className="font-bold mb-1">危机全景 · 从根到尾</h3>
+              <p className="text-xs text-muted mb-4">
+                本轮危机可拆为 {crisis.stages!.length} 个阶段（红=回调 / 绿=上涨 / 灰=震荡），每个阶段你都要选择投资者的三种操作之一，并看到真实的市场结果。
+              </p>
+              <div className="flex items-stretch gap-1.5 overflow-x-auto pb-2">
+                {crisis.stages!.map((s, i) => (
+                  <div key={s.name} className="flex items-center gap-1.5 shrink-0">
+                    <div className="rounded-lg border border-border px-3 py-2 min-w-[132px]">
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <span className={`w-2.5 h-2.5 rounded-full ${REGIME_META[s.regime].dot}`} />
+                        <span className="text-[10px] font-mono text-muted">阶段 {i + 1}</span>
+                      </div>
+                      <p className="text-xs font-semibold leading-tight">{s.name}</p>
+                      <p className="text-[10px] text-muted mt-0.5 font-mono">
+                        {s.from.slice(0, 7)} ~ {s.to.slice(0, 7)}
+                      </p>
+                    </div>
+                    {i < crisis.stages!.length - 1 && <span className="text-muted">→</span>}
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
         </>
       )}
 
-      {phase === "playing" && (
+      {phase === "playing" && hasStages && (
+        <Card className="p-4">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm font-semibold">
+              阶段 <span className="text-primary font-bold">{stageIndex + 1}</span> / {crisis.stages!.length}
+            </p>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setStageIndex((i) => Math.max(0, i - 1))}
+                disabled={stageIndex === 0}
+                className="p-1.5 rounded-md border border-border hover:border-primary/50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                title="上一阶段"
+              >
+                <StepBack className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => setAutoplay((p) => !p)}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border text-xs font-medium transition-colors ${
+                  autoplay ? "bg-primary text-white border-primary" : "border-border text-muted hover:border-primary/50"
+                }`}
+                title={autoplay ? "暂停自动播放" : "自动播放（已作答阶段每 5 秒推进）"}
+              >
+                {autoplay ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+                {autoplay ? "暂停" : "自动播放"}
+              </button>
+              <button
+                onClick={handleStageNext}
+                disabled={!revealed.has(stageIndex)}
+                className="p-1.5 rounded-md border border-border hover:border-primary/50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                title="下一阶段"
+              >
+                <StepForward className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+          <div className="flex items-start gap-2 overflow-x-auto pb-2 -mx-1 px-1">
+            {crisis.stages!.map((s, i) => {
+              const isCurrent = i === stageIndex;
+              const isPast = i < stageIndex;
+              const chosen = moveChosen[i];
+              return (
+                <button
+                  key={s.name}
+                  onClick={() => {
+                    if (i > stageIndex && !revealed.has(stageIndex)) return;
+                    setStageIndex(i);
+                  }}
+                  title={`${s.from} ~ ${s.to} · ${s.name}`}
+                  className="group shrink-0 flex flex-col items-center gap-1 px-0.5"
+                >
+                  <span className="relative flex items-center justify-center h-5">
+                    <span
+                      className={`rounded-full transition-all duration-300 ${
+                        isCurrent
+                          ? "w-4 h-4 scale-110"
+                          : isPast
+                            ? "w-3 h-3 opacity-60"
+                            : "w-2.5 h-2.5 opacity-40"
+                      } ${REGIME_META[s.regime].dot}`}
+                    />
+                    {chosen !== undefined && (
+                      <span className="absolute -top-0.5 -right-1 w-3.5 h-3.5 rounded-full text-[9px] leading-none flex items-center justify-center text-white font-bold bg-down">
+                        ✓
+                      </span>
+                    )}
+                  </span>
+                  <span
+                    className={`text-[10px] whitespace-nowrap ${
+                      isCurrent ? "text-primary font-bold" : "text-muted"
+                    }`}
+                  >
+                    {s.name}
+                  </span>
+                  <span className="text-[9px] font-mono text-muted">{REGIME_META[s.regime].label}</span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="h-1.5 rounded bg-border/60 overflow-hidden">
+            <div
+              className="h-full bg-primary transition-all duration-300"
+              style={{ width: `${((stageIndex + 1) / crisis.stages!.length) * 100}%` }}
+            />
+          </div>
+        </Card>
+      )}
+
+      {phase === "playing" && !hasStages && (
         <Card className="p-4">
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm font-semibold">
@@ -535,7 +851,12 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
               ))}
             </div>
             <div className="flex items-center gap-2">
-              {phase === "playing" && <span className="text-xs text-muted">截至 {node.date}</span>}
+              {phase === "playing" && !hasStages && <span className="text-xs text-muted">截至 {node.date}</span>}
+              {phase === "playing" && hasStages && stage && (
+                <span className="text-xs text-muted font-mono">
+                  本阶段真实涨跌：<b className={stageRet(stage) >= 0 ? "up" : "down"}>{fmtPct(stageRet(stage))}</b>
+                </span>
+              )}
               {lastStep && (
                 <span
                   key={lastStep.at}
@@ -552,6 +873,9 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
           {stockRole && <p className="text-xs text-muted mb-2">{stockRole}</p>}
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_230px] gap-4">
             <div className="space-y-3 min-w-0">
+              {phase === "playing" && hasStages && stage && (
+                <StageIllustration regime={stage.regime} title={stage.name} height={132} />
+              )}
               {isNameOnlyView ? (
                 <div className="h-72 flex flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-border text-sm text-muted">
                   <p>该股无历史行情数据</p>
@@ -573,7 +897,7 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
                   className="rounded-lg"
                   style={pulseKey ? { animation: `crisisPulse${pulseKey > 0 ? "Green" : "Red"} 1.2s ease` } : undefined}
                 >
-                  <EChart option={option} height={300} />
+                  <EChart option={hasStages && phase === "playing" ? stageOption : option} height={300} />
                 </div>
               )}
               {viewKey === mainMarket.name && vixFiltered.length > 0 && (
@@ -608,6 +932,74 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
                 >
                   <Play className="w-4 h-4" /> 进入重演
                 </button>
+              </Card>
+            ) : hasStages && stage ? (
+              <Card className="p-5">
+                <div className="flex items-center gap-2 flex-wrap mb-2">
+                  <span className="text-xs font-mono px-2 py-0.5 rounded bg-primary/10 text-primary font-semibold">
+                    {stage.from.slice(0, 10)} ~ {stage.to.slice(0, 10)}
+                  </span>
+                  <h3 className="font-bold">{stage.name}</h3>
+                  <Badge tone={stage.regime === "crash" ? "red" : stage.regime === "rally" ? "green" : "gray"}>
+                    {REGIME_META[stage.regime].label}
+                  </Badge>
+                </div>
+                <p className="text-sm leading-relaxed">{stage.narrative}</p>
+
+                <div className="mt-4 pt-3 border-t border-border">
+                  <p className="text-xs font-semibold text-muted mb-2">
+                    站在当时，投资者有哪三种操作？（选择后揭晓该操作的真实结果）
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    {stage.moves.map((mv, mi) => {
+                      const chosen = moveChosen[stageIndex] === mi;
+                      const revealedHere = revealed.has(stageIndex);
+                      const isBest = mi === stage.bestMove;
+                      return (
+                        <button
+                          key={mv.label}
+                          onClick={() => chooseMove(mi)}
+                          disabled={revealedHere}
+                          className={`text-left rounded-lg border p-3 transition-all ${
+                            revealedHere
+                              ? chosen
+                                ? `border-2 ${isBest ? "border-down" : "border-primary"} bg-primary/5`
+                                : isBest
+                                  ? "border-down/60 bg-down/5"
+                                  : "border-border opacity-60"
+                              : "border-border hover:border-primary/60 hover:shadow-sm"
+                          }`}
+                        >
+                          <p className={`text-[10px] font-bold tracking-wide ${STANCE_META[mv.stance].cls}`}>
+                            {STANCE_META[mv.stance].label}
+                          </p>
+                          <p className="text-sm font-semibold mt-0.5">{mv.label}</p>
+                          <p className="text-xs text-muted mt-1 leading-relaxed">{mv.desc}</p>
+                          {revealedHere && (
+                            <div className="mt-2 pt-2 border-t border-border/60">
+                              <p className="text-[13px] leading-relaxed">{mv.outcome}</p>
+                              <p className={`mt-1.5 text-xs font-bold font-mono ${
+                                stageMoveRet(stage, mv) >= 0 ? "up" : "down"
+                              }`}>
+                                该操作收益 {fmtPct(stageMoveRet(stage, mv))}
+                                {isBest && <span className="ml-2 text-down font-semibold">✓ 本阶段最佳</span>}
+                              </p>
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {revealed.has(stageIndex) && (
+                  <div className="mt-4 rounded-lg bg-primary/5 border border-primary/20 p-3">
+                    <p className="text-xs text-muted">
+                      本阶段市场真实涨跌 <b className={stageRet(stage) >= 0 ? "up" : "down"}>{fmtPct(stageRet(stage))}</b>
+                      ，最优操作是“{stage.moves[stage.bestMove].label}”。
+                    </p>
+                  </div>
+                )}
               </Card>
             ) : (
               <>
@@ -662,33 +1054,83 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
           </div>
 
           <div className="space-y-4">
-            <Card className="p-5">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-bold">
-                  {phase === "intro" ? "虚拟账户 · 100 万初始资金" : "虚拟账户"}
-                </h3>
-              </div>
-              <VirtualAccount ref={accountRef} capital={CAPITAL} marketName={mainMarket.name} />
-              {phase === "playing" && (
-                <>
-                  <p className="mt-4 text-xs text-muted leading-relaxed">
-                    提示：你可以像真实投资者一样调整仓位（不产生手续费）。点击“进入下一节点”后，账户将按主市场
-                    {mainMarket.name} 在 {anchorDate} → {node.date} 区间的实际涨跌幅结算。
+            {phase === "playing" && hasStages ? (
+              <Card className="p-5">
+                <h3 className="font-bold mb-3">决策记录 · ¥{fmtMoney(CAPITAL)} 本金</h3>
+                <div className="space-y-2">
+                  {crisis.stages!.map((s, i) => {
+                    const mi = moveChosen[i];
+                    const r = stageRet(s);
+                    return (
+                      <div
+                        key={s.name}
+                        className={`flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-xs ${
+                          i === stageIndex ? "border-primary/50 bg-primary/5" : "border-border/70"
+                        }`}
+                      >
+                        <span className="flex items-center gap-1.5 min-w-0">
+                          <span className={`w-2 h-2 rounded-full shrink-0 ${REGIME_META[s.regime].dot}`} />
+                          <span className="truncate">{s.name}</span>
+                        </span>
+                        <span className="shrink-0 font-mono">
+                          {mi != null ? (
+                            <span className={r * EXPOSURE[s.moves[mi].stance] >= 0 ? "up" : "down"}>
+                              {STANCE_META[s.moves[mi].stance].label.slice(0, 2)} {fmtPct(r * EXPOSURE[s.moves[mi].stance])}
+                            </span>
+                          ) : (
+                            <span className="text-muted">待决策</span>
+                          )}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+                {revealed.has(stageIndex) && (
+                  <p className="mt-3 text-xs text-muted">
+                    当前累计：{playerStageNav ? fmtPct(playerStageNav[stageIndex].nav / CAPITAL - 1) : "—"}
                   </p>
-                  <button
-                    onClick={handleNext}
-                    disabled={nextDisabled}
-                    className={`mt-4 w-full flex items-center justify-center gap-2 py-3 rounded-lg font-semibold transition-colors ${
-                      nextDisabled
-                        ? "bg-border/60 text-muted cursor-not-allowed"
-                        : "bg-primary text-white hover:bg-primary-dark"
-                    }`}
-                  >
-                    {stepIndex >= crisis.nodes.length - 1 ? "进入结算" : "进入下一节点"} <span className="text-base">→</span>
-                  </button>
-                </>
-              )}
-            </Card>
+                )}
+                <button
+                  onClick={handleStageNext}
+                  disabled={!revealed.has(stageIndex)}
+                  className={`mt-4 w-full flex items-center justify-center gap-2 py-3 rounded-lg font-semibold transition-colors ${
+                    !revealed.has(stageIndex)
+                      ? "bg-border/60 text-muted cursor-not-allowed"
+                      : "bg-primary text-white hover:bg-primary-dark"
+                  }`}
+                >
+                  {stageIndex >= crisis.stages!.length - 1 ? "进入结算" : "进入下一阶段"} <span className="text-base">→</span>
+                </button>
+              </Card>
+            ) : (
+              <Card className="p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-bold">
+                    {phase === "intro" ? "虚拟账户 · 100 万初始资金" : "虚拟账户"}
+                  </h3>
+                </div>
+                <VirtualAccount ref={accountRef} capital={CAPITAL} marketName={mainMarket.name} />
+                {phase === "playing" && (
+                  <>
+                    <p className="mt-4 text-xs text-muted leading-relaxed">
+                      提示：你可以像真实投资者一样调整仓位（不产生手续费）。点击“进入下一节点”后，账户将按主市场
+                      {mainMarket.name} 在 {anchorDate} → {node.date} 区间的实际涨跌幅结算。
+                    </p>
+                    <button
+                      onClick={handleNext}
+                      disabled={nextDisabled}
+                      className={`mt-4 w-full flex items-center justify-center gap-2 py-3 rounded-lg font-semibold transition-colors ${
+                        nextDisabled
+                          ? "bg-border/60 text-muted cursor-not-allowed"
+                          : "bg-primary text-white hover:bg-primary-dark"
+                      }`}
+                    >
+                      {stepIndex >= crisis.nodes.length - 1 ? "进入结算" : "进入下一节点"} <span className="text-base">→</span>
+                    </button>
+                  </>
+                )}
+              </Card>
+            )}
           </div>
         </div>
       )}
@@ -735,24 +1177,105 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
 
           <Card className="p-6">
             <h3 className="font-bold mb-4">策略对照</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {(
-                [
-                  { name: "你", desc: "随机应变的组合", ret: playerRet, cls: "border-primary" },
-                  { name: "满仓持有", desc: "从头拿到尾", ret: fullPeriodRet ?? 0, cls: "border-border" },
-                  { name: "现金为王", desc: "全程空仓", ret: 0, cls: "border-border" },
-                ] as const
-              ).map((s) => (
-                <div key={s.name} className={`rounded-lg border p-4 ${s.cls}`}>
-                  <p className="text-sm font-semibold">{s.name}</p>
-                  <p className="text-xs text-muted mt-0.5 mb-2">{s.desc}</p>
-                  <p className={`text-lg font-bold font-mono ${s.ret >= 0 ? "up" : "down"}`}>{fmtPct(s.ret)}</p>
+            {hasStages ? (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                  {(
+                    [
+                      { name: "你", desc: "你的阶段决策组合", ret: playerRet, cls: "border-primary" },
+                      { name: "全程重仓", desc: "每阶段都满仓抄底", ret: pathRet("buy"), cls: "border-border" },
+                      { name: "全程半仓", desc: "每阶段都减仓观望", ret: pathRet("hold"), cls: "border-border" },
+                      { name: "全程清仓", desc: "每阶段都清仓避险", ret: pathRet("cut"), cls: "border-border" },
+                    ] as const
+                  ).map((s) => (
+                    <div key={s.name} className={`rounded-lg border p-4 ${s.cls}`}>
+                      <p className="text-sm font-semibold">{s.name}</p>
+                      <p className="text-xs text-muted mt-0.5 mb-2">{s.desc}</p>
+                      <p className={`text-lg font-bold font-mono ${s.ret >= 0 ? "up" : "down"}`}>{fmtPct(s.ret)}</p>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+                <p className="mt-3 text-xs text-muted">
+                  演算规则：每种操作按固定仓位暴露参与本阶段真实涨跌——清仓 10% / 减仓观望 60% / 重仓抄底 100%。
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {(
+                    [
+                      { name: "你", desc: "随机应变的组合", ret: playerRet, cls: "border-primary" },
+                      { name: "满仓持有", desc: "从头拿到尾", ret: fullPeriodRet ?? 0, cls: "border-border" },
+                      { name: "现金为王", desc: "全程空仓", ret: 0, cls: "border-border" },
+                    ] as const
+                  ).map((s) => (
+                    <div key={s.name} className={`rounded-lg border p-4 ${s.cls}`}>
+                      <p className="text-sm font-semibold">{s.name}</p>
+                      <p className="text-xs text-muted mt-0.5 mb-2">{s.desc}</p>
+                      <p className={`text-lg font-bold font-mono ${s.ret >= 0 ? "up" : "down"}`}>{fmtPct(s.ret)}</p>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </Card>
 
-          {navHistory.length > 0 && (
+          {hasStages && playerStageNav && (
+            <Card className="p-6">
+              <h3 className="font-bold mb-4">阶段操作回顾</h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-muted border-b border-border">
+                      <th className="py-2 pr-3 font-medium">阶段</th>
+                      <th className="py-2 pr-3 font-medium text-right">市场真实涨跌</th>
+                      <th className="py-2 pr-3 font-medium text-right">你的操作</th>
+                      <th className="py-2 pr-3 font-medium text-right">你的阶段收益</th>
+                      <th className="py-2 font-medium text-right">最佳操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {crisis.stages!.map((s, i) => {
+                      const r = stageRet(s);
+                      const mi = moveChosen[i];
+                      const chosen = mi != null ? s.moves[mi] : null;
+                      return (
+                        <tr key={s.name} className="border-b border-border/50">
+                          <td className="py-2 pr-3 flex items-center gap-1.5">
+                            <span className={`w-2 h-2 rounded-full ${REGIME_META[s.regime].dot}`} />
+                            {s.name}
+                          </td>
+                          <td className={`py-2 pr-3 text-right font-mono ${r >= 0 ? "up" : "down"}`}>{fmtPct(r)}</td>
+                          <td className="py-2 pr-3 text-right font-mono">
+                            {chosen ? STANCE_META[chosen.stance].label.slice(0, 2) : "未选择"}
+                          </td>
+                          <td className={`py-2 pr-3 text-right font-mono ${chosen ? (r * EXPOSURE[chosen.stance] >= 0 ? "up" : "down") : "text-muted"}`}>
+                            {chosen ? fmtPct(r * EXPOSURE[chosen.stance]) : "—"}
+                          </td>
+                          <td className={`py-2 text-right font-mono ${mi === s.bestMove ? "up" : ""}`}>
+                            {s.moves[s.bestMove].label}
+                            {mi != null && mi !== s.bestMove && <span className="ml-1 text-muted">(你: {STANCE_META[s.moves[mi].stance].label.slice(0, 2)})</span>}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          )}
+
+          {hasStages && playerStageNav && (
+            <Card className="p-6">
+              <h3 className="font-bold mb-4">收益曲线对比</h3>
+              <p className="text-xs text-muted mb-3">
+                以 100 为起点：你的净值 · 全程重仓 / 半仓 / 清仓四种策略在真实阶段涨跌下的累计结果
+              </p>
+              <EChart option={stageCompareOption} height={320} />
+            </Card>
+          )}
+
+          {!hasStages && navHistory.length > 0 && (
             <Card className="p-6">
               <h3 className="font-bold mb-4">收益曲线对比</h3>
               <p className="text-xs text-muted mb-3">
