@@ -3,6 +3,7 @@ import BoardTabs from "@/components/BoardTabs";
 import HistoryAxis from "@/components/HistoryAxis";
 import KonratiefWaves from "@/components/KonratiefWaves";
 import DynastyTable from "@/components/DynastyTable";
+import CrisisTab from "@/components/crisis/CrisisTab";
 import { Card, SectionTitle } from "@/components/ui";
 import {
   filterHistory, HISTORY_EVENTS, REGIONS, HISTORY_CATEGORIES,
@@ -88,11 +89,7 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
 
       {active === "crisis" && (
         <section>
-          <SectionTitle title="危机重演" sub="把历史上的危机数据复现到今日市场，用引擎回放" />
-          <Card className="p-10 text-center">
-            <p className="text-lg font-semibold text-muted">危机重演建设中（下一阶段上线）</p>
-            <p className="text-sm text-muted mt-2">下一阶段将接入危机回放引擎：选择历史危机 → 映射今日指标 → 推演路径。</p>
-          </Card>
+          <CrisisTab />
         </section>
       )}
 
