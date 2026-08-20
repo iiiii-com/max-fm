@@ -17,7 +17,7 @@ export async function GET(req: Request) {
   const secid = searchParams.get("secid")?.trim() ?? "";
   if (!/^\d+\.\w+$/.test(secid)) return NextResponse.json({ error: "参数错误" }, { status: 400 });
   const [mkt, code] = secid.split(".");
-  const prefix = mkt === "1" ? "sh" : mkt === "0" ? "sz" : "sh";
+  const prefix = mkt === "1" ? "sh" : mkt === "0" ? "sz" : mkt === "100" ? "hk" : "sh";
   const param = `${prefix}${code}`;
   try {
     const url = `https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param=${param},day,,,250,qfq`;
