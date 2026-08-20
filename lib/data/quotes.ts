@@ -19,15 +19,27 @@ const INDEX_SECIDS = [
   { code: "399006", name: "创业板指", secid: "0.399006", market: "cn" as const },
   { code: "000300", name: "沪深300", secid: "1.000300", market: "cn" as const },
   { code: "000905", name: "中证500", secid: "1.000905", market: "cn" as const },
+  { code: "000688", name: "科创50", secid: "1.000688", market: "cn" as const },
   { code: "USDCNH", name: "美元/离岸人民币", secid: "133.USDCNH", market: "global" as const },
   { code: "XAU", name: "伦敦金", secid: "119.GC00Y", market: "global" as const },
   { code: "CL", name: "WTI原油", secid: "119.CL00Y", market: "global" as const },
 ];
 
 const GLOBAL_SECIDS = [
+  { code: "DJIA", name: "道琼斯", secid: "100.DJIA", market: "global" as const },
   { code: "NDX", name: "纳斯达克", secid: "100.NDX", market: "global" as const },
-  { code: "HSI", name: "恒生指数", secid: "100.HSI", market: "global" as const },
   { code: "SPX", name: "标普500", secid: "100.SPX", market: "global" as const },
+  { code: "HSI", name: "恒生指数", secid: "100.HSI", market: "global" as const },
+  { code: "N225", name: "日经225", secid: "100.N225", market: "global" as const },
+  { code: "KS11", name: "韩国KOSPI", secid: "100.KS11", market: "global" as const },
+  { code: "TWII", name: "台湾加权", secid: "100.TWII", market: "global" as const },
+  { code: "GDAXI", name: "德国DAX", secid: "100.GDAXI", market: "global" as const },
+  { code: "FTSE", name: "英国富时100", secid: "100.FTSE", market: "global" as const },
+  { code: "FCHI", name: "法国CAC40", secid: "100.FCHI", market: "global" as const },
+  { code: "SENSEX", name: "印度SENSEX", secid: "100.SENSEX", market: "global" as const },
+  { code: "AS51", name: "澳洲ASX200", secid: "100.AS51", market: "global" as const },
+  { code: "STI", name: "新加坡STI", secid: "100.STI", market: "global" as const },
+  { code: "RTS", name: "俄罗斯RTS", secid: "100.RTS", market: "global" as const },
 ];
 
 function toQuote(q: any, market: "cn" | "global"): Quote {
@@ -51,7 +63,8 @@ export function fallbackQuotes(): Quote[] {
   const base: Array<[string, string, number]> = [
     ["000001", "上证指数", 3421.56], ["399001", "深证成指", 11245.32],
     ["399006", "创业板指", 2289.47], ["000300", "沪深300", 4123.89],
-    ["000905", "中证500", 6234.71], ["USDCNH", "美元/离岸人民币", 7.12],
+    ["000905", "中证500", 6234.71], ["000688", "科创50", 1092.3],
+    ["USDCNH", "美元/离岸人民币", 7.12],
     ["XAU", "伦敦金", 2689.4], ["CL", "WTI原油", 76.35],
   ];
   return base.map(([code, name, price]) => {
@@ -71,8 +84,11 @@ export function fallbackQuotes(): Quote[] {
 
 export function fallbackGlobalQuotes(): Quote[] {
   const base: Array<[string, string, number]> = [
-    ["NDX", "纳斯达克", 21560.4], ["HSI", "恒生指数", 18642.8],
-    ["SPX", "标普500", 6120.5],
+    ["DJIA", "道琼斯", 40320.4], ["NDX", "纳斯达克", 21560.4], ["SPX", "标普500", 6120.5],
+    ["HSI", "恒生指数", 18642.8], ["N225", "日经225", 37600.2], ["KS11", "韩国KOSPI", 2512.3],
+    ["TWII", "台湾加权", 22300.1], ["GDAXI", "德国DAX", 18250.6], ["FTSE", "英国富时100", 8210.4],
+    ["FCHI", "法国CAC40", 7320.8], ["SENSEX", "印度SENSEX", 76500.9], ["AS51", "澳洲ASX200", 7820.5],
+    ["STI", "新加坡STI", 3360.7], ["RTS", "俄罗斯RTS", 1120.2],
   ];
   return base.map(([code, name, price]) => ({
     code, name, price: Number(price.toFixed(2)),

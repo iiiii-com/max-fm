@@ -14,6 +14,7 @@ export const CORE_INDEXES = [
   { code: "399006", name: "创业板指", secid: "0.399006" },
   { code: "000300", name: "沪深300", secid: "1.000300" },
   { code: "000905", name: "中证500", secid: "1.000905" },
+  { code: "000688", name: "科创50", secid: "1.000688" },
   { code: "HSI", name: "恒生指数", secid: "100.HSI" },
 ];
 
