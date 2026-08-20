@@ -4,6 +4,13 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Card, Badge } from "@/components/ui";
 import { fmtDate } from "@/lib/utils";
+import { CHAIN_IMPACT } from "@/lib/data/crisis/chainImpact";
+
+function findImpact(name: string): string[] | null {
+  if (CHAIN_IMPACT[name]) return CHAIN_IMPACT[name];
+  const hit = Object.entries(CHAIN_IMPACT).find(([k]) => name.includes(k) || k.includes(name));
+  return hit ? hit[1] : null;
+}
 
 interface SectorRow {
   code: string;
@@ -53,6 +60,7 @@ export default function IndustryHeatCard({
 }) {
   const [s, setS] = useState<SectorRow | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const impact = findImpact(name);
 
   useEffect(() => {
     let alive = true;
@@ -84,6 +92,11 @@ export default function IndustryHeatCard({
           </span>
         </div>
         <p className="text-xs text-muted mt-2">{nodeCount} 个环节 · 查看上下游解剖 →</p>
+        {impact && (
+          <p className="text-[11px] text-muted mt-2 leading-relaxed">
+            <span className="font-medium text-primary">历史冲击：</span>{impact[0]}
+          </p>
+        )}
       </Card>
     </Link>
   );

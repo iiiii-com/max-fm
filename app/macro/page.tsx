@@ -3,6 +3,7 @@ import { getIndicators, getArticles } from "@/lib/data/queries";
 import { SectionTitle, Card, Badge, AIFlag } from "@/components/ui";
 import { TrendCard } from "@/components/charts/IndicatorLine";
 import CompareTool from "@/components/charts/CompareTool";
+import RiskIndicators from "@/components/RiskIndicators";
 import { fmtDate } from "@/lib/utils";
 import { bootstrap } from "@/lib/db";
 
@@ -109,6 +110,8 @@ export default async function MacroPage() {
         <Link href="/macro#report" className="px-4 py-2 rounded-lg border border-border text-sm hover:border-primary/50">AI 月度报告</Link>
         <Link href="/map" className="px-4 py-2 rounded-lg border border-border text-sm hover:border-primary/50">区域经济全景</Link>
       </div>
+
+      <RiskIndicators />
 
       <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {cards.map((c) => {

@@ -6,6 +6,7 @@ import { fmt, fmtPct, fmtDate } from "@/lib/utils";
 import { bootstrap } from "@/lib/db";
 import IndexCompareChart from "@/components/charts/IndexCompareChart";
 import MarketDashboard from "@/components/MarketDashboard";
+import CrisisImpactTable from "@/components/CrisisImpactTable";
 
 export const CORE_INDEXES = [
   { code: "000001", name: "上证指数", secid: "1.000001" },
@@ -83,6 +84,8 @@ export default async function MarketIndexes() {
           </div>
         )}
       </section>
+
+      <CrisisImpactTable />
     </div>
   );
 }
