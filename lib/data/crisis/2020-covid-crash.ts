@@ -10,10 +10,10 @@ export const covid2020: Crisis = {
     { name: "上证指数", secid: "1.000001" },
   ],
   stocks: [
-    { name: "波音", secid: "100.BA", role: "疫情重创航空业，股价 -70%" },
-    { name: "美国联合航空", secid: "100.UAL", role: "航空业崩溃代表" },
-    { name: "迪士尼", secid: "100.DIS", role: "乐园停摆，股价腰斩" },
-    { name: "嘉年华邮轮", secid: "100.CCL", role: "邮轮业停摆，几近归零" },
+    { name: "波音", secid: "100.BA", role: "疫情重创航空业，股价 -70%", nameOnly: true },
+    { name: "美国联合航空", secid: "100.UAL", role: "航空业崩溃代表", nameOnly: true },
+    { name: "迪士尼", secid: "100.DIS", role: "乐园停摆，股价腰斩", nameOnly: true },
+    { name: "嘉年华邮轮", secid: "100.CCL", role: "邮轮业停摆，几近归零", nameOnly: true },
   ],
   vixData: [
     { date: "2019-12", value: 13.9 },

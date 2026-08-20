@@ -10,9 +10,9 @@ export const subprime2008: Crisis = {
     { name: "上证指数", secid: "1.000001" },
   ],
   stocks: [
-    { name: "Citigroup", secid: "100.C", role: "全球最大银行之一，危机中股价 -98%" },
-    { name: "AIG", secid: "100.AIG", role: "保险巨头，接受 1820 亿美元政府救助" },
-    { name: "通用汽车", secid: "100.GM", role: "濒临破产，政府注资重组" },
+    { name: "Citigroup", secid: "100.C", role: "全球最大银行之一，危机中股价 -98%", nameOnly: true },
+    { name: "AIG", secid: "100.AIG", role: "保险巨头，接受 1820 亿美元政府救助", nameOnly: true },
+    { name: "通用汽车", secid: "100.GM", role: "濒临破产，政府注资重组", nameOnly: true },
     { name: "房利美", secid: "100.FNM", role: "两房被接管，次贷风暴震中（已退市）", nameOnly: true },
   ],
   vixData: [

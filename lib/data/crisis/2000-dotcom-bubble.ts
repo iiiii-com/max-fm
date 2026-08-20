@@ -10,8 +10,8 @@ export const dotcom2000: Crisis = {
     { name: "标普500", secid: "100.SPX" },
   ],
   stocks: [
-    { name: "思科", secid: "100.CSCO", role: "互联网设备霸主，市值蒸发 80%" },
-    { name: "英特尔", secid: "100.INTC", role: "芯片龙头，泡沫破裂重挫" },
+    { name: "思科", secid: "100.CSCO", role: "互联网设备霸主，市值蒸发 80%", nameOnly: true },
+    { name: "英特尔", secid: "100.INTC", role: "芯片龙头，泡沫破裂重挫", nameOnly: true },
     { name: "朗讯科技", secid: "100.LU", role: "电信设备神话破灭（已退市）", nameOnly: true },
     { name: "雅虎", secid: "100.YHOO", role: "门户巨头陨落（已退市）", nameOnly: true },
   ],
