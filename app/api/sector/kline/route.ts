@@ -42,20 +42,30 @@ export async function GET(req: Request) {
     }
 
     const list: SectorKline[] = [];
-    for (const row of klines) {
+    for (let i = 0; i < klines.length; i++) {
+      const row = klines[i];
       const p = (row ?? "").split(",");
-      if (p.length < 8) continue;
+      if (p.length < 3) continue;
       const date = String(p[0]);
       const close = Number(p[2]) || 0;
-      const prev = Number(p[5]) || 0;
+      const prevClose = i > 0 ? Number((klines[i - 1] ?? "").split(",")[2]) || 0 : close;
       list.push({
         date,
         close,
-        pct: prev ? ((close - prev) / prev) * 100 : 0,
+        pct: prevClose ? ((close - prevClose) / prevClose) * 100 : 0,
         main: flowMap.get(date) ?? 0,
       });
     }
-    return NextResponse.json({ ok: true, bk, list });
+    const debug =
+      process.env.NODE_ENV === "production"
+        ? {
+            kDataKeys: kJson?.data ? Object.keys(kJson.data) : null,
+            klinesLen: klines.length,
+            flowLen: flowRows.length,
+            firstKline: klines[0] ?? null,
+          }
+        : undefined;
+    return NextResponse.json({ ok: true, bk, list, debug });
   } catch {
     return NextResponse.json({ ok: false, error: "板块 K 线暂不可用" }, { status: 502 });
   }
