@@ -1,8 +1,8 @@
-﻿import Link from "next/link";
+﻿import BoardTabs from "@/components/BoardTabs";
 import { getChains, getChainNodes } from "@/lib/data/queries";
-import { Card, Badge, SectionTitle } from "@/components/ui";
+import { Card, SectionTitle } from "@/components/ui";
 import ChainGraphViewer from "@/components/ChainGraphViewer";
-import { fmtDate } from "@/lib/utils";
+import IndustryHeatCard from "@/components/IndustryHeatCard";
 import { bootstrap } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +10,15 @@ export const metadata = { title: "产业链分析" };
 
 const ROLE_ORDER: Record<string, number> = { 上游: 0, 中游: 1, 下游: 2 };
 
-export default async function IndustryPage() {
+const TABS = [
+  { key: "overview", label: "全景图" },
+  { key: "chains", label: "二十二条主线" },
+];
+
+export default async function IndustryPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
+  const { tab } = await searchParams;
+  const active = TABS.some((t) => t.key === tab) ? (tab as string) : "overview";
+
   await bootstrap();
   const chains = await getChains();
   const nodes = await getChainNodes();
@@ -32,30 +40,34 @@ export default async function IndustryPage() {
         <p className="text-sm text-muted mt-1">22 条主线产业链：新能源车 · 半导体 · AI · 光伏 · 低空经济 · 创新药等，点开查看上中下游解剖</p>
       </header>
 
-      <section>
-        <SectionTitle title="产业链全景图" sub="力导向图：节点为环节，连线为上下游关系；可聚焦单条链查看" />
-        <Card>
-          <ChainGraphViewer chains={chains} nodes={nodes} links={links} />
-        </Card>
-      </section>
+      <BoardTabs tabs={TABS} active={active} />
 
-      <section>
-        <SectionTitle title="二十二条主线" sub="点击卡片查看上中下游解剖与代表公司" />
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {chains.map((c: any) => (
-            <Link key={c.id} href={`/industry/${c.slug}`}>
-              <Card className="hover:shadow-md hover:border-primary/40 transition-all h-full">
-                <div className="flex items-center justify-between mb-2">
-                  <Badge tone={c.name.includes("AI") || c.name.includes("半导体") ? "amber" : "red"}>{c.name}</Badge>
-                  <span className="text-xs text-muted">更新于 {fmtDate(c.updatedAt ? new Date(c.updatedAt).toLocaleDateString("zh-CN") : "—")}</span>
-                </div>
-                <p className="text-sm text-muted line-clamp-3">{c.description}</p>
-                <p className="text-xs text-muted mt-2">{nodes.filter((n: any) => n.chainId === c.id).length} 个环节 · 查看上下游解剖 →</p>
-              </Card>
-            </Link>
-          ))}
-        </div>
-      </section>
+      {active === "overview" && (
+        <section>
+          <SectionTitle title="产业链全景图" sub="力导向图：节点为环节，连线为上下游关系；可聚焦单条链查看" />
+          <Card>
+            <ChainGraphViewer chains={chains} nodes={nodes} links={links} />
+          </Card>
+        </section>
+      )}
+
+      {active === "chains" && (
+        <section>
+          <SectionTitle title="二十二条主线" sub="点击卡片查看上中下游解剖与代表公司，底部标注板块当日热度与主力资金" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {chains.map((c: any) => (
+              <IndustryHeatCard
+                key={c.id}
+                name={c.name}
+                slug={c.slug}
+                description={c.description}
+                updatedAt={c.updatedAt}
+                nodeCount={nodes.filter((n: any) => n.chainId === c.id).length}
+              />
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

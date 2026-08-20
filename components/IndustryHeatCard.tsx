@@ -1,0 +1,90 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { Card, Badge } from "@/components/ui";
+import { fmtDate } from "@/lib/utils";
+
+interface SectorRow {
+  code: string;
+  name: string;
+  changePct: number;
+  mainNetIn: number;
+}
+
+let sectorCache: SectorRow[] | null = null;
+let sectorPromise: Promise<SectorRow[]> | null = null;
+
+function fmtMoney(n: number) {
+  if (Math.abs(n) >= 1e8) return `${(n / 1e8).toFixed(2)}亿`;
+  if (Math.abs(n) >= 1e4) return `${(n / 1e4).toFixed(0)}万`;
+  return String(n);
+}
+
+function loadSectors(): Promise<SectorRow[]> {
+  if (sectorCache) return Promise.resolve(sectorCache);
+  if (!sectorPromise) {
+    sectorPromise = fetch("/api/sector/flow", { cache: "no-store" })
+      .then((res) => res.json())
+      .then((j) => {
+        sectorCache = Array.isArray(j?.sectors) ? (j.sectors as SectorRow[]) : [];
+        return sectorCache;
+      })
+      .catch(() => {
+        sectorCache = [];
+        return sectorCache;
+      });
+  }
+  return sectorPromise;
+}
+
+export default function IndustryHeatCard({
+  name,
+  slug,
+  description,
+  updatedAt,
+  nodeCount,
+}: {
+  name: string;
+  slug: string;
+  description: string | null;
+  updatedAt: number | null;
+  nodeCount: number;
+}) {
+  const [s, setS] = useState<SectorRow | null>(null);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    loadSectors().then((sectors) => {
+      if (!alive) return;
+      const hit = sectors.find((x) => x.name.includes(name) || name.includes(x.name));
+      setS(hit ?? null);
+      setLoaded(true);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [name]);
+
+  return (
+    <Link href={`/industry/${slug}`}>
+      <Card className="hover:shadow-md hover:border-primary/40 transition-all h-full">
+        <div className="flex items-center justify-between mb-2">
+          <Badge tone={name.includes("AI") || name.includes("半导体") ? "amber" : "red"}>{name}</Badge>
+          <span className="text-xs text-muted">更新于 {fmtDate(updatedAt ? new Date(updatedAt).toLocaleDateString("zh-CN") : "—")}</span>
+        </div>
+        <p className="text-sm text-muted line-clamp-3">{description}</p>
+        <div className="flex items-center gap-2 text-xs mt-2">
+          <Badge tone={s ? (s.changePct >= 0 ? "red" : "green") : "gray"}>
+            {s ? `${s.changePct >= 0 ? "+" : ""}${s.changePct.toFixed(2)}%` : "—"}
+          </Badge>
+          <span className={`font-mono ${(s?.mainNetIn ?? 0) >= 0 ? "up" : "down"}`}>
+            {s ? `主力 ${fmtMoney(s.mainNetIn)}` : loaded ? "暂无板块行情" : "加载中…"}
+          </span>
+        </div>
+        <p className="text-xs text-muted mt-2">{nodeCount} 个环节 · 查看上下游解剖 →</p>
+      </Card>
+    </Link>
+  );
+}
