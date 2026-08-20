@@ -1,6 +1,7 @@
 ﻿import { getProvinces, getProvinceHistoryAll } from "@/lib/data/queries";
 import { SectionTitle, Card } from "@/components/ui";
 import ProvinceMap from "@/components/ProvinceMap";
+import CityRankTable, { ProvinceCityPanel } from "@/components/CityRankTable";
 import { bootstrap } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -76,6 +77,18 @@ export default async function MapPage() {
       <section>
         <SectionTitle title="区域经济全景" sub="悬停地图查看数值与排名，切换指标对比区域差异，表格点击表头排序；点击省份或表格行查看 2018-2025 走势" />
         <ProvinceMap data={data} history={history} />
+      </section>
+
+      <section>
+        <SectionTitle title="代表城市" sub="点击省份查看支柱产业与优势产业城市分布，产业标签可跳转对应产业链" />
+        <ProvinceCityPanel />
+      </section>
+
+      <section>
+        <SectionTitle title="全国城市 GDP 榜" sub="TOP30 城市 · 2025 年口径预估 · 点击表头排序" />
+        <Card>
+          <CityRankTable />
+        </Card>
       </section>
     </div>
   );

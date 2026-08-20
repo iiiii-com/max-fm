@@ -51,12 +51,14 @@ export default function IndustryHeatCard({
   description,
   updatedAt,
   nodeCount,
+  onSelect,
 }: {
   name: string;
   slug: string;
   description: string | null;
   updatedAt: number | null;
   nodeCount: number;
+  onSelect?: (slug: string) => void;
 }) {
   const [s, setS] = useState<SectorRow | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -75,29 +77,36 @@ export default function IndustryHeatCard({
     };
   }, [name]);
 
-  return (
-    <Link href={`/industry/${slug}`}>
-      <Card className="hover:shadow-md hover:border-primary/40 transition-all h-full">
-        <div className="flex items-center justify-between mb-2">
-          <Badge tone={name.includes("AI") || name.includes("半导体") ? "amber" : "red"}>{name}</Badge>
-          <span className="text-xs text-muted">更新于 {fmtDate(updatedAt ? new Date(updatedAt).toLocaleDateString("zh-CN") : "—")}</span>
-        </div>
-        <p className="text-sm text-muted line-clamp-3">{description}</p>
-        <div className="flex items-center gap-2 text-xs mt-2">
-          <Badge tone={s ? (s.changePct >= 0 ? "red" : "green") : "gray"}>
-            {s ? `${s.changePct >= 0 ? "+" : ""}${s.changePct.toFixed(2)}%` : "—"}
-          </Badge>
-          <span className={`font-mono ${(s?.mainNetIn ?? 0) >= 0 ? "up" : "down"}`}>
-            {s ? `主力 ${fmtMoney(s.mainNetIn)}` : loaded ? "暂无板块行情" : "加载中…"}
-          </span>
-        </div>
-        <p className="text-xs text-muted mt-2">{nodeCount} 个环节 · 查看上下游解剖 →</p>
-        {impact && (
-          <p className="text-[11px] text-muted mt-2 leading-relaxed">
-            <span className="font-medium text-primary">历史冲击：</span>{impact[0]}
-          </p>
-        )}
-      </Card>
-    </Link>
+  const inner = (
+    <Card className="hover:shadow-md hover:border-primary/40 transition-all h-full">
+      <div className="flex items-center justify-between mb-2">
+        <Badge tone={name.includes("AI") || name.includes("半导体") ? "amber" : "red"}>{name}</Badge>
+        <span className="text-xs text-muted">更新于 {fmtDate(updatedAt ? new Date(updatedAt).toLocaleDateString("zh-CN") : "—")}</span>
+      </div>
+      <p className="text-sm text-muted line-clamp-3">{description}</p>
+      <div className="flex items-center gap-2 text-xs mt-2">
+        <Badge tone={s ? (s.changePct >= 0 ? "red" : "green") : "gray"}>
+          {s ? `${s.changePct >= 0 ? "+" : ""}${s.changePct.toFixed(2)}%` : "—"}
+        </Badge>
+        <span className={`font-mono ${(s?.mainNetIn ?? 0) >= 0 ? "up" : "down"}`}>
+          {s ? `主力 ${fmtMoney(s.mainNetIn)}` : loaded ? "暂无板块行情" : "加载中…"}
+        </span>
+      </div>
+      <p className="text-xs text-muted mt-2">{nodeCount} 个环节 · 查看上下游解剖 →</p>
+      {impact && (
+        <p className="text-[11px] text-muted mt-2 leading-relaxed">
+          <span className="font-medium text-primary">历史冲击：</span>{impact[0]}
+        </p>
+      )}
+    </Card>
   );
+
+  if (onSelect) {
+    return (
+      <button type="button" onClick={() => onSelect(slug)} className="text-left w-full">
+        {inner}
+      </button>
+    );
+  }
+  return <Link href={`/industry/${slug}`}>{inner}</Link>;
 }

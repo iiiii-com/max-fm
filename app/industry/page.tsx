@@ -2,7 +2,8 @@
 import { getChains, getChainNodes } from "@/lib/data/queries";
 import { Card, SectionTitle } from "@/components/ui";
 import ChainGraphViewer from "@/components/ChainGraphViewer";
-import IndustryHeatCard from "@/components/IndustryHeatCard";
+import ChainEcosystem from "@/components/chain/ChainEcosystem";
+import ChainHost from "@/components/chain/ChainHost";
 import { bootstrap } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -12,11 +13,11 @@ const ROLE_ORDER: Record<string, number> = { 上游: 0, 中游: 1, 下游: 2 };
 
 const TABS = [
   { key: "overview", label: "全景图" },
-  { key: "chains", label: "二十二条主线" },
+  { key: "chains", label: "产业链列表" },
 ];
 
-export default async function IndustryPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
-  const { tab } = await searchParams;
+export default async function IndustryPage({ searchParams }: { searchParams: Promise<{ tab?: string; chain?: string }> }) {
+  const { tab, chain } = await searchParams;
   const active = TABS.some((t) => t.key === tab) ? (tab as string) : "overview";
 
   await bootstrap();
@@ -33,40 +34,39 @@ export default async function IndustryPage({ searchParams }: { searchParams: Pro
     }
   }
 
+  const nodeCounts: Record<string, number> = {};
+  for (const c of chains) {
+    nodeCounts[c.id] = nodes.filter((n: any) => n.chainId === c.id).length;
+  }
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 space-y-8">
       <header>
         <h1 className="text-2xl font-bold">产业链分析</h1>
-        <p className="text-sm text-muted mt-1">22 条主线产业链：新能源车 · 半导体 · AI · 光伏 · 低空经济 · 创新药等，点开查看上中下游解剖</p>
+        <p className="text-sm text-muted mt-1">主线产业链：新能源车 · 半导体 · AI · 光伏 · 低空经济 · 创新药等，点开查看上中下游解剖</p>
       </header>
 
       <BoardTabs tabs={TABS} active={active} />
 
       {active === "overview" && (
-        <section>
-          <SectionTitle title="产业链全景图" sub="力导向图：节点为环节，连线为上下游关系；可聚焦单条链查看" />
-          <Card>
-            <ChainGraphViewer chains={chains} nodes={nodes} links={links} />
-          </Card>
+        <section className="space-y-8">
+          <div>
+            <SectionTitle title="产业链全景图" sub="力导向图：节点为环节，连线为上下游关系；可聚焦单条链查看" />
+            <Card>
+              <ChainGraphViewer chains={chains} nodes={nodes} links={links} />
+            </Card>
+          </div>
+          <div>
+            <SectionTitle title="产业链生态关联图" sub="热门产业链之间的供需与协同关系 · 点击节点打开对应链详情" />
+            <Card>
+              <ChainEcosystem />
+            </Card>
+          </div>
         </section>
       )}
 
       {active === "chains" && (
-        <section>
-          <SectionTitle title="二十二条主线" sub="点击卡片查看上中下游解剖与代表公司，底部标注板块当日热度与主力资金" />
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {chains.map((c: any) => (
-              <IndustryHeatCard
-                key={c.id}
-                name={c.name}
-                slug={c.slug}
-                description={c.description}
-                updatedAt={c.updatedAt}
-                nodeCount={nodes.filter((n: any) => n.chainId === c.id).length}
-              />
-            ))}
-          </div>
-        </section>
+        <ChainHost dbChains={chains as any} nodeCounts={nodeCounts} initialChain={chain} />
       )}
     </div>
   );
