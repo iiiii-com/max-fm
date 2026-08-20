@@ -10,6 +10,9 @@ export type HistoryEvent = {
   figures: string;
   impact: string;
   source: string;
+  wave?: number;      // 康波波次 1-6，无则 undefined
+  lesson?: string;    // "对今日启示"，仅精选事件有
+  featured?: boolean; // 精选标记：时间轴默认只展示 featured 事件
 };
 
 export const HISTORY_EVENTS = events as HistoryEvent[];
