@@ -5,6 +5,7 @@ import Link from "next/link";
 import EChart from "@/components/charts/EChart";
 import type { EChartsOption } from "@/components/charts/echarts";
 import StockDrawer, { type DrawerStock } from "@/components/StockDrawer";
+import SectorDrawer, { type DrawerSector } from "@/components/SectorDrawer";
 import { useWatchlist, type WatchItem } from "@/lib/hooks/useWatchlist";
 
 interface SectorLeader {
@@ -57,6 +58,7 @@ export default function MarketDashboard() {
   const [detailMap, setDetailMap] = useState<Record<string, SectorStock[]>>({});
   const [detailLoading, setDetailLoading] = useState<string | null>(null);
   const [drawer, setDrawer] = useState<DrawerStock | null>(null);
+  const [sectorDrawer, setSectorDrawer] = useState<DrawerSector | null>(null);
 
   const load = async () => {
     setRefreshing(true);
@@ -221,6 +223,7 @@ export default function MarketDashboard() {
                     details={detailMap[s.code]}
                     onToggleExpand={() => toggleExpand(s.code)}
                     onOpenDrawer={(st) => setDrawer(st)}
+                    onOpenKline={() => setSectorDrawer({ name: s.name, code: s.code, changePct: s.changePct, mainNetIn: s.mainNetIn })}
                   />
                 ))}
               </tbody>
@@ -280,6 +283,7 @@ export default function MarketDashboard() {
       </div>
 
       <StockDrawer stock={drawer} onClose={() => setDrawer(null)} />
+      <SectorDrawer sector={sectorDrawer} onClose={() => setSectorDrawer(null)} />
     </div>
   );
 }
@@ -294,6 +298,7 @@ function SectorRowComp({
   details,
   onToggleExpand,
   onOpenDrawer,
+  onOpenKline,
 }: {
   s: SectorRow;
   index: number;
@@ -304,6 +309,7 @@ function SectorRowComp({
   details?: SectorStock[];
   onToggleExpand: () => void;
   onOpenDrawer: (st: DrawerStock) => void;
+  onOpenKline: () => void;
 }) {
   return (
     <>
@@ -355,13 +361,25 @@ function SectorRowComp({
           )}
         </td>
         <td className="text-right pl-2">
-          <Link
-            href={`/stock?q=${encodeURIComponent(s.name)}`}
-            onClick={(e) => e.stopPropagation()}
-            className="text-[10px] text-muted hover:text-primary"
-          >
-            查看个股 →
-          </Link>
+          <div className="flex items-center justify-end gap-2">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenKline();
+              }}
+              className="text-[10px] text-muted hover:text-primary border border-border/60 rounded px-1.5 py-0.5"
+              title="板块 K 线 + 资金流联动"
+            >
+              走势
+            </button>
+            <Link
+              href={`/stock?q=${encodeURIComponent(s.name)}`}
+              onClick={(e) => e.stopPropagation()}
+              className="text-[10px] text-muted hover:text-primary"
+            >
+              查看个股 →
+            </Link>
+          </div>
         </td>
       </tr>
       {expanded && (
