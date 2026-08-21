@@ -80,14 +80,28 @@ export default function StageIllustration({
       style={{ height, background: meta.bg }}
     >
       <svg viewBox={`0 0 ${W} ${H}`} width="100%" height="100%" preserveAspectRatio="xMidYMid meet" role="img">
+        <defs>
+          <style>{`
+            @keyframes candleGrow { 0% { transform: scaleY(0); } 100% { transform: scaleY(1); } }
+            @keyframes candleGrowDown { 0% { transform: scaleY(0) translateY(100%); } 100% { transform: scaleY(1) translateY(0); } }
+            @keyframes iconPulse { 0%, 100% { opacity: 0.8; transform: scale(1); } 50% { opacity: 1; transform: scale(1.12); } }
+            @keyframes arrowBounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+            .c-anim { animation: candleGrow 0.5s ease both; transform-origin: bottom; }
+            .c-anim-r { animation: candleGrow 0.5s ease both; transform-origin: bottom; }
+            .icon-pulse { animation: iconPulse 2.2s ease-in-out infinite; }
+            .arrow-bounce { animation: arrowBounce 1.4s ease-in-out infinite; }
+          `}</style>
+        </defs>
         <line x1={20} y1={94} x2={W - 14} y2={94} stroke="rgba(128,128,128,0.25)" strokeWidth={1} strokeDasharray="3 3" />
         <line x1={20} y1={64} x2={W - 14} y2={64} stroke="rgba(128,128,128,0.12)" strokeWidth={1} strokeDasharray="3 3" />
         <line x1={20} y1={34} x2={W - 14} y2={34} stroke="rgba(128,128,128,0.12)" strokeWidth={1} strokeDasharray="3 3" />
         {candles.map((c, i) => (
-          <Candle key={i} {...c} />
+          <g key={i} style={{ animationDelay: `${i * 0.06}s` }} className="c-anim">
+            <Candle {...c} />
+          </g>
         ))}
         {regime === "crash" && (
-          <g transform="translate(262,14)">
+          <g transform="translate(262,14)" className="icon-pulse">
             <path
               d="M4 0 L20 0 L16 9 L26 9 L8 26 L12 15 L0 15 Z"
               fill="#f59e0b"
@@ -96,7 +110,7 @@ export default function StageIllustration({
           </g>
         )}
         {regime === "rally" && (
-          <g transform="translate(266,16)">
+          <g transform="translate(266,16)" className="arrow-bounce">
             <path
               d="M8 24 L8 4 L2 10 L0 7 L8 0 L16 7 L14 10 L8 4 L8 24 Z"
               fill="#f59e0b"
@@ -105,7 +119,7 @@ export default function StageIllustration({
           </g>
         )}
         {regime === "range" && (
-          <g transform="translate(262,12)">
+          <g transform="translate(262,12)" className="icon-pulse">
             <rect x="0" y="0" width="14" height="24" rx="3" fill="none" stroke="#f59e0b" strokeWidth={1.6} />
             <line x1="4" y1="12" x2="16" y2="12" stroke="#f59e0b" strokeWidth={1.6} />
             <line x1="7" y1="4" x2="7" y2="20" stroke="#f59e0b" strokeWidth={1.6} />

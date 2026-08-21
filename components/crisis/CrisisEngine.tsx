@@ -572,6 +572,9 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
 @keyframes crisisPulseRed { 0% { box-shadow: 0 0 0 0 rgba(220,38,38,0.45); } 100% { box-shadow: 0 0 0 24px rgba(220,38,38,0); } }
 @keyframes crisisPulseGreen { 0% { box-shadow: 0 0 0 0 rgba(22,163,74,0.45); } 100% { box-shadow: 0 0 0 24px rgba(22,163,74,0); } }
 @keyframes crisisJump { 0%, 100% { transform: scale(1); } 35% { transform: scale(1.35); } 70% { transform: scale(0.92); } }
+@keyframes crisisFadeIn { 0% { opacity: 0; transform: translateY(8px); } 100% { opacity: 1; transform: translateY(0); } }
+@keyframes crisisRevealPop { 0% { opacity: 0; transform: scale(0.92) translateY(4px); } 60% { opacity: 1; transform: scale(1.02) translateY(-1px); } 100% { opacity: 1; transform: scale(1) translateY(0); } }
+@keyframes crisisSlideUp { 0% { opacity: 0; transform: translateY(16px); } 100% { opacity: 1; transform: translateY(0); } }
       `}</style>
 
       <div className="flex items-start justify-between gap-4">
@@ -664,7 +667,7 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
               </p>
               <div className="flex items-stretch gap-1.5 overflow-x-auto pb-2">
                 {crisis.stages!.map((s, i) => (
-                  <div key={s.name} className="flex items-center gap-1.5 shrink-0">
+                  <div key={s.name} className="flex items-center gap-1.5 shrink-0" style={{ animation: `crisisFadeIn 0.4s ease ${i * 0.08}s both` }}>
                     <div className="rounded-lg border border-border px-3 py-2 min-w-[132px]">
                       <div className="flex items-center gap-1.5 mb-1">
                         <span className={`w-2.5 h-2.5 rounded-full ${REGIME_META[s.regime].dot}`} />
@@ -767,6 +770,19 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
               className="h-full bg-primary transition-all duration-300"
               style={{ width: `${((stageIndex + 1) / crisis.stages!.length) * 100}%` }}
             />
+          </div>
+          <div className="flex justify-between mt-1">
+            {crisis.stages!.map((s, i) => (
+              <span
+                key={s.name}
+                className={`text-[8px] font-mono truncate max-w-[60px] text-center ${
+                  i === stageIndex ? "text-primary font-bold" : "text-muted/60"
+                }`}
+                title={s.name}
+              >
+                {s.name}
+              </span>
+            ))}
           </div>
         </Card>
       )}
@@ -944,7 +960,9 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
                     {REGIME_META[stage.regime].label}
                   </Badge>
                 </div>
-                <p className="text-sm leading-relaxed">{stage.narrative}</p>
+                <div className="relative pl-4 border-l-2 border-primary/30">
+                  <p className="text-sm leading-relaxed italic text-foreground/80">{stage.narrative}</p>
+                </div>
 
                 <div className="mt-4 pt-3 border-t border-border">
                   <p className="text-xs font-semibold text-muted mb-2">
@@ -969,6 +987,7 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
                                   : "border-border opacity-60"
                               : "border-border hover:border-primary/60 hover:shadow-sm"
                           }`}
+                          style={revealedHere ? { animation: "crisisRevealPop 0.4s ease" } : undefined}
                         >
                           <p className={`text-[10px] font-bold tracking-wide ${STANCE_META[mv.stance].cls}`}>
                             {STANCE_META[mv.stance].label}
@@ -976,7 +995,7 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
                           <p className="text-sm font-semibold mt-0.5">{mv.label}</p>
                           <p className="text-xs text-muted mt-1 leading-relaxed">{mv.desc}</p>
                           {revealedHere && (
-                            <div className="mt-2 pt-2 border-t border-border/60">
+                            <div className="mt-2 pt-2 border-t border-border/60" style={{ animation: "crisisFadeIn 0.35s ease 0.1s both" }}>
                               <p className="text-[13px] leading-relaxed">{mv.outcome}</p>
                               <p className={`mt-1.5 text-xs font-bold font-mono ${
                                 stageMoveRet(stage, mv) >= 0 ? "up" : "down"
@@ -993,10 +1012,10 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
                 </div>
 
                 {revealed.has(stageIndex) && (
-                  <div className="mt-4 rounded-lg bg-primary/5 border border-primary/20 p-3">
+                  <div className="mt-4 rounded-lg bg-primary/5 border border-primary/20 p-3" style={{ animation: "crisisSlideUp 0.4s ease 0.15s both" }}>
                     <p className="text-xs text-muted">
                       本阶段市场真实涨跌 <b className={stageRet(stage) >= 0 ? "up" : "down"}>{fmtPct(stageRet(stage))}</b>
-                      ，最优操作是“{stage.moves[stage.bestMove].label}”。
+                      ，最优操作是"{stage.moves[stage.bestMove].label}"。
                     </p>
                   </div>
                 )}
@@ -1148,24 +1167,17 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
           <Card className="p-6">
             <h3 className="font-bold mb-4">最终战绩</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <div className="rounded-lg border border-border p-3">
-                <p className="text-xs text-muted mb-1">初始资金</p>
-                <p className="text-sm font-semibold font-mono">¥{fmtMoney(CAPITAL)}</p>
-              </div>
-              <div className="rounded-lg border border-border p-3">
-                <p className="text-xs text-muted mb-1">最终资产</p>
-                <p className="text-sm font-semibold font-mono">¥{fmtMoney(finalState.nav)}</p>
-              </div>
-              <div className="rounded-lg border border-border p-3">
-                <p className="text-xs text-muted mb-1">本场收益</p>
-                <p className={`text-sm font-bold font-mono ${playerRet >= 0 ? "up" : "down"}`}>
-                  {fmtPct(playerRet)}
-                </p>
-              </div>
-              <div className="rounded-lg border border-border p-3">
-                <p className="text-xs text-muted mb-1">最终仓位</p>
-                <p className="text-sm font-semibold font-mono">{finalState.position.toFixed(0)}%</p>
-              </div>
+              {[
+                { label: "初始资金", value: `¥${fmtMoney(CAPITAL)}`, cls: "" },
+                { label: "最终资产", value: `¥${fmtMoney(finalState.nav)}`, cls: "" },
+                { label: "本场收益", value: fmtPct(playerRet), cls: playerRet >= 0 ? "up" : "down" },
+                { label: "最终仓位", value: `${finalState.position.toFixed(0)}%`, cls: "" },
+              ].map((item, i) => (
+                <div key={item.label} className="rounded-lg border border-border p-3" style={{ animation: `crisisSlideUp 0.4s ease ${i * 0.08}s both` }}>
+                  <p className="text-xs text-muted mb-1">{item.label}</p>
+                  <p className={`text-sm font-semibold font-mono ${item.cls}`}>{item.value}</p>
+                </div>
+              ))}
             </div>
             <div className="mt-3 rounded-lg border border-border p-3">
               <p className="text-xs text-muted mb-1">主市场全程涨跌（{mainMarket.name}）</p>
@@ -1231,6 +1243,7 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
                       <th className="py-2 pr-3 font-medium text-right">市场真实涨跌</th>
                       <th className="py-2 pr-3 font-medium text-right">你的操作</th>
                       <th className="py-2 pr-3 font-medium text-right">你的阶段收益</th>
+                      <th className="py-2 pr-3 font-medium text-right">累计净值</th>
                       <th className="py-2 font-medium text-right">最佳操作</th>
                     </tr>
                   </thead>
@@ -1239,8 +1252,12 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
                       const r = stageRet(s);
                       const mi = moveChosen[i];
                       const chosen = mi != null ? s.moves[mi] : null;
+                      const isBestRow = mi != null && mi === s.bestMove;
                       return (
-                        <tr key={s.name} className="border-b border-border/50">
+                        <tr
+                          key={s.name}
+                          className={`border-b border-border/50 ${isBestRow ? "bg-down/5" : i === stageIndex ? "bg-primary/5" : ""}`}
+                        >
                           <td className="py-2 pr-3 flex items-center gap-1.5">
                             <span className={`w-2 h-2 rounded-full ${REGIME_META[s.regime].dot}`} />
                             {s.name}
@@ -1251,6 +1268,9 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
                           </td>
                           <td className={`py-2 pr-3 text-right font-mono ${chosen ? (r * EXPOSURE[chosen.stance] >= 0 ? "up" : "down") : "text-muted"}`}>
                             {chosen ? fmtPct(r * EXPOSURE[chosen.stance]) : "—"}
+                          </td>
+                          <td className="py-2 pr-3 text-right font-mono font-semibold">
+                            ¥{fmtMoney(playerStageNav[i].nav)}
                           </td>
                           <td className={`py-2 text-right font-mono ${mi === s.bestMove ? "up" : ""}`}>
                             {s.moves[s.bestMove].label}
