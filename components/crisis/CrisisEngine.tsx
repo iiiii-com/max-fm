@@ -8,7 +8,6 @@ import { Badge, Card } from "@/components/ui";
 import VirtualAccount, { type VirtualAccountHandle } from "./VirtualAccount";
 import DecisionQuiz from "./DecisionQuiz";
 import PanicGauge from "./PanicGauge";
-import StageIllustration from "./StageIllustration";
 import type { Crisis, CrisisStage, InvestorMove } from "@/lib/data/crisis/types";
 
 type Phase = "intro" | "playing" | "finished";
@@ -848,91 +847,9 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
       )}
 
       {(phase === "intro" || phase === "playing") && (
-        <Card className="p-4">
-          <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <h3 className="font-semibold text-sm mr-1">收盘价回放</h3>
-              {viewOptions.map((key) => (
-                <button
-                  key={key}
-                  onClick={() => setViewKey(key)}
-                  className={`px-2.5 py-1 rounded-md text-xs font-medium border transition-colors ${
-                    viewKey === key
-                      ? "bg-primary text-white border-primary"
-                      : "border-border text-muted hover:border-primary/50"
-                  }`}
-                >
-                  {key}
-                </button>
-              ))}
-            </div>
-            <div className="flex items-center gap-2">
-              {phase === "playing" && !hasStages && <span className="text-xs text-muted">截至 {node.date}</span>}
-              {phase === "playing" && hasStages && stage && (
-                <span className="text-xs text-muted font-mono">
-                  本阶段真实涨跌：<b className={stageRet(stage) >= 0 ? "up" : "down"}>{fmtPct(stageRet(stage))}</b>
-                </span>
-              )}
-              {lastStep && (
-                <span
-                  key={lastStep.at}
-                  className={`font-mono text-xs font-bold px-2 py-0.5 rounded border ${
-                    lastStep.ret >= 0 ? "up border-down/40 bg-down/5" : "down border-primary/30 bg-primary/5"
-                  }`}
-                  style={Math.abs(lastStep.ret) >= 0.03 ? { animation: "crisisJump 1.2s ease" } : undefined}
-                >
-                  本段 {fmtPct(lastStep.ret)}
-                </span>
-              )}
-            </div>
-          </div>
-          {stockRole && <p className="text-xs text-muted mb-2">{stockRole}</p>}
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_230px] gap-4">
-            <div className="space-y-3 min-w-0">
-              {phase === "playing" && hasStages && stage && (
-                <StageIllustration regime={stage.regime} title={stage.name} height={132} />
-              )}
-              {isNameOnlyView ? (
-                <div className="h-72 flex flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-border text-sm text-muted">
-                  <p>该股无历史行情数据</p>
-                  {stockRole && <p className="text-xs">{stockRole}</p>}
-                </div>
-              ) : activeBars === undefined ? (
-                <div className="h-72 flex items-center justify-center text-sm text-muted">
-                  正在加载历史行情…
-                </div>
-              ) : activeBars === null ? (
-                <div className="h-72 flex items-center justify-center text-sm text-muted">
-                  {viewKey === mainMarket.name
-                    ? "主市场历史 K 线暂不可用，行情回放与结算将按 0% 处理"
-                    : "该股历史 K 线暂不可用"}
-                </div>
-              ) : (
-                <div
-                  key={pulseKey ?? "chart-static"}
-                  className="rounded-lg"
-                  style={pulseKey ? { animation: `crisisPulse${pulseKey > 0 ? "Green" : "Red"} 1.2s ease` } : undefined}
-                >
-                  <EChart option={hasStages && phase === "playing" ? stageOption : option} height={300} />
-                </div>
-              )}
-              {viewKey === mainMarket.name && vixFiltered.length > 0 && (
-                <div>
-                  <p className="text-[11px] font-semibold text-muted mb-1">VIX 恐慌指数</p>
-                  <EChart option={vixOption} height={110} />
-                </div>
-              )}
-            </div>
-            <div className="flex items-start justify-center lg:pt-1">
-              <PanicGauge value={panicValue} />
-            </div>
-          </div>
-        </Card>
-      )}
-
-      {(phase === "intro" || phase === "playing") && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="space-y-4">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-4">
+          {/* ── Left: Narrative Panel ── */}
+          <div className="space-y-4 min-w-0">
             {phase === "intro" ? (
               <Card className="p-6">
                 <h3 className="font-bold mb-3">玩法说明</h3>
@@ -1088,10 +1005,88 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
             )}
           </div>
 
-          <div className="space-y-4">
+          {/* ── Right: Data Dashboard ── */}
+          <div className="space-y-3">
+            {/* K-line chart */}
+            <Card className="p-3">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-xs font-semibold">收盘价回放</h3>
+                {phase === "playing" && hasStages && stage && (
+                  <span className="text-[10px] text-muted font-mono">
+                    真实涨跌：<b className={stageRet(stage) >= 0 ? "up" : "down"}>{fmtPct(stageRet(stage))}</b>
+                  </span>
+                )}
+                {phase === "playing" && !hasStages && <span className="text-[10px] text-muted">截至 {node.date}</span>}
+              </div>
+              {viewOptions.length > 1 && (
+                <div className="flex items-center gap-1 mb-2 overflow-x-auto">
+                  {viewOptions.map((key) => (
+                    <button
+                      key={key}
+                      onClick={() => setViewKey(key)}
+                      className={`px-2 py-0.5 rounded text-[10px] font-medium border transition-colors shrink-0 ${
+                        viewKey === key
+                          ? "bg-primary text-white border-primary"
+                          : "border-border text-muted hover:border-primary/50"
+                      }`}
+                    >
+                      {key}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {stockRole && <p className="text-[10px] text-muted mb-1">{stockRole}</p>}
+              {isNameOnlyView ? (
+                <div className="h-48 flex flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-border text-xs text-muted">
+                  <p>该股无历史行情数据</p>
+                </div>
+              ) : activeBars === undefined ? (
+                <div className="h-48 flex items-center justify-center text-xs text-muted">加载中…</div>
+              ) : activeBars === null ? (
+                <div className="h-48 flex items-center justify-center text-xs text-muted">K 线不可用</div>
+              ) : (
+                <div
+                  key={pulseKey ?? "chart-static"}
+                  className="rounded-lg"
+                  style={pulseKey ? { animation: `crisisPulse${pulseKey > 0 ? "Green" : "Red"} 1.2s ease` } : undefined}
+                >
+                  <EChart option={hasStages && phase === "playing" ? stageOption : option} height={200} />
+                </div>
+              )}
+              {viewKey === mainMarket.name && vixFiltered.length > 0 && (
+                <div className="mt-2">
+                  <p className="text-[10px] font-semibold text-muted mb-0.5">VIX 恐慌指数</p>
+                  <EChart option={vixOption} height={80} />
+                </div>
+              )}
+            </Card>
+
+            {/* Global markets */}
+            {phase === "playing" && hasStages && stage?.globalMarkets && stage.globalMarkets.length > 0 && (
+              <Card className="p-3">
+                <p className="text-[10px] font-semibold text-muted mb-2 tracking-wide">全球市场同阶段涨跌</p>
+                <div className="space-y-1">
+                  {stage.globalMarkets.map((gm) => (
+                    <div key={gm.name} className="flex items-center justify-between text-xs" title={gm.note}>
+                      <span className="text-muted">{gm.name}</span>
+                      <span className={`font-mono font-semibold ${gm.change >= 0 ? "up" : "down"}`}>
+                        {gm.change >= 0 ? "+" : ""}{(gm.change * 100).toFixed(1)}%
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
+
+            {/* Panic gauge */}
+            <Card className="p-3 flex justify-center">
+              <PanicGauge value={panicValue} />
+            </Card>
+
+            {/* Decision record / Account */}
             {phase === "playing" && hasStages ? (
-              <Card className="p-5">
-                <h3 className="font-bold mb-3">决策记录 · ¥{fmtMoney(CAPITAL)} 本金</h3>
+              <Card className="p-3">
+                <h3 className="text-xs font-semibold mb-2">决策记录 · ¥{fmtMoney(CAPITAL)}</h3>
                 <div className="space-y-2">
                   {crisis.stages!.map((s, i) => {
                     const mi = moveChosen[i];
