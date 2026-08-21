@@ -9,6 +9,12 @@ export interface InvestorMove {
   outcome: string;
 }
 
+export interface GlobalMarketPoint {
+  name: string;
+  change: number; // percentage change during this stage, e.g. -0.236 = -23.6%
+  note?: string;
+}
+
 export interface CrisisStage {
   name: string;
   regime: Regime;
@@ -17,6 +23,7 @@ export interface CrisisStage {
   narrative: string;
   moves: InvestorMove[];
   bestMove: number;
+  globalMarkets?: GlobalMarketPoint[];
 }
 
 export interface CrisisNode {

@@ -964,6 +964,22 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
                   <p className="text-sm leading-relaxed italic text-foreground/80">{stage.narrative}</p>
                 </div>
 
+                {stage.globalMarkets && stage.globalMarkets.length > 0 && (
+                  <div className="mt-3 pt-3 border-t border-border/60">
+                    <p className="text-[11px] font-semibold text-muted mb-1.5">全球市场同阶段涨跌</p>
+                    <div className="flex flex-wrap gap-x-3 gap-y-1">
+                      {stage.globalMarkets.map((gm) => (
+                        <span key={gm.name} className="text-xs font-mono" title={gm.note}>
+                          <span className="text-muted">{gm.name}</span>{" "}
+                          <span className={gm.change >= 0 ? "up font-semibold" : "down font-semibold"}>
+                            {gm.change >= 0 ? "+" : ""}{(gm.change * 100).toFixed(1)}%
+                          </span>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className="mt-4 pt-3 border-t border-border">
                   <p className="text-xs font-semibold text-muted mb-2">
                     站在当时，投资者有哪三种操作？（选择后揭晓该操作的真实结果）
@@ -1240,7 +1256,8 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
                   <thead>
                     <tr className="text-left text-muted border-b border-border">
                       <th className="py-2 pr-3 font-medium">阶段</th>
-                      <th className="py-2 pr-3 font-medium text-right">市场真实涨跌</th>
+                      <th className="py-2 pr-3 font-medium text-right">主市场涨跌</th>
+                      <th className="py-2 pr-3 font-medium text-right">全球市场</th>
                       <th className="py-2 pr-3 font-medium text-right">你的操作</th>
                       <th className="py-2 pr-3 font-medium text-right">你的阶段收益</th>
                       <th className="py-2 pr-3 font-medium text-right">累计净值</th>
@@ -1261,6 +1278,19 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
                           <td className="py-2 pr-3 flex items-center gap-1.5">
                             <span className={`w-2 h-2 rounded-full ${REGIME_META[s.regime].dot}`} />
                             {s.name}
+                          </td>
+                          <td className="py-2 pr-3 text-right font-mono text-xs">
+                            {s.globalMarkets && s.globalMarkets.length > 0 ? (
+                              <div className="flex flex-wrap justify-end gap-x-2">
+                                {s.globalMarkets.slice(0, 3).map((gm) => (
+                                  <span key={gm.name} className={gm.change >= 0 ? "up" : "down"} title={gm.note}>
+                                    {gm.name.slice(0, 4)} {gm.change >= 0 ? "+" : ""}{(gm.change * 100).toFixed(1)}%
+                                  </span>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-muted">—</span>
+                            )}
                           </td>
                           <td className={`py-2 pr-3 text-right font-mono ${r >= 0 ? "up" : "down"}`}>{fmtPct(r)}</td>
                           <td className="py-2 pr-3 text-right font-mono">
