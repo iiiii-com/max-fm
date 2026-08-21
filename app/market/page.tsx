@@ -7,6 +7,7 @@ import NewsPanel from "@/components/NewsPanel";
 import WatchlistSidebar from "@/components/WatchlistSidebar";
 import FundDirections from "@/components/FundDirections";
 import NorthboundPanel from "@/components/NorthboundPanel";
+import QuoteRefreshBar from "@/components/layout/QuoteRefreshBar";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "市场洞察" };
@@ -22,9 +23,12 @@ export default async function MarketPage({ searchParams }: { searchParams: Promi
   const active = TABS.some((t) => t.key === tab) ? (tab as string) : "indexes";
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 space-y-6">
-      <header>
-        <h1 className="text-2xl font-bold">市场洞察</h1>
-        <p className="text-sm text-muted mt-1">大盘指数 · 个股行情 · ETF · 资金流 · 快讯，数据来自东方财富公开接口</p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold">市场洞察</h1>
+          <p className="text-sm text-muted mt-1">大盘指数 · 个股行情 · ETF · 资金流 · 快讯，数据来自东方财富公开接口</p>
+        </div>
+        <QuoteRefreshBar />
       </header>
       <BoardTabs tabs={TABS} active={active} />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

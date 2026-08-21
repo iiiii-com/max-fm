@@ -3,22 +3,26 @@ import { notFound } from "next/navigation";
 import { getChainBySlug, getChains, getChainNodes } from "@/lib/data/queries";
 import { Card, Badge, SectionTitle } from "@/components/ui";
 import ChainGraph from "@/components/charts/ChainGraph";
+import { CHAIN_LEVEL_COLORS } from "@/components/charts/palette";
 import { bootstrap } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "产业链详情" };
 
 const ROLE_ORDER: Record<string, number> = { 上游: 0, 中游: 1, 下游: 2 };
-const ROLE_COLOR: Record<string, string> = { 上游: "#0891b2", 中游: "#c8102e", 下游: "#4f46e5" };
+const ROLE_COLOR = CHAIN_LEVEL_COLORS;
 const SENTIMENT: Record<string, string> = { high: "景气高位", medium: "景气中性", low: "景气低位" };
 
-function roleSummary(nodes: any[], role: string, chainName: string): string {
+/** 每层解读：取各环节 description 首句，拼成有实质内容的段落 */
+function roleSummary(nodes: any[], role: string): string {
   const list = nodes.filter((n: any) => n.level === role);
   if (!list.length) return "";
-  const first = list[0];
-  const names = list.slice(0, 3).map((n: any) => n.name).join("、");
-  const tail = list.length > 3 ? ` 等 ${list.length} 个环节` : "";
-  return `${chainName}的${role}环节包含${names}${tail}，是整条链的${role === "上游" ? "成本与供给起点，其价格波动沿链向下游传导" : role === "中游" ? "价值加工核心，决定产品性能与毛利率" : "需求终端，直接面对消费者并向上游反馈订单"}。`;
+  const points = list.slice(0, 3).map((n: any) => {
+    const d = (n.description || "").split("，")[0].split("。")[0].trim();
+    return d && d.length > 4 ? `${n.name}：${d}` : `${n.name}：${(n.companies ? JSON.parse(n.companies ?? "[]") : []).slice(0, 2).join("、") || "关键环节"}`;
+  });
+  const more = list.length > 3 ? `。另有 ${list.length - 3} 个环节详见下方` : "";
+  return points.join("；") + more;
 }
 
 export default async function ChainDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -113,7 +117,7 @@ export default async function ChainDetailPage({ params }: { params: Promise<{ id
                 <h3 className="font-bold">{g.role}</h3>
                 <span className="text-xs text-muted ml-auto">{g.nodes.length} 个环节</span>
               </div>
-              <p className="text-xs text-muted mb-3 leading-relaxed">{roleSummary(nodes, g.role, chain.name)}</p>
+              <p className="text-xs text-muted mb-3 leading-relaxed">{roleSummary(nodes, g.role)}</p>
               <div className="space-y-2">
                 {g.nodes.map((n: any) => {
                   const companies = JSON.parse(n.companies ?? "[]") as string[];

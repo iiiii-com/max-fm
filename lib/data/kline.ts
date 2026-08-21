@@ -2,7 +2,16 @@ import type { KlineBar } from "@/app/api/stock/kline/route";
 
 const UA = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/126 Safari/537.36" };
 
-export async function fetchKline(secid: string, days = 250): Promise<KlineBar[] | null> {
+export async function fetchKline(secid: string, days = 250, range?: { from?: string; to?: string }): Promise<KlineBar[] | null> {
+  // 按时间段直取：gtimg 支持 param=code,day,起始,结束,条数,qfq
+  if (range?.from || range?.to) {
+    const from = range.from ?? "1990-01-01";
+    const to = range.to ?? "2050-01-01";
+    const gt = await fetchKlineGtimg(secid, Math.min(days, 2000), { from, to });
+    if (gt && gt.length) return gt;
+    const fallback = await fetchKline(secid, days);
+    return fallback ? fallback.filter((b) => b.date >= from && b.date <= to) : null;
+  }
   const gtimg = await fetchKlineGtimg(secid, Math.min(days, 2000));
   if (gtimg && gtimg.length >= days) return gtimg;
   const em = await fetchKlineEastmoney(secid, days);
@@ -10,12 +19,13 @@ export async function fetchKline(secid: string, days = 250): Promise<KlineBar[] 
   return gtimg;
 }
 
-async function fetchKlineGtimg(secid: string, days: number): Promise<KlineBar[] | null> {
+async function fetchKlineGtimg(secid: string, days: number, range?: { from: string; to: string }): Promise<KlineBar[] | null> {
   try {
     const [mkt, code] = secid.split(".");
-    const prefix = mkt === "1" ? "sh" : mkt === "0" ? "sz" : "sh";
+    const prefix = mkt === "1" ? "sh" : mkt === "0" ? "sz" : mkt === "100" ? "us" : "sh";
     const param = `${prefix}${code}`;
-    const url = `https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param=${param},day,,,${days},qfq`;
+    const datePart = range ? `${range.from},${range.to},${days}` : `,,,${days}`;
+    const url = `https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param=${param},day,${datePart},qfq`;
     const res = await fetch(url, { headers: UA, signal: AbortSignal.timeout(20000), cache: "no-store" });
     if (!res.ok) throw new Error(`kline api ${res.status}`);
     const json = await res.json();

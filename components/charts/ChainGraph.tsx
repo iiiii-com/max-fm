@@ -4,10 +4,9 @@ import { useMemo } from "react";
 import EChart from "./EChart";
 import type { EChartsOption } from "echarts";
 import type { ChainNode } from "@/lib/db/schema";
+import { CHAIN_LEVEL_COLORS } from "./palette";
 
-const CATEGORY_COLORS: Record<string, string> = {
-  上游: "#0891b2", 中游: "#c8102e", 下游: "#4f46e5",
-};
+const CATEGORY_COLORS = CHAIN_LEVEL_COLORS;
 
 export default function ChainGraph({ nodes, links }: { nodes: ChainNode[]; links: Array<{ source: string; target: string }> }) {
   const graphData = useMemo(() => {

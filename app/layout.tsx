@@ -3,6 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import Breadcrumbs from "@/components/layout/Breadcrumbs";
+import { RefreshProvider } from "@/lib/hooks/refresh";
 import { ThemeProvider } from "@/components/theme-provider";
 import { getSession } from "@/lib/auth";
 
@@ -27,9 +29,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       </head>
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <ThemeProvider>
-          <Header user={user} />
-          <main className="flex-1">{children}</main>
-          <Footer />
+          <RefreshProvider>
+            <Header user={user} />
+            <main className="flex-1">
+              <Breadcrumbs />
+              {children}
+            </main>
+            <Footer />
+          </RefreshProvider>
         </ThemeProvider>
       </body>
     </html>

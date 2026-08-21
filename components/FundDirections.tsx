@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRefresh } from "@/lib/hooks/refresh";
 
 interface FundDirection {
   key: string;
@@ -64,6 +65,7 @@ const SOURCE_LABEL: Record<string, string> = {
 export default function FundDirections() {
   const [resp, setResp] = useState<DirectionsResp | null>(null);
   const [err, setErr] = useState("");
+  const { refreshKey } = useRefresh();
 
   useEffect(() => {
     let alive = true;
@@ -80,7 +82,7 @@ export default function FundDirections() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [refreshKey]);
 
   return (
     <section className="space-y-3">

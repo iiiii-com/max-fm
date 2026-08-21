@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import EChart from "./EChart";
 import type { EChartsOption } from "echarts";
 import type { KlineBar } from "@/app/api/stock/kline/route";
+import { CHART_COLORS } from "./palette";
 
 export interface IndexRef {
   code: string;
@@ -11,7 +12,7 @@ export interface IndexRef {
   secid: string;
 }
 
-const COLORS = ["#dc2626", "#2563eb", "#16a34a", "#f59e0b", "#8b5cf6", "#0d9488"];
+const COLORS = CHART_COLORS;
 
 interface IndexSeries {
   name: string;

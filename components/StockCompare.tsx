@@ -5,6 +5,7 @@ import { echarts, type EChartsOption } from "@/components/charts/echarts";
 import { useTheme } from "@/components/theme-provider";
 import { useWatchlist } from "@/lib/hooks/useWatchlist";
 import type { KlineBar } from "@/app/api/stock/kline/route";
+import { CHART_COLORS } from "@/components/charts/palette";
 
 interface CmpItem {
   secid: string;
@@ -13,7 +14,7 @@ interface CmpItem {
   changePct: number;
 }
 
-const COLORS = ["#dc2626", "#3b82f6", "#16a34a", "#f59e0b", "#8b5cf6", "#06b6d4"];
+const COLORS = CHART_COLORS;
 
 export default function StockCompare() {
   const { theme } = useTheme();

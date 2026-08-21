@@ -9,6 +9,8 @@ import type { StockHit } from "@/app/api/stock/search/route";
 import type { KlineBar } from "@/app/api/stock/kline/route";
 import ScorePanel, { FlowPanel } from "@/components/ScorePanel";
 import { useWatchlist } from "@/lib/hooks/useWatchlist";
+import { useRefresh } from "@/lib/hooks/refresh";
+import { SECTOR_LEADERS } from "@/lib/data/leaders";
 
 function ma(data: number[], n: number): (number | null)[] {
   return data.map((_, i) => {
@@ -73,10 +75,12 @@ export default function StockSearch() {
     return () => clearTimeout(t);
   }, [query]);
 
-  const pick = async (hit: StockHit) => {
-    setSelected(hit);
-    setShowList(false);
-    setQuery(`${hit.name}（${hit.code}）`);
+  const pick = async (hit: StockHit, reset = true) => {
+    if (reset) {
+      setSelected(hit);
+      setShowList(false);
+      setQuery(`${hit.name}（${hit.code}）`);
+    }
     setErr("");
     setLoadingK(true);
     setFund(null);
@@ -109,6 +113,13 @@ export default function StockSearch() {
       setLoadingFlow(false);
     }
   };
+
+  // 选中个股跟随全局自动刷新（不重置选择状态）
+  const { refreshKey } = useRefresh();
+  useEffect(() => {
+    if (selected) pick(selected, false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshKey]);
 
   const option = useMemo<EChartsOption>(() => {
     if (!bars.length) return {};
@@ -217,6 +228,34 @@ export default function StockSearch() {
           </div>
         )}
       </div>
+
+      {/* 板块龙头速览：一键直达真实 K 线与资金面 */}
+      {!selected && (
+        <div className="card p-3">
+          <p className="text-xs text-muted mb-2.5">
+            板块龙头速览
+            <span className="text-[10px] ml-1.5">点击查看真实 K 线 · 资金流 · 评分</span>
+          </p>
+          <div className="flex flex-wrap gap-x-5 gap-y-2">
+            {SECTOR_LEADERS.map((g) => (
+              <span key={g.sector} className="inline-flex items-baseline gap-1.5 text-xs">
+                <span className="text-muted shrink-0">{g.sector}</span>
+                {g.stocks.map((s) => (
+                  <button
+                    key={s.secid}
+                    onClick={() =>
+                      pick({ name: s.name, code: s.code, secid: s.secid, mkt: s.secid.startsWith("1.") ? "1" : "0", kind: "stock" })
+                    }
+                    className="font-medium text-foreground/90 hover:text-primary hover:underline transition-colors"
+                  >
+                    {s.name}
+                  </button>
+                ))}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       {loadingK && <p className="text-sm text-muted">正在加载 K 线…</p>}
       {err && <p className="text-sm text-red-600">{err}</p>}

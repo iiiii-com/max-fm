@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import EChart from "@/components/charts/EChart";
 import type { EChartsOption } from "@/components/charts/echarts";
+import { useRefresh } from "@/lib/hooks/refresh";
 
 interface Holding {
   name: string;
@@ -39,6 +40,7 @@ function arrow(v: number) {
 export default function NorthboundPanel() {
   const [resp, setResp] = useState<NorthboundResp | null>(null);
   const [err, setErr] = useState("");
+  const { refreshKey } = useRefresh();
 
   useEffect(() => {
     let alive = true;
@@ -55,7 +57,7 @@ export default function NorthboundPanel() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [refreshKey]);
 
   const barOption = useMemo<EChartsOption>(() => {
     const rows = resp?.history30 ?? [];

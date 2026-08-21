@@ -7,6 +7,7 @@ import type { EChartsOption } from "@/components/charts/echarts";
 import StockDrawer, { type DrawerStock } from "@/components/StockDrawer";
 import SectorDrawer, { type DrawerSector } from "@/components/SectorDrawer";
 import { useWatchlist, type WatchItem } from "@/lib/hooks/useWatchlist";
+import { useRefresh } from "@/lib/hooks/refresh";
 
 interface SectorLeader {
   name: string;
@@ -49,6 +50,7 @@ function fmtMoney(n: number) {
 
 export default function MarketDashboard() {
   const { items, toggle, has } = useWatchlist();
+  const { refreshKey } = useRefresh();
   const [sectors, setSectors] = useState<SectorRow[]>([]);
   const [north, setNorth] = useState<Northbound | null>(null);
   const [err, setErr] = useState("");
@@ -78,7 +80,8 @@ export default function MarketDashboard() {
 
   useEffect(() => {
     load();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshKey]);
 
   const loadDetail = async (code: string) => {
     if (detailMap[code]) return;

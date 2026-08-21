@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { echarts, type EChartsOption } from "@/components/charts/echarts";
 import { useTheme } from "@/components/theme-provider";
 import { useWatchlist } from "@/lib/hooks/useWatchlist";
+import { useRefresh } from "@/lib/hooks/refresh";
+import { THEME_ETFS } from "@/lib/data/leaders";
 import type { KlineBar } from "@/app/api/stock/kline/route";
 
 interface EtfHit {
@@ -65,10 +67,12 @@ export default function EtfViewer() {
     return () => clearTimeout(t);
   }, [query]);
 
-  const pick = async (hit: EtfHit) => {
-    setSelected(hit);
-    setShowList(false);
-    setQuery(`${hit.name}（${hit.code}）`);
+  const pick = async (hit: EtfHit, reset = true) => {
+    if (reset) {
+      setSelected(hit);
+      setShowList(false);
+      setQuery(`${hit.name}（${hit.code}）`);
+    }
     setErr("");
     setLoading(true);
     setQuote(null);
@@ -92,6 +96,13 @@ export default function EtfViewer() {
       setLoading(false);
     }
   };
+
+  // 选中标的跟随全局自动刷新（不重置选择状态）
+  const { refreshKey } = useRefresh();
+  useEffect(() => {
+    if (selected) pick(selected, false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshKey]);
 
   const option = useMemo<EChartsOption>(() => {
     if (!bars.length) return {};
@@ -183,6 +194,28 @@ export default function EtfViewer() {
           </div>
         )}
       </div>
+
+      {/* 热门主题 ETF：一键直达真实 K 线 */}
+      {!selected && (
+        <div className="card p-3">
+          <p className="text-xs text-muted mb-2.5">
+            热门主题 ETF
+            <span className="text-[10px] ml-1.5">点击查看真实 K 线 · 持仓 · 信号</span>
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {THEME_ETFS.map((t) => (
+              <button
+                key={t.secid}
+                onClick={() => pick({ secid: t.secid, code: t.code, name: t.name })}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border text-xs hover:border-primary/50 hover:text-primary transition-colors"
+              >
+                {t.name}
+                <span className="text-[10px] text-muted font-mono">{t.code}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {items.length > 0 && (
         <div className="card p-3">

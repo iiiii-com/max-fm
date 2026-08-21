@@ -4,6 +4,7 @@ import { SectionTitle, Card, Badge, AIFlag } from "@/components/ui";
 import { TrendCard } from "@/components/charts/IndicatorLine";
 import CompareTool from "@/components/charts/CompareTool";
 import RiskIndicators from "@/components/RiskIndicators";
+import { MACRO_METRIC_COLORS } from "@/components/charts/palette";
 import { fmtDate } from "@/lib/utils";
 import { bootstrap } from "@/lib/db";
 
@@ -49,31 +50,31 @@ export default async function MacroPage() {
   const monthly = articles[0];
 
   const cards = [
-    { type: "gdp", title: "GDP 同比增速", unit: "%", color: "#4f46e5" },
-    { type: "cpi", title: "CPI 同比", unit: "%", color: "#dc2626" },
-    { type: "ppi", title: "PPI 同比", unit: "%", color: "#ea580c" },
-    { type: "pmi", title: "制造业 PMI", unit: "", color: "#0891b2" },
-    { type: "m2", title: "M2 同比增速", unit: "%", color: "#2563eb" },
-    { type: "tsf", title: "社融增量", unit: "万亿", color: "#0d9488" },
-    { type: "lpr", title: "1年期 LPR", unit: "%", color: "#6d28d9" },
-    { type: "fx", title: "外汇储备", unit: "万亿$", color: "#0e7490" },
-    { type: "ind", title: "工业增加值同比", unit: "%", color: "#16a34a" },
-    { type: "retail", title: "社零同比", unit: "%", color: "#ea580c" },
-    { type: "invest", title: "固定资产投资同比", unit: "%", color: "#9333ea" },
-    { type: "realestate", title: "房地产开发投资同比", unit: "%", color: "#b91c1c" },
-    { type: "fin", title: "财政收入同比", unit: "%", color: "#15803d" },
-    { type: "export", title: "出口同比", unit: "%", color: "#7c3aed" },
-    { type: "import", title: "进口同比", unit: "%", color: "#a21caf" },
-    { type: "unemp", title: "城镇调查失业率", unit: "%", color: "#ca8a04" },
-    { type: "houseprice", title: "百城房价同比", unit: "%", color: "#be123c" },
-    { type: "yield10y", title: "10年期国债收益率", unit: "%", color: "#334155" },
-    { type: "usdcny", title: "美元兑人民币(离岸)", unit: "", color: "#e11d48" },
-    { type: "m1", title: "M1 同比增速", unit: "%", color: "#1d4ed8" },
-    { type: "tsfstock", title: "社融存量同比", unit: "%", color: "#0f766e" },
-    { type: "loans", title: "新增人民币贷款", unit: "万亿", color: "#2563eb" },
-    { type: "gold", title: "伦敦金现货", unit: "美元/盎司", color: "#d97706" },
-    { type: "carsales", title: "乘用车零售销量", unit: "万辆", color: "#16a34a" },
-  ];
+    { type: "gdp", title: "GDP 同比增速", unit: "%" },
+    { type: "cpi", title: "CPI 同比", unit: "%" },
+    { type: "ppi", title: "PPI 同比", unit: "%" },
+    { type: "pmi", title: "制造业 PMI", unit: "" },
+    { type: "m2", title: "M2 同比增速", unit: "%" },
+    { type: "tsf", title: "社融增量", unit: "万亿" },
+    { type: "lpr", title: "1年期 LPR", unit: "%" },
+    { type: "fx", title: "外汇储备", unit: "万亿$" },
+    { type: "ind", title: "工业增加值同比", unit: "%" },
+    { type: "retail", title: "社零同比", unit: "%" },
+    { type: "invest", title: "固定资产投资同比", unit: "%" },
+    { type: "realestate", title: "房地产开发投资同比", unit: "%" },
+    { type: "fin", title: "财政收入同比", unit: "%" },
+    { type: "export", title: "出口同比", unit: "%" },
+    { type: "import", title: "进口同比", unit: "%" },
+    { type: "unemp", title: "城镇调查失业率", unit: "%" },
+    { type: "houseprice", title: "百城房价同比", unit: "%" },
+    { type: "yield10y", title: "10年期国债收益率", unit: "%" },
+    { type: "usdcny", title: "美元兑人民币(离岸)", unit: "" },
+    { type: "m1", title: "M1 同比增速", unit: "%" },
+    { type: "tsfstock", title: "社融存量同比", unit: "%" },
+    { type: "loans", title: "新增人民币贷款", unit: "万亿" },
+    { type: "gold", title: "伦敦金现货", unit: "美元/盎司" },
+    { type: "carsales", title: "乘用车零售销量", unit: "万辆" },
+  ].map((c) => ({ ...c, color: MACRO_METRIC_COLORS[c.type] ?? "#171717" }));
 
   const linkData: Record<string, number> = {
     lpr: latest("lpr"), re: latest("realestate"), m2: latest("m2"), tsf: latest("tsf"),

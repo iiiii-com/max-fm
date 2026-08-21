@@ -57,8 +57,16 @@ export default function IndicatorLine({
           data: [{ yAxis: r1(avg) }],
         },
         markPoint: lastIdx >= 0 ? {
-          symbol: "circle", symbolSize: 7, itemStyle: { color },
-          label: { show: false },
+          symbol: "circle", symbolSize: 7, itemStyle: { color, borderColor: "#ffffff", borderWidth: 1.5 },
+          label: {
+            show: true,
+            position: "top",
+            distance: 6,
+            fontSize: 11,
+            fontWeight: 600,
+            color,
+            formatter: `${r1(vals[lastIdx])}`,
+          },
           data: [{ name: "最新", coord: [sliced[lastIdx].date, vals[lastIdx]] }],
         } : undefined,
       }],

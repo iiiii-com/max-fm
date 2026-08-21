@@ -101,16 +101,38 @@ export default async function Home() {
         <SectionTitle title="四大板块" sub="宏观 · 市场 · 产业 · 历史，一站式经济洞察" />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <BoardCard href="/macro" title="宏观总览" desc="经济指标 · 政策解读 · 周期洞察 · 经济地图 · 个人建议" accent="bg-blue-600" icon={<Landmark className="w-4.5 h-4.5" />}>
-            <p>最新温度：{temp}°C · 情绪指数：{fmt(feeling.overall)}</p>
+            <p className="mb-2.5 text-xs text-muted">最新温度：{temp}°C · 情绪指数：{fmt(feeling.overall)}</p>
+            <QuickLinks links={[
+              { href: "/macro", label: "宏观仪表盘" },
+              { href: "/macro/feeling", label: "温度 vs 体感" },
+              { href: "/policy", label: "政策解读" },
+              { href: "/map", label: "经济分布图" },
+              { href: "/advice", label: "个人建议" },
+            ]} />
           </BoardCard>
           <BoardCard href="/market" title="市场洞察" desc="大盘指数 · 个股行情 · ETF · 资金流 · 快讯" accent="bg-red-600" icon={<TrendingUp className="w-4.5 h-4.5" />}>
-            <p>AI 复盘报告每日自动生成</p>
+            <p className="mb-2.5 text-xs text-muted">AI 复盘报告每日自动生成</p>
+            <QuickLinks links={[
+              { href: "/market", label: "大盘指数" },
+              { href: "/market?tab=stocks", label: "个股行情" },
+              { href: "/etf", label: "ETF 专区" },
+              { href: "/compare", label: "对比中心" },
+            ]} />
           </BoardCard>
           <BoardCard href="/industry" title="产业地图" desc="22 条产业链 · 景气度 · 资金热度 · 危机冲击案例" accent="bg-purple-600" icon={<Network className="w-4.5 h-4.5" />}>
-            <p>{chains.length} 条主线产业链</p>
+            <p className="mb-2.5 text-xs text-muted">{chains.length} 条主线产业链</p>
+            <QuickLinks links={[
+              { href: "/industry", label: "产业链全景" },
+              { href: "/industry?tab=chains", label: "产业链列表" },
+            ]} />
           </BoardCard>
           <BoardCard href="/history" title="历史演进" desc="时间线 · 康波全景 · 朝代对照 · 危机重演" accent="bg-emerald-600" icon={<History className="w-4.5 h-4.5" />}>
-            <p>{HISTORY_EVENTS.length} 条事件 · {crisisCount} 场危机重演</p>
+            <p className="mb-2.5 text-xs text-muted">{HISTORY_EVENTS.length} 条事件 · {crisisCount} 场危机重演</p>
+            <QuickLinks links={[
+              { href: "/history", label: "历史时间线" },
+              { href: "/history?tab=crisis", label: "危机重演" },
+              { href: "/history?tab=waves", label: "康波全景" },
+            ]} />
           </BoardCard>
         </div>
       </section>
@@ -137,6 +159,19 @@ export default async function Home() {
           ))}
         </div>
       </section>
+    </div>
+  );
+}
+
+/** 板块卡片内的子模块直达链接 */
+function QuickLinks({ links }: { links: { href: string; label: string }[] }) {
+  return (
+    <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+      {links.map((l) => (
+        <Link key={l.href} href={l.href} className="text-primary/90 hover:text-primary hover:underline">
+          {l.label}
+        </Link>
+      ))}
     </div>
   );
 }
