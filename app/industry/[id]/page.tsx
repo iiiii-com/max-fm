@@ -61,7 +61,7 @@ export default async function ChainDetailPage({ params }: { params: Promise<{ id
   ];
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6 space-y-8">
+    <div className="mx-auto max-w-7xl px-3 sm:px-4 py-5 sm:py-6 space-y-8">
       <header>
         <div className="flex items-center gap-2 mb-2 flex-wrap">
           <Link href="/industry" className="text-sm text-primary hover:underline">← 产业链分析</Link>

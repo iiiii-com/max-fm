@@ -1,13 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { echarts, type EChartsOption } from "@/components/charts/echarts";
-import { useTheme } from "@/components/theme-provider";
+import type { EChartsOption } from "@/components/charts/echarts";
 import type { StockHit } from "@/app/api/stock/search/route";
 import type { KlineBar } from "@/app/api/stock/kline/route";
+import { mkMainAxis, mkSubAxis } from "@/lib/data/axis";
 import ScorePanel, { FlowPanel } from "@/components/ScorePanel";
+import LeaderKlineGrid from "@/components/LeaderKlineGrid";
+import AnnotatableChart from "@/components/charts/AnnotatableChart";
+import DailyMoveBadge from "@/components/charts/DailyMoveBadge";
+import { mkKlineTooltip, mkPctLabel } from "@/lib/data/kline-tooltip";
 import { useWatchlist } from "@/lib/hooks/useWatchlist";
 import { useRefresh } from "@/lib/hooks/refresh";
 import { SECTOR_LEADERS } from "@/lib/data/leaders";
@@ -22,7 +26,6 @@ function ma(data: number[], n: number): (number | null)[] {
 }
 
 export default function StockSearch() {
-  const { theme } = useTheme();
   const searchParams = useSearchParams();
   const { items, toggle, has } = useWatchlist();
   const [query, setQuery] = useState("");
@@ -38,8 +41,25 @@ export default function StockSearch() {
   const [loadingFlow, setLoadingFlow] = useState(false);
   const [err, setErr] = useState("");
   const [loadingK, setLoadingK] = useState(false);
-  const chartRef = useRef<echarts.ECharts | null>(null);
-  const divRef = useRef<HTMLDivElement>(null);
+  const [period, setPeriod] = useState<"day" | "week" | "month">("day");
+  const [kTime, setKTime] = useState<number | null>(null);
+  const [showPct, setShowPct] = useState(true);
+  const [pctPos, setPctPos] = useState<"top" | "bottom">("top");
+  const [pctFont, setPctFont] = useState(9);
+  // 缩放可视范围联动：涨跌幅标注随缩放全标可视区，不遗漏任何一根
+  const [vRange, setVRange] = useState<[number, number] | null>(null);
+  const zoomTimer = useRef<number | null>(null);
+  const onZoom = useCallback((e?: unknown) => {
+    const ev = e as { batch?: Array<{ start?: number; end?: number }> } | undefined;
+    const b = ev?.batch?.[0];
+    if (b && typeof b.start === "number" && typeof b.end === "number") {
+      if (zoomTimer.current != null) return;
+      zoomTimer.current = window.setTimeout(() => {
+        zoomTimer.current = null;
+      }, 120);
+      setVRange([b.start as number, b.end as number]);
+    }
+  }, []);
   const autoPicked = useRef<string | null>(null);
 
   useEffect(() => {
@@ -89,13 +109,15 @@ export default function StockSearch() {
     setLoadingFlow(true);
     try {
       const [kr, fr, flowR] = await Promise.all([
-        fetch(`/api/stock/kline?secid=${hit.secid}`, { cache: "no-store" }),
+        fetch(`/api/stock/kline?secid=${hit.secid}&period=${period}`, { cache: "no-store" }),
         hit.kind === "stock" ? fetch(`/api/stock/fundamentals?secid=${hit.secid}`, { cache: "no-store" }) : Promise.resolve(null),
         fetch(`/api/stock/flow?secid=${hit.secid}`, { cache: "no-store" }),
       ]);
       const json = await kr.json();
-      if (json?.klines) setBars(json.klines);
-      else setErr(json?.error ?? "加载失败");
+      if (json?.klines) {
+        setBars(json.klines);
+        setKTime(Date.now());
+      } else setErr(json?.error ?? "加载失败");
       if (fr) {
         const fj = await fr.json();
         if (fj?.ok) setFund(fj.data);
@@ -119,7 +141,7 @@ export default function StockSearch() {
   useEffect(() => {
     if (selected) pick(selected, false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [refreshKey]);
+  }, [refreshKey, period]);
 
   const option = useMemo<EChartsOption>(() => {
     if (!bars.length) return {};
@@ -134,60 +156,47 @@ export default function StockSearch() {
     const downColor = "#16a34a";
     return {
       animation: false,
-      tooltip: {
-        trigger: "axis",
-        axisPointer: { type: "cross" },
-        formatter: (params: any) => {
-          const i = params[0]?.dataIndex ?? 0;
-          const b = bars[i];
-          if (!b) return "";
-          const lines = params.map((p: any) => `${p.marker}${p.seriesName}: ${p.value ?? "—"}`).join("<br/>");
-          return `${b.date}<br/>开 ${b.open}　高 ${b.high}<br/>收 ${b.close}　低 ${b.low}<br/>${lines}<br/>量 ${fmtVol(b.volume)}`;
-        },
-      },
+      tooltip: mkKlineTooltip({ bars, formatter: (params: any) => {
+        const i = params[0]?.dataIndex ?? 0;
+        const b = bars[i];
+        if (!b) return "";
+        const lines = params.map((p: any) => `${p.marker}${p.seriesName}: ${p.value ?? "—"}`).join("<br/>");
+        return `<div style="font-size:12px;line-height:1.6"><b>${b.date}</b><br/>开 ${b.open}　高 ${b.high}<br/>收 ${b.close}　低 ${b.low}<br/>${lines}<br/>量 ${fmtVol(b.volume)}</div>`;
+      } }),
       legend: { data: ["MA5", "MA10", "MA20"], top: 4, textStyle: { fontSize: 11 } },
       grid: [
         { left: 52, right: 16, top: 32, height: "58%" },
         { left: 52, right: 16, top: "76%", height: "16%" },
       ],
       xAxis: [
-        { type: "category", data: dates, gridIndex: 0, axisLabel: { fontSize: 10 }, boundaryGap: true },
-        { type: "category", data: dates, gridIndex: 1, axisLabel: { show: false }, boundaryGap: true },
+        {
+          ...mkMainAxis({ dataLength: dates.length, period: "day", firstDate: dates[0], lastDate: dates[dates.length - 1] }),
+          data: dates,
+        },
+        { ...mkSubAxis(dates.length, 1), data: dates },
       ],
       yAxis: [
         { type: "value", scale: true, gridIndex: 0, axisLabel: { fontSize: 10 }, splitLine: { lineStyle: { color: "#e5e5e0", type: "dashed" } } },
         { type: "value", gridIndex: 1, axisLabel: { fontSize: 9 }, splitLine: { show: false } },
       ],
       dataZoom: [
-        { type: "inside", xAxisIndex: [0, 1], start: 40, end: 100 },
-        { type: "slider", xAxisIndex: [0, 1], height: 16, bottom: 4, start: 40, end: 100 },
+        { type: "inside", xAxisIndex: [0, 1], start: vRange?.[0] ?? 0, end: vRange?.[1] ?? 100, zoomOnMouseWheel: true },
+        { type: "slider", xAxisIndex: [0, 1], height: 16, bottom: 4, start: vRange?.[0] ?? 0, end: vRange?.[1] ?? 100 },
       ],
       series: [
         {
           name: "K 线", type: "candlestick", data: ohlc,
           itemStyle: { color: upColor, color0: downColor, borderColor: upColor, borderColor0: downColor },
         },
+        // 逐根涨跌幅标注（scatter 叠加，candlestick label 实测不渲染）
+        mkPctLabel({ bars, show: showPct, position: pctPos, fontSize: pctFont, pctRange: vRange }),
         { name: "MA5", type: "line", data: ma(closes, 5), smooth: true, showSymbol: false, lineStyle: { width: 1, color: "#f59e0b" } },
         { name: "MA10", type: "line", data: ma(closes, 10), smooth: true, showSymbol: false, lineStyle: { width: 1, color: "#3b82f6" } },
         { name: "MA20", type: "line", data: ma(closes, 20), smooth: true, showSymbol: false, lineStyle: { width: 1, color: "#8b5cf6" } },
         { name: "成交量", type: "bar", data: volumes, xAxisIndex: 1, yAxisIndex: 1 },
       ],
     };
-  }, [bars]);
-
-  useEffect(() => {
-    if (!divRef.current || !bars.length) return;
-    chartRef.current?.dispose();
-    chartRef.current = echarts.init(divRef.current, theme === "dark" ? "dark" : undefined);
-    chartRef.current.setOption(option, true);
-    const onResize = () => chartRef.current?.resize();
-    window.addEventListener("resize", onResize);
-    return () => {
-      window.removeEventListener("resize", onResize);
-      chartRef.current?.dispose();
-      chartRef.current = null;
-    };
-  }, [option, bars, theme]);
+  }, [bars, showPct, pctPos, pctFont, vRange]);
 
   const last = bars[bars.length - 1];
   const prev = bars[bars.length - 2];
@@ -231,28 +240,39 @@ export default function StockSearch() {
 
       {/* 板块龙头速览：一键直达真实 K 线与资金面 */}
       {!selected && (
-        <div className="card p-3">
-          <p className="text-xs text-muted mb-2.5">
-            板块龙头速览
-            <span className="text-[10px] ml-1.5">点击查看真实 K 线 · 资金流 · 评分</span>
-          </p>
-          <div className="flex flex-wrap gap-x-5 gap-y-2">
-            {SECTOR_LEADERS.map((g) => (
-              <span key={g.sector} className="inline-flex items-baseline gap-1.5 text-xs">
-                <span className="text-muted shrink-0">{g.sector}</span>
-                {g.stocks.map((s) => (
-                  <button
-                    key={s.secid}
-                    onClick={() =>
-                      pick({ name: s.name, code: s.code, secid: s.secid, mkt: s.secid.startsWith("1.") ? "1" : "0", kind: "stock" })
-                    }
-                    className="font-medium text-foreground/90 hover:text-primary hover:underline transition-colors"
-                  >
-                    {s.name}
-                  </button>
-                ))}
-              </span>
-            ))}
+        <div className="card p-3 space-y-4">
+          <div>
+            <p className="text-xs text-muted mb-2.5">
+              板块龙头速览
+              <span className="text-[10px] ml-1.5">点击查看真实 K 线 · 资金流 · 评分</span>
+            </p>
+            <div className="flex flex-wrap gap-x-5 gap-y-2">
+              {SECTOR_LEADERS.map((g) => (
+                <span key={g.sector} className="inline-flex items-baseline gap-1.5 text-xs">
+                  <span className="text-muted shrink-0">{g.sector}</span>
+                  {g.stocks.map((s) => (
+                    <button
+                      key={s.secid}
+                      onClick={() =>
+                        pick({ name: s.name, code: s.code, secid: s.secid, mkt: s.secid.startsWith("1.") ? "1" : "0", kind: "stock" })
+                      }
+                      className="font-medium text-foreground/90 hover:text-primary hover:underline transition-colors"
+                    >
+                      {s.name}
+                    </button>
+                  ))}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* 板块龙头 K 线速览：近 60 日走势 + MA 指标 */}
+          <div>
+            <p className="text-xs text-muted mb-2.5">
+              板块龙头 K 线速览
+              <span className="text-[10px] ml-1.5">近 60 日 K 线 + MA5/MA20 · 点击卡片直达详情</span>
+            </p>
+            <LeaderKlineGrid />
           </div>
         </div>
       )}
@@ -297,6 +317,26 @@ export default function StockSearch() {
               {pct >= 0 ? "+" : ""}{pct.toFixed(2)}%
             </span>
           </div>
+          <div className="flex items-center gap-2 mb-3 flex-wrap">
+            <div className="flex rounded-md border border-border overflow-hidden text-xs">
+              {(["day", "week", "month"] as const).map((p) => (
+                <button
+                  key={p}
+                  onClick={() => {
+                    setPeriod(p);
+                    setVRange(null);
+                  }}
+                  className={`px-2.5 py-1 ${period === p ? "bg-primary/15 text-primary font-medium" : "text-muted hover:text-foreground"}`}
+                >
+                  {p === "day" ? "日K" : p === "week" ? "周K" : "月K"}
+                </button>
+              ))}
+            </div>
+            <span className="text-[10px] text-muted">
+              {period === "day" ? "前复权日线" : period === "week" ? "前复权周线" : "前复权月线"} ·
+              最新 {last.date}{kTime ? ` · ${new Date(kTime).toLocaleTimeString("zh-CN", { hour12: false })} 更新` : ""}
+            </span>
+          </div>
           {fund && (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3 text-xs">
               <div className="rounded-lg border border-border px-3 py-2"><p className="text-muted">总市值</p><p className="font-mono font-medium">{fmtMv(fund.totalMv)}</p></div>
@@ -307,6 +347,14 @@ export default function StockSearch() {
               <div className="rounded-lg border border-border px-3 py-2"><p className="text-muted">每股净资产</p><p className="font-mono font-medium">{fund.bps == null ? "—" : Number(fund.bps).toFixed(2)}</p></div>
               <div className="rounded-lg border border-border px-3 py-2"><p className="text-muted">换手率</p><p className="font-mono font-medium">{fund.turnover == null ? "—" : `${Number(fund.turnover).toFixed(2)}%`}</p></div>
               <div className="rounded-lg border border-border px-3 py-2"><p className="text-muted">昨收</p><p className="font-mono font-medium">{fund.prevClose == null ? "—" : Number(fund.prevClose).toFixed(2)}</p></div>
+              {last && (
+                <>
+                  <div className="rounded-lg border border-border px-3 py-2"><p className="text-muted">成交量</p><p className="font-mono font-medium">{fmtVol(last.volume)}</p></div>
+                  <div className="rounded-lg border border-border px-3 py-2"><p className="text-muted">成交额</p><p className="font-mono font-medium">{fmtMoney2(last.amount > 0 ? last.amount : last.volume * last.close)}</p></div>
+                  <div className="rounded-lg border border-border px-3 py-2"><p className="text-muted">振幅</p><p className={`font-mono font-medium ${last.high > last.low ? "" : "text-muted"}`}>{last.high > last.low ? `${(((last.high - last.low) / last.close) * 100).toFixed(2)}%` : "—"}</p></div>
+                  <div className="rounded-lg border border-border px-3 py-2"><p className="text-muted">今开</p><p className="font-mono font-medium">{last.open.toFixed(2)}</p></div>
+                </>
+              )}
             </div>
           )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
@@ -320,7 +368,44 @@ export default function StockSearch() {
               ))}
             </div>
           )}
-          <div ref={divRef} style={{ height: 420, width: "100%" }} />
+          {/* 逐根涨跌幅标注开关 */}
+          <div className="flex flex-wrap items-center gap-1.5 mb-2">
+            <button
+              onClick={() => setShowPct((v) => !v)}
+              className={`px-2 py-1 rounded text-[11px] border ${showPct ? "border-primary/40 text-primary bg-primary/10 font-medium" : "border-border text-muted hover:border-primary/40"}`}
+              title="逐根 K 线标注当日涨跌幅（涨红跌绿）"
+            >
+              {showPct ? "逐根涨跌幅：开" : "逐根涨跌幅：关"}
+            </button>
+            {showPct && (
+              <>
+                <button
+                  onClick={() => setPctPos((v) => (v === "top" ? "bottom" : "top"))}
+                  className="px-2 py-1 rounded text-[11px] border border-border text-muted hover:border-primary/40"
+                  title="切换标注位置"
+                >
+                  {pctPos === "top" ? "位置：上方" : "位置：下方"}
+                </button>
+                <select
+                  value={pctFont}
+                  onChange={(e) => setPctFont(Number(e.target.value))}
+                  className="px-1 py-0.5 rounded text-[11px] border border-border bg-transparent text-muted"
+                >
+                  {[8, 9, 10, 11, 12].map((s) => <option key={s} value={s}>{s}px</option>)}
+                </select>
+              </>
+            )}
+            <span className="text-[10px] text-muted ml-auto">画线标注：趋势线/水平线/垂直线/射线/通道/矩形 · Ctrl+Z 撤销 · 标注自动持久化</span>
+          </div>
+          <DailyMoveBadge bars={bars} name={selected?.name ?? "标的"} />
+          <AnnotatableChart
+            option={option}
+            height={420}
+            storageKey={`stock-ann-${selected?.secid ?? ""}`}
+            snapBars={bars}
+            onDataZoom={onZoom}
+            hint="画线标注：选择工具后在图上拖拽创建；选择模式拖动端点编辑，Del/Backspace 或双击删除；样式面板可调颜色/线型/线宽；开启吸附后端点贴近 K 线最高/最低价；标注自动保存，刷新后恢复，可导出/导入 JSON。"
+          />
           <p className="text-xs text-muted mt-2">日 K · 前复权 · 数据来自东方财富公开接口，约 2 分钟延迟，仅供研究参考</p>
         </div>
       )}
@@ -346,4 +431,12 @@ function fmtMv(n: unknown) {
   if (v >= 1e12) return `${(v / 1e12).toFixed(2)}万亿`;
   if (v >= 1e8) return `${(v / 1e8).toFixed(2)}亿`;
   return String(v);
+}
+
+function fmtMoney2(n: number) {
+  if (!Number.isFinite(n) || n <= 0) return "—";
+  if (n >= 1e12) return `${(n / 1e12).toFixed(2)}万亿`;
+  if (n >= 1e8) return `${(n / 1e8).toFixed(2)}亿`;
+  if (n >= 1e4) return `${(n / 1e4).toFixed(1)}万`;
+  return String(n);
 }

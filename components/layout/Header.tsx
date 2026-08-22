@@ -15,12 +15,12 @@ export default function Header({ user }: { user?: { name: string } | null }) {
   const [mobileOpen, setMobileOpen] = useState<string | null>(null);
 
   return (
-    <header className="sticky top-0 z-50 bg-card/95 backdrop-blur border-b border-border">
-      <div className="mx-auto max-w-7xl px-4">
-        <div className="flex items-center gap-4 h-14">
+    <header className="sticky top-0 z-50 bg-card/95 backdrop-blur border-b border-border safe-top">
+      <div className="mx-auto max-w-7xl px-3 sm:px-4">
+        <div className="flex items-center gap-2 sm:gap-4 h-14">
           <Link href="/" className="flex items-center gap-2 shrink-0">
             <span className="flex items-center justify-center w-8 h-8 rounded-md bg-primary text-white font-black text-lg">M</span>
-            <span className="font-bold text-xl tracking-tight">Max 财经</span>
+            <span className="font-bold text-lg sm:text-xl tracking-tight hidden sm:inline">Max 财经</span>
           </Link>
 
           {/* 桌面端：四大板块 + 二级下拉 */}
@@ -78,7 +78,7 @@ export default function Header({ user }: { user?: { name: string } | null }) {
             <Link href="/search" className="p-2 rounded-md hover:bg-border/60" aria-label="搜索">
               <Search className="w-4.5 h-4.5" />
             </Link>
-            <button onClick={toggle} className="p-2 rounded-md hover:bg-border/60" aria-label="切换主题">
+            <button onClick={toggle} className="p-2.5 rounded-md hover:bg-border/60 flex items-center justify-center w-10 h-10" aria-label="切换主题">
               {theme === "light" ? <Moon className="w-4.5 h-4.5" /> : <Sun className="w-4.5 h-4.5" />}
             </button>
             <button
@@ -86,17 +86,17 @@ export default function Header({ user }: { user?: { name: string } | null }) {
                 setOpen(!open);
                 setMobileOpen(null);
               }}
-              className="lg:hidden p-2 rounded-md hover:bg-border/60"
+              className="lg:hidden p-2.5 rounded-md hover:bg-border/60 flex items-center justify-center w-10 h-10"
               aria-label="菜单"
             >
               {open ? <X className="w-4.5 h-4.5" /> : <Menu className="w-4.5 h-4.5" />}
             </button>
             {user ? (
-              <Link href="/account" className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary text-white text-sm font-medium">
-                <User className="w-4 h-4" /> {user.name}
+              <Link href="/account" className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary text-white text-sm font-medium min-h-0">
+                <User className="w-4 h-4" /> <span className="hidden sm:inline">{user.name}</span>
               </Link>
             ) : (
-              <Link href="/login" className="hidden sm:flex px-3 py-1.5 rounded-md border border-primary text-primary text-sm font-medium hover:bg-primary/5">
+              <Link href="/login" className="flex px-3 py-2 rounded-md border border-primary text-primary text-sm font-medium hover:bg-primary/5">
                 登录
               </Link>
             )}
@@ -105,7 +105,7 @@ export default function Header({ user }: { user?: { name: string } | null }) {
 
         {/* 移动端：手风琴二级导航 */}
         {open && (
-          <nav className="lg:hidden border-t border-border py-2" aria-label="移动端导航">
+          <nav className="lg:hidden border-t border-border py-2 pb-[calc(0.5rem+var(--safe-bottom))]" aria-label="移动端导航">
             {NAV.map((g) => {
               const active = isGroupActive(g.href, pathname);
               const expanded = mobileOpen === g.href;

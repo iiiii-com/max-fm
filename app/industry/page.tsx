@@ -40,7 +40,7 @@ export default async function IndustryPage({ searchParams }: { searchParams: Pro
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6 space-y-8">
+    <div className="mx-auto max-w-7xl px-3 sm:px-4 py-5 sm:py-6 space-y-8">
       <header>
         <h1 className="text-2xl font-bold">产业链分析</h1>
         <p className="text-sm text-muted mt-1">主线产业链：新能源车 · 半导体 · AI · 光伏 · 低空经济 · 创新药等，点开查看上中下游解剖</p>

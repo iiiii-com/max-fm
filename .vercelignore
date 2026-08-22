@@ -1,0 +1,33 @@
+# 构建产物与依赖（Vercel 云端自动 npm install / next build）
+node_modules
+.next
+.next-locked-*/
+out
+build
+
+# 本地与调试文件
+.git
+.workbuddy
+.vercel
+dev*.log
+build*.log
+start.log
+*.log
+
+# 环境变量（Vercel 项目侧已配置 DATABASE_URL/AI_API_KEY 等）
+.env
+.env.*
+!.env.example
+
+# 本地 SQLite（生产走 Postgres，不上传）
+data/*.db
+data/*.db-journal
+data/*.sqlite
+data/*.sqlite3
+data/*.db-shm
+data/*.db-wal
+
+# 系统/编辑器
+.DS_Store
+*.pem
+*.tsbuildinfo

@@ -44,6 +44,61 @@ body {
   font-family: var(--font-sans);
 }
 
+/* ============ 移动端适配基础 ============ */
+/* 防横向滚动：任何元素不得撑破视口（内容溢出请用容器内 overflow-x-auto） */
+html,
+body {
+  overflow-x: clip;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* 安全区变量（刘海屏/底部手势条）：默认 0，支持 viewport-fit=cover 的浏览器自动生效 */
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+}
+
+/* 触摸设备：去除点击高亮蓝框、消除 300ms 点击延迟与双击缩放副作用 */
+@media (hover: none) {
+  * {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+}
+
+/* 触控热区：移动端按钮/链接最小 40px 高度 */
+@media (max-width: 767px) {
+  button,
+  a,
+  select,
+  input[type="submit"],
+  [role="button"] {
+    min-height: 40px;
+  }
+  .card {
+    border-radius: 8px;
+  }
+}
+
+/* 触摸反馈：按压态统一微压暗 */
+button:active,
+a:active,
+[role="button"]:active {
+  opacity: 0.75;
+  transition: opacity 0.08s;
+}
+
+/* 安全区应用到顶部/底部固定元素（header 顶部、footer 底部） */
+.safe-top {
+  padding-top: calc(var(--safe-top));
+}
+.safe-bottom {
+  padding-bottom: calc(var(--safe-bottom));
+}
+
 .up { color: var(--up); }
 .down { color: var(--down); }
 

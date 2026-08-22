@@ -99,20 +99,28 @@ export interface ThemeEtf {
   name: string;
   code: string;
   secid: string;
+  cat: "宽基" | "行业" | "跨境";
 }
 
 /** 热门主题 ETF（宽基 / 行业 / 跨境） */
 export const THEME_ETFS: ThemeEtf[] = [
-  { name: "沪深300ETF", code: "510300", secid: "1.510300" },
-  { name: "创业板ETF", code: "159915", secid: "0.159915" },
-  { name: "科创50ETF", code: "588000", secid: "1.588000" },
-  { name: "半导体ETF", code: "512480", secid: "1.512480" },
-  { name: "芯片ETF", code: "159995", secid: "0.159995" },
-  { name: "白酒ETF", code: "512690", secid: "1.512690" },
-  { name: "证券ETF", code: "512880", secid: "1.512880" },
-  { name: "医药ETF", code: "512010", secid: "1.512010" },
-  { name: "新能源车ETF", code: "515030", secid: "1.515030" },
-  { name: "光伏ETF", code: "515790", secid: "1.515790" },
-  { name: "黄金ETF", code: "518880", secid: "1.518880" },
-  { name: "纳指ETF", code: "513100", secid: "1.513100" },
+  { name: "沪深300ETF", code: "510300", secid: "1.510300", cat: "宽基" },
+  { name: "创业板ETF", code: "159915", secid: "0.159915", cat: "宽基" },
+  { name: "科创50ETF", code: "588000", secid: "1.588000", cat: "宽基" },
+  { name: "半导体ETF", code: "512480", secid: "1.512480", cat: "行业" },
+  { name: "芯片ETF", code: "159995", secid: "0.159995", cat: "行业" },
+  { name: "白酒ETF", code: "512690", secid: "1.512690", cat: "行业" },
+  { name: "证券ETF", code: "512880", secid: "1.512880", cat: "行业" },
+  { name: "医药ETF", code: "512010", secid: "1.512010", cat: "行业" },
+  { name: "新能源车ETF", code: "515030", secid: "1.515030", cat: "行业" },
+  { name: "光伏ETF", code: "515790", secid: "1.515790", cat: "行业" },
+  { name: "黄金ETF", code: "518880", secid: "1.518880", cat: "跨境" },
+  { name: "纳指ETF", code: "513100", secid: "1.513100", cat: "跨境" },
 ];
+
+/** ETF 分类徽章配色 */
+export const ETF_CAT_TONE: Record<ThemeEtf["cat"], string> = {
+  宽基: "bg-sky-100 text-sky-700 dark:bg-sky-950/40 dark:text-sky-400",
+  行业: "bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-400",
+  跨境: "bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-400",
+};

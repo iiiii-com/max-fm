@@ -1,14 +1,13 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import BoardTabs from "@/components/BoardTabs";
 import HistoryAxis from "@/components/HistoryAxis";
-import KonratiefWaves from "@/components/KonratiefWaves";
-import DynastyTable from "@/components/DynastyTable";
-import MerrillClock from "@/components/MerrillClock";
-import CrisisTab from "@/components/crisis/CrisisTab";
+import BullBearCompare from "@/components/BullBearCompare";
+import { KonratiefWaves, DynastyTable, MerrillClock, CrisisTab } from "./tabs-lazy";
 import { Card, SectionTitle, Badge } from "@/components/ui";
 import {
-  filterHistory, HISTORY_EVENTS, REGIONS, HISTORY_CATEGORIES,
+  filterHistory, HISTORY_EVENTS, REGIONS, HISTORY_CATEGORIES, ERAS, eraOf, REGION_LABEL,
 } from "@/lib/data/history";
+
 import { CYCLE_TYPES, MILESTONES, CURRENT_POSITION } from "@/lib/data/cycles";
 import { getRecentAggregated } from "@/lib/data/queries";
 import { bootstrap } from "@/lib/db";
@@ -24,34 +23,35 @@ const TYPE_TONE: Record<string, string> = {
 
 const TABS = [
   { key: "timeline", label: "时间线" },
-  { key: "crisis", label: "危机重演" },
+  { key: "crisis", label: "牛熊重演" },
   { key: "waves", label: "康波全景" },
   { key: "dynasties", label: "朝代对照" },
 ];
 
-export default async function HistoryPage({ searchParams }: { searchParams: Promise<{ tab?: string; region?: string; cat?: string }> }) {
-  const { tab, region = "all", cat = "全部" } = await searchParams;
+export default async function HistoryPage({ searchParams }: { searchParams: Promise<{ tab?: string; region?: string; cat?: string; era?: string }> }) {
+  const { tab, region = "all", cat = "全部", era = "all" } = await searchParams;
   await bootstrap();
   const agg = await getRecentAggregated();
   const active = TABS.some((t) => t.key === tab) ? (tab as string) : "timeline";
-  const events = filterHistory({ region, cat });
-  const regionLabel = region === "all" ? "全部地区" : region === "cn" ? "中国" : "西方";
+  const events = filterHistory({ region, cat, era });
+  const regionLabel = region === "all" ? "全部地区" : (REGION_LABEL[region] ?? region);
+  const eraLabel = era === "all" ? "全部时代" : (ERAS.find((x) => x.key === era)?.label ?? era);
   const chips = [
     { key: "all", label: "全部地区" },
     ...REGIONS.filter((x) => x.key !== "all").map((x) => ({ key: x.key, label: x.label })),
   ];
   const featured = HISTORY_EVENTS.filter((e) => e.featured).length;
   const lessons = HISTORY_EVENTS.filter((e) => e.lesson).length;
-  const axisEvents = region === "all" && cat === "全部"
+  const axisEvents = region === "all" && cat === "全部" && era === "all"
     ? HISTORY_EVENTS.filter((e) => e.featured)
     : events;
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6 space-y-8">
+    <div className="mx-auto max-w-7xl px-3 sm:px-4 py-5 sm:py-6 space-y-8">
       <header>
         <h1 className="text-2xl font-bold">全球历史回顾</h1>
         <p className="text-sm text-muted mt-1">
-          从夏朝建立到 ChatGPT：{HISTORY_EVENTS.length} 条真实中西方历史事件 ·
+          从美索不达米亚到 ChatGPT：{HISTORY_EVENTS.length} 条全球历史事件（中/西/亚/非/美/大洋洲）·
           {featured} 条精选（含 {lessons} 条"对今日启示"）· 按康波波次标注。
           横向时间轴默认展示精选事件，点击散点展开详情。
         </p>
@@ -65,7 +65,7 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
             {chips.map((c) => (
               <Link
                 key={c.key}
-                href={`/history?region=${c.key}&cat=${encodeURIComponent(cat)}`}
+                href={`/history?region=${c.key}&cat=${encodeURIComponent(cat)}&era=${era}`}
                 className={`px-3 py-1.5 rounded-lg text-sm border transition-colors ${
                   region === c.key ? "bg-primary text-white border-primary" : "border-border hover:border-primary/50"
                 }`}
@@ -77,7 +77,7 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
             {["全部", ...HISTORY_CATEGORIES].map((c) => (
               <Link
                 key={c}
-                href={`/history?region=${region}&cat=${encodeURIComponent(c)}`}
+                href={`/history?region=${region}&cat=${encodeURIComponent(c)}&era=${era}`}
                 className={`px-3 py-1.5 rounded-lg text-sm border transition-colors ${
                   cat === c ? "bg-primary text-white border-primary" : "border-border hover:border-primary/50"
                 }`}
@@ -85,15 +85,37 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
                 {c === "全部" ? "全部类型" : c}
               </Link>
             ))}
+            <span className="w-px bg-border mx-1" />
+            {[{ key: "all", label: "全部时代" }, ...ERAS].map((e2) => (
+              <Link
+                key={e2.key}
+                href={`/history?region=${region}&cat=${encodeURIComponent(cat)}&era=${e2.key}`}
+                title={"range" in e2 ? e2.range : undefined}
+                className={`px-3 py-1.5 rounded-lg text-sm border transition-colors ${
+                  era === e2.key ? "bg-primary text-white border-primary" : "border-border hover:border-primary/50"
+                }`}
+              >
+                {e2.label}
+              </Link>
+            ))}
           </div>
           <p className="text-xs text-muted mb-4">
-            当前：{regionLabel} · {cat} · 共 {axisEvents.length} 条
-            {region === "all" && cat === "全部" ? "（默认仅精选，筛选后展示全部）" : "（筛选模式下展示全部事件）"}
+            当前：{regionLabel} · {cat} · {eraLabel} · 共 {axisEvents.length} 条
+            {region === "all" && cat === "全部" && era === "all" ? "（默认仅精选，筛选后展示全部）" : "（筛选模式下展示全部事件）"}
           </p>
           <Card className="p-5">
             <HistoryAxis events={axisEvents} />
           </Card>
           {!axisEvents.length && <p className="text-sm text-muted">该筛选条件下暂无事件</p>}
+
+          {/* A 股历轮牛熊深度对比 */}
+          <section className="mt-8">
+            <SectionTitle
+              title="A 股历轮牛熊 · 深度对比"
+              sub="基于上证综指 1990-2026 真实历史行情 · 21 轮牛熊的涨跌幅 / 回撤 / 天量地量 / 估值 / 情绪全维度量化对比"
+            />
+            <BullBearCompare />
+          </section>
         </section>
       )}
 
@@ -196,6 +218,14 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
                 注：此表为 1920 年以来主要经济体各阶段资产相对收益的统计规律；周期位置模糊时（如当前康波尾声 + 第六波导入期叠加），资产表现可能出现阶段特征混合。
               </p>
             </Card>
+          </section>
+
+          <section>
+            <SectionTitle
+              title="A 股历轮牛熊 · 深度对比"
+              sub="基于上证综指 1990-2026 真实历史行情 · 21 轮牛熊的涨跌幅 / 回撤 / 天量地量 / 估值 / 情绪全维度量化对比"
+            />
+            <BullBearCompare />
           </section>
 
           <section>

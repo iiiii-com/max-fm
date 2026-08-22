@@ -3,11 +3,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { echarts, type EChartsOption } from "@/components/charts/echarts";
 import { useTheme } from "@/components/theme-provider";
-import { HistoryEvent, CAT_TONE, REGION_TONE, REGION_LABEL } from "@/lib/data/history";
+import {
+  HistoryEvent,
+  HistoryRegion,
+  CAT_TONE,
+  REGION_TONE,
+  REGION_LABEL,
+  REGION_COLOR,
+} from "@/lib/data/history";
 import { Badge } from "@/components/ui";
-
-const CN_COLOR = "#c8102e";
-const WEST_COLOR = "#2563eb";
 
 export default function HistoryAxis({
   events,
@@ -21,14 +25,29 @@ export default function HistoryAxis({
   const { theme } = useTheme();
   const [selected, setSelected] = useState<HistoryEvent | null>(null);
 
-  const cnData = useMemo(
-    () => events.map((e, i) => (e.region === "cn" ? { value: [e.year, 1, i], e, i } : null)).filter(Boolean),
-    [events]
-  );
-  const westData = useMemo(
-    () => events.map((e, i) => (e.region === "west" ? { value: [e.year, 0, i], e, i } : null)).filter(Boolean),
-    [events]
-  );
+  // 动态地区行：按固定顺序排布，只显示有事件的行
+  const REGION_ORDER: HistoryRegion[] = ["cn", "asia", "west", "africa", "america", "oceania", "global"];
+  const regionRows = useMemo(() => {
+    const present = new Set(events.map((e) => e.region));
+    return REGION_ORDER.filter((r) => present.has(r));
+  }, [events]);
+
+  const rowIndex = useMemo(() => {
+    const m = new Map<string, number>();
+    regionRows.forEach((r, i) => m.set(r, i));
+    return m;
+  }, [regionRows]);
+
+  const seriesData = useMemo(() => {
+    return regionRows
+      .map((region) => {
+        const data = events
+          .map((e, i) => (e.region === region ? { value: [e.year, rowIndex.get(region)!, i], e, i } : null))
+          .filter(Boolean);
+        return { region, data };
+      })
+      .filter((s) => s.data.length > 0);
+  }, [events, regionRows, rowIndex]);
 
   useEffect(() => {
     if (!ref.current) return;
@@ -67,18 +86,14 @@ export default function HistoryAxis({
     const min = Math.min(...years);
     const max = Math.max(...years);
     const pad = Math.max(20, Math.round((max - min) * 0.04));
-    const scatterSeries = (
-      data: any[],
-      name: string,
-      color: string
-    ) => ({
-      name,
+    const scatterSeries = (region: HistoryRegion, data: any[]) => ({
+      name: REGION_LABEL[region],
       type: "scatter" as const,
       data: data.map((d) => ({
         value: d.value,
         symbolSize: events[d.value[2]]?.featured ? 10 : 6,
         itemStyle: {
-          color,
+          color: REGION_COLOR[region],
           opacity: events[d.value[2]]?.featured ? 1 : 0.6,
         },
       })),
@@ -113,7 +128,7 @@ export default function HistoryAxis({
       },
       yAxis: {
         type: "category",
-        data: ["西方", "中国"],
+        data: regionRows.map((r) => REGION_LABEL[r]),
         axisLabel: { fontSize: 11 },
         splitLine: { show: true, lineStyle: { color: "#e5e5e0", type: "dashed" } },
       },
@@ -121,18 +136,15 @@ export default function HistoryAxis({
         { type: "inside", filterMode: "none", zoomOnMouseWheel: true },
         { type: "slider", height: 16, bottom: 4, filterMode: "none" },
       ],
-      series: [
-        scatterSeries(cnData, "中国", CN_COLOR),
-        scatterSeries(westData, "西方", WEST_COLOR),
-      ],
+      series: seriesData.map((s) => scatterSeries(s.region, s.data)),
     };
     chart.setOption(option, { notMerge: true });
-  }, [events, cnData, westData]);
+  }, [events, seriesData, regionRows]);
 
   const e = selected;
   return (
     <div className="space-y-4">
-      <div ref={ref} style={{ height: 420, width: "100%" }} />
+      <div ref={ref} style={{ height: Math.max(420, regionRows.length * 90), width: "100%" }} />
       {e ? (
         <div className="rounded-xl border border-primary/30 bg-background p-4 space-y-3">
           <div className="flex items-center gap-2 flex-wrap">
@@ -172,7 +184,9 @@ export default function HistoryAxis({
           </div>
         </div>
       ) : (
-        <p className="text-xs text-muted">点击散点查看事件详情（大小 = 精选/普通，红色 = 中国，蓝色 = 西方）</p>
+        <p className="text-xs text-muted">
+          点击散点查看事件详情（大小 = 精选/普通，颜色区分地区：红=中国 青=亚洲 蓝=西方 橙=非洲 紫=美洲 绿=大洋洲 灰=全球）
+        </p>
       )}
     </div>
   );

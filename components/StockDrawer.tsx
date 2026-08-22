@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import EChart from "@/components/charts/EChart";
 import type { EChartsOption } from "@/components/charts/echarts";
 import type { KlineBar } from "@/app/api/stock/kline/route";
+import { mkKlineTooltip, mkPctLabel } from "@/lib/data/kline-tooltip";
 
 export interface DrawerStock {
   name: string;
@@ -81,10 +82,7 @@ export default function StockDrawer({ stock, onClose }: { stock: DrawerStock | n
     const closes = bars.map((b) => b.close);
     return {
       grid: [{ left: 40, right: 10, top: 10, bottom: 20 }],
-      tooltip: {
-        trigger: "axis",
-        axisPointer: { type: "cross" },
-      },
+      tooltip: mkKlineTooltip({ bars: bars as Array<{ date: string; open?: number; close: number; high?: number; low?: number; volume?: number }> }),
       xAxis: {
         type: "category",
         data: dates,
@@ -108,6 +106,8 @@ export default function StockDrawer({ stock, onClose }: { stock: DrawerStock | n
             borderColor0: "#16a34a",
           },
         },
+        // 逐根涨跌幅标注（scatter 叠加）
+        mkPctLabel({ bars, show: true, fontSize: 8 }),
         { name: "MA5", type: "line", data: ma(closes, 5), symbol: "none", lineStyle: { width: 1, color: "#f59e0b" } },
         { name: "MA10", type: "line", data: ma(closes, 10), symbol: "none", lineStyle: { width: 1, color: "#3b82f6" } },
         { name: "MA20", type: "line", data: ma(closes, 20), symbol: "none", lineStyle: { width: 1, color: "#8b5cf6" } },

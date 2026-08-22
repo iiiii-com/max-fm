@@ -24,7 +24,7 @@ export default async function FeelingPage() {
   const trend = temps.slice(-12).map((t: any) => ({ date: t.date, macro: t.temperature ?? 0, feeling: 45 + Math.round((t.temperature ?? 62) - 62) * 0.6 }));
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6 space-y-8">
+    <div className="mx-auto max-w-7xl px-3 sm:px-4 py-5 sm:py-6 space-y-8">
       <header>
         <h1 className="text-2xl font-bold">宏观温度 vs 个人体感</h1>
         <p className="text-sm text-muted mt-1">数据说经济在回暖，为什么很多人感觉不到？—— 温差从哪来，这里讲清楚</p>

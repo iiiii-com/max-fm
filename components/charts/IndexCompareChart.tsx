@@ -5,6 +5,7 @@ import EChart from "./EChart";
 import type { EChartsOption } from "echarts";
 import type { KlineBar } from "@/app/api/stock/kline/route";
 import { CHART_COLORS } from "./palette";
+import { mkMainAxis } from "@/lib/data/axis";
 
 export interface IndexRef {
   code: string;
@@ -80,7 +81,10 @@ export default function IndexCompareChart({ indexes }: { indexes: IndexRef[] }) 
       },
       legend: { top: 4, type: "scroll", textStyle: { fontSize: 11 } },
       grid: { left: 48, right: 16, top: 40, bottom: 28 },
-      xAxis: { type: "category", data: dates, axisLabel: { fontSize: 10 } },
+      xAxis: {
+        ...mkMainAxis({ dataLength: dates.length, period: "day", firstDate: dates[0], lastDate: dates[dates.length - 1] }),
+        data: dates,
+      },
       yAxis: {
         type: "value", scale: true,
         axisLabel: { fontSize: 10 },

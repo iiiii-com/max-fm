@@ -12,15 +12,19 @@ export interface KlineBar {
   amount: number;
 }
 
+export type KlinePeriod = "day" | "week" | "month";
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const secid = searchParams.get("secid")?.trim() ?? "";
   if (!/^\d+\.\w+$/.test(secid)) return NextResponse.json({ error: "参数错误" }, { status: 400 });
+  const periodRaw = (searchParams.get("period") ?? "day").trim();
+  const period: KlinePeriod = periodRaw === "week" ? "week" : periodRaw === "month" ? "month" : "day";
   const [mkt, code] = secid.split(".");
   const prefix = mkt === "1" ? "sh" : mkt === "0" ? "sz" : mkt === "100" ? "hk" : "sh";
   const param = `${prefix}${code}`;
   try {
-    const url = `https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param=${param},day,,,250,qfq`;
+    const url = `https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param=${param},${period},,,250,qfq`;
     const res = await fetch(url, {
       next: { revalidate: 120 },
       headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" },
@@ -28,7 +32,7 @@ export async function GET(req: Request) {
     if (!res.ok) throw new Error(`kline api ${res.status}`);
     const json = await res.json();
     const node = json?.data?.[param];
-    const raw: any[][] = node?.qfqday || node?.day || [];
+    const raw: any[][] = node?.[`qfq${period}`] || node?.[period] || [];
     if (!Array.isArray(raw) || !raw.length) throw new Error("empty kline");
     const klines: KlineBar[] = raw.map((row: any[]) => ({
       date: String(row[0]),
@@ -43,6 +47,7 @@ export async function GET(req: Request) {
       name: String(node?.qt?.name ?? param),
       code: String(node?.qt?.code ?? code),
       secid,
+      period,
       klines,
     });
   } catch {

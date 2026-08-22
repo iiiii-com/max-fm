@@ -8,6 +8,9 @@ import { Badge, Card } from "@/components/ui";
 import VirtualAccount, { type VirtualAccountHandle } from "./VirtualAccount";
 import DecisionQuiz from "./DecisionQuiz";
 import PanicGauge from "./PanicGauge";
+import BullBearPosition from "./BullBearPosition";
+import { mkMainAxis, mkSubAxis } from "@/lib/data/axis";
+import { mkKlineTooltip, mkPctLabel } from "@/lib/data/kline-tooltip";
 import type { Crisis, CrisisStage, InvestorMove, Regime } from "@/lib/data/crisis/types";
 
 type Phase = "intro" | "playing" | "finished";
@@ -117,26 +120,25 @@ function mkCandleOption(bars: Bar[], opts: { markData?: any[]; markArea?: any[];
   if (!bars.length) return {};
   const dates = bars.map((b) => b.date);
   const base: EChartsOption = {
-    tooltip: {
-      trigger: "axis",
-      axisPointer: { type: "cross" },
-      formatter: (params: any) => {
-        const arr = Array.isArray(params) ? params : [params];
-        const i = arr[0]?.dataIndex ?? 0;
-        const b = bars[i];
-        if (!b) return "";
-        const lines = arr.map((p: any) => `${p.marker}${p.seriesName}: ${p.value ?? "—"}`).join("<br/>");
-        return `<b>${b.date}</b><br/>开 ${b.open ?? "—"}　高 ${b.high ?? "—"}<br/>收 ${b.close}　低 ${b.low ?? "—"}<br/>${lines}`;
-      },
-    },
+    tooltip: mkKlineTooltip({ bars, formatter: (params: any) => {
+      const arr = Array.isArray(params) ? params : [params];
+      const i = arr[0]?.dataIndex ?? 0;
+      const b = bars[i];
+      if (!b) return "";
+      const lines = arr.map((p: any) => `${p.marker}${p.seriesName}: ${p.value ?? "—"}`).join("<br/>");
+      return `<div style="font-size:12px;line-height:1.6"><b>${b.date}</b><br/>开 ${b.open ?? "—"}　高 ${b.high ?? "—"}<br/>收 ${b.close}　低 ${b.low ?? "—"}<br/>${lines}</div>`;
+    } }),
     axisPointer: { link: [{ xAxisIndex: "all" }] },
     grid: [
       { left: 56, right: 16, top: 36, height: "56%" },
       { left: 56, right: 16, top: "72%", height: "18%" },
     ],
     xAxis: [
-      { type: "category", data: dates, gridIndex: 0, axisLabel: { fontSize: 10 }, boundaryGap: true },
-      { type: "category", data: dates, gridIndex: 1, axisLabel: { show: false }, boundaryGap: true },
+      {
+        ...mkMainAxis({ dataLength: dates.length, period: "day", firstDate: dates[0], lastDate: dates[dates.length - 1] }),
+        data: dates,
+      },
+      { ...mkSubAxis(dates.length, 1), data: dates },
     ],
     yAxis: [
       {
@@ -164,6 +166,8 @@ function mkCandleOption(bars: Bar[], opts: { markData?: any[]; markArea?: any[];
       data: bars.map((b) => [b.open, b.close, b.low, b.high]),
       itemStyle: { color: CANDLE_UP, color0: CANDLE_DOWN, borderColor: CANDLE_UP, borderColor0: CANDLE_DOWN },
     });
+    // 逐根涨跌幅标注（scatter 叠加，candlestick label 实测不渲染）
+    candleSeries.push(mkPctLabel({ bars: bars as Array<{ open?: number; close: number; high?: number; low?: number }>, show: true, fontSize: 9 }));
     candleSeries.push({
       name: "成交量",
       type: "bar",
@@ -242,6 +246,7 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
   const [introKline, setIntroKline] = useState<Bar[] | null>(null);
   const [introKlineErr, setIntroKlineErr] = useState("");
   const [introMarket, setIntroMarket] = useState<string>("");
+  const [introPeriod, setIntroPeriod] = useState<"day" | "month">("day");
   const [revealed, setRevealed] = useState<Set<number>>(new Set());
   const [autoplay, setAutoplay] = useState(false);
   const accountRef = useRef<VirtualAccountHandle>(null);
@@ -252,28 +257,38 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
   const mainMarket = crisis.markets[0];
   const marketBars = series[mainMarket.name];
 
-  // intro 阶段拉取真实 K 线：优先内置快照（历史时期在线接口覆盖不到），否则依次尝试各市场在线接口
+  // intro 阶段拉取真实 K 线：
+  // - 月K：内置快照即为月度数据，直接使用；否则在线接口
+  // - 日K：优先在线真实日线（2008/2015/2020 A股视角可用），失败再回退内置快照并明确标注
   useEffect(() => {
     if (phase !== "intro") return;
     let cancelled = false;
     setIntroKlineErr("");
     setIntroKline(null);
     (async () => {
-      // 1) 内置快照 K 线
-      for (const m of crisis.markets) {
+      const snapFirst = (m: (typeof crisis.markets)[number]) => {
         const snap = crisis.snapshotKline?.[m.name];
-        if (snap && snap.length > 2) {
-          if (!cancelled) {
-            setIntroKline(snap as Bar[]);
-            setIntroMarket(`${m.name}（内置月度数据）`);
+        return snap && snap.length > 2 ? (snap as Bar[]) : null;
+      };
+
+      // 月K：快照（月度）优先
+      if (introPeriod === "month") {
+        for (const m of crisis.markets) {
+          const snap = snapFirst(m);
+          if (snap) {
+            if (!cancelled) {
+              setIntroKline(snap);
+              setIntroMarket(`${m.name}（内置月度数据）`);
+            }
+            return;
           }
-          return;
         }
       }
-      // 2) 在线接口
+
+      // 日K（或月K 无快照时）：先试在线接口
       for (const m of crisis.markets) {
         try {
-          const url = `/api/crisis/kline?secid=${m.secid}&from=${crisis.period[0]}&to=${crisis.period[1]}`;
+          const url = `/api/crisis/kline?secid=${m.secid}&from=${crisis.period[0]}&to=${crisis.period[1]}&period=${introPeriod}`;
           const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
           const json = await res.json();
           if (json?.ok && Array.isArray(json.bars) && json.bars.length) {
@@ -287,6 +302,21 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
           /* try next */
         }
       }
+
+      // 日K 在线不可用 → 回退内置快照（标注月度）
+      if (introPeriod === "day") {
+        for (const m of crisis.markets) {
+          const snap = snapFirst(m);
+          if (snap) {
+            if (!cancelled) {
+              setIntroKline(snap);
+              setIntroMarket(`${m.name}（内置月度数据 · 日K不可用已回退）`);
+            }
+            return;
+          }
+        }
+      }
+
       if (!cancelled) {
         setIntroKline(null);
         setIntroKlineErr("历史 K 线暂不可用（数据源限制），已切换为事件时间轴模式");
@@ -295,7 +325,7 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
     return () => {
       cancelled = true;
     };
-  }, [phase, crisis]);
+  }, [phase, crisis, introPeriod]);
   const activeBars = series[viewKey];
   const node = crisis.nodes[stepIndex];
   const levelMeta = LEVEL_META[crisis.level];
@@ -391,7 +421,10 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
     return {
       tooltip: { trigger: "axis" },
       grid: { left: 44, right: 12, top: 16, bottom: 20 },
-      xAxis: { type: "category", data: vixFiltered.map((v) => v.date), axisLabel: { fontSize: 9 } },
+      xAxis: {
+        ...mkMainAxis({ dataLength: vixFiltered.length, period: "day", firstDate: vixFiltered[0]?.date, lastDate: vixFiltered[vixFiltered.length - 1]?.date }),
+        data: vixFiltered.map((v) => v.date),
+      },
       yAxis: {
         type: "value", scale: true,
         splitLine: { lineStyle: { color: "#e5e5e0", type: "dashed" } },
@@ -887,22 +920,35 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
             )}
           </Card>
 
+          <BullBearPosition crisisId={crisis.id} period={crisis.period} />
+
           {crisis.narrative?.dataCard && crisis.narrative.dataCard.length > 0 && (
             <Card className="p-6">
               <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
                 <h3 className="font-bold">数据速览卡</h3>
                 {introKlineErr && <span className="text-[10px] text-muted">{introKlineErr}</span>}
               </div>
-              <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
-                {/* 真实 K 线 + 事件标注 */}
-                <div className="lg:col-span-3">
+              <div className="space-y-5">
+                {/* 真实 K 线 + 事件标注（全宽，不被速览卡遮挡） */}
+                <div>
                   {introKline && introKline.length > 0 ? (
                     <>
                       <div className="flex items-center gap-2 mb-2 flex-wrap">
                         <span className="text-xs font-semibold">{introMarket || mainMarket.name} 真实 K 线</span>
+                        <div className="flex rounded-md border border-border overflow-hidden text-[10px]">
+                          {(["day", "month"] as const).map((p) => (
+                            <button
+                              key={p}
+                              onClick={() => setIntroPeriod(p)}
+                              className={`px-2 py-0.5 ${introPeriod === p ? "bg-primary/15 text-primary font-medium" : "text-muted hover:text-foreground"}`}
+                            >
+                              {p === "day" ? "日K" : "月K"}
+                            </button>
+                          ))}
+                        </div>
                         <span className="text-[10px] text-muted">红=上涨触发 · 绿=下跌触发 · 拖动/滚轮缩放 · 悬停看详情</span>
                       </div>
-                      <EChart option={narrativeChartOption} height={340} />
+                      <EChart option={narrativeChartOption} height={360} />
                       <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2.5 border-t border-border/60 pt-2.5">
                         {crisis.narrative.timeline?.map((t) => (
                           <span key={t.date} className="text-[10px] text-muted" title={`${t.date} ${t.event}`}>
@@ -917,12 +963,12 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
                     </div>
                   )}
                 </div>
-                {/* 数据速览卡 */}
-                <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3 self-start">
+                {/* 数据速览卡（置于 K 线下方，不遮挡关键区域） */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {crisis.narrative.dataCard.map((d) => (
-                    <div key={d.label} className="rounded-lg border border-border p-3">
-                      <p className="text-[11px] text-muted mb-1">{d.label}</p>
-                      <p className="text-sm font-semibold leading-snug">{d.value}</p>
+                    <div key={d.label} className="rounded-lg border border-border p-3.5 bg-background">
+                      <p className="text-[11px] text-muted mb-1.5 font-medium">{d.label}</p>
+                      <p className="text-base font-bold leading-snug font-mono">{d.value}</p>
                     </div>
                   ))}
                 </div>

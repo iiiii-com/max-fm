@@ -35,7 +35,7 @@ export default async function PolicyDetailPage({ params }: { params: Promise<{ i
   const hitSectors = SECTOR_HINTS.filter((s) => s.words.some((w) => corpus.includes(w)));
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6 space-y-6">
+    <div className="mx-auto max-w-7xl px-3 sm:px-4 py-5 sm:py-6 space-y-6">
       <header>
         <div className="flex items-center gap-2 mb-2 flex-wrap">
           <Badge>{p.category || "政策"}</Badge>

@@ -2,6 +2,8 @@
 import { SectionTitle, Card } from "@/components/ui";
 import ProvinceMap from "@/components/ProvinceMap";
 import CityRankTable, { ProvinceCityPanel } from "@/components/CityRankTable";
+import CityIndustryMap from "@/components/CityIndustryMap";
+import CityGraphBoard from "@/components/CityGraphBoard";
 import { bootstrap } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -58,7 +60,7 @@ export default async function MapPage() {
   ];
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6 space-y-8">
+    <div className="mx-auto max-w-7xl px-3 sm:px-4 py-5 sm:py-6 space-y-8">
       <header>
         <h1 className="text-2xl font-bold">中国经济分布图</h1>
         <p className="text-sm text-muted mt-1">31 个省级行政区 · 数据来自各地统计局 · 点击地图查看详情</p>
@@ -77,6 +79,22 @@ export default async function MapPage() {
       <section>
         <SectionTitle title="区域经济全景" sub="悬停地图查看数值与排名，切换指标对比区域差异，表格点击表头排序；点击省份或表格行查看 2018-2025 走势" />
         <ProvinceMap data={data} history={history} />
+      </section>
+
+      <section>
+        <SectionTitle
+          title="核心城市产业图谱 · 网络视图"
+          sub="以城市为节点的产业关联图谱：节点大小=产业规模，颜色=产业类型，连线=同产业关联；支持产业/城市等级筛选，点击节点展开产业链关系"
+        />
+        <CityGraphBoard />
+      </section>
+
+      <section>
+        <SectionTitle
+          title="核心城市产业图谱 · 地图视图"
+          sub="在全国地图上标注核心城市地理位置（经纬度），点击气泡查看该城市支柱产业、产业优势与代表企业，形成经济产业图谱"
+        />
+        <CityIndustryMap />
       </section>
 
       <section>

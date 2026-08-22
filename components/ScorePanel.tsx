@@ -1,6 +1,9 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import { fmt, fmtPct, fmtWan } from "@/lib/utils";
+import EChart from "@/components/charts/EChart";
+import type { EChartsOption } from "@/components/charts/echarts";
 
 export interface ScorePanelData {
   total: number;
@@ -77,8 +80,98 @@ export default function ScorePanel({ data, loading }: { data: ScorePanelData | n
 }
 
 export function FlowPanel({ data, loading }: { data: FlowPanelData | null; loading?: boolean }) {
+  const [range, setRange] = useState<"1d" | "5d" | "10d">("1d");
+  const { chartOption, donutOption } = useMemo<{
+    chartOption: EChartsOption;
+    donutOption: EChartsOption;
+  }>(() => {
+    if (!data) return { chartOption: {}, donutOption: {} };
+    const tiers: Array<{ name: string; value: number }> = [
+      { name: "超大单", value: data.superNetIn / 1e8 },
+      { name: "大单", value: data.bigNetIn / 1e8 },
+      { name: "中单", value: data.midNetIn / 1e8 },
+      { name: "小单", value: data.smallNetIn / 1e8 },
+    ];
+    const main = data.mainNetIn / 1e8;
+    const retail = (data.midNetIn + data.smallNetIn) / 1e8;
+    const chartOption: EChartsOption = {
+      grid: { left: 8, right: 48, top: 8, bottom: 8, containLabel: true },
+      tooltip: {
+        trigger: "axis",
+        axisPointer: { type: "shadow" },
+        formatter: (params: any) => {
+          const p = params?.[0];
+          if (!p) return "";
+          const t = tiers[p.dataIndex];
+          return `${t.name}<br/>净流入：${t.value >= 0 ? "+" : ""}${t.value.toFixed(2)}亿`;
+        },
+      },
+      xAxis: {
+        type: "value",
+        min: (v: any) => Math.min(-0.2, v.min * 1.1),
+        max: (v: any) => Math.max(0.2, v.max * 1.1),
+        axisLabel: { fontSize: 9, formatter: "{value}亿" },
+        splitLine: { lineStyle: { color: "rgba(128,128,128,0.15)" } },
+      },
+      yAxis: {
+        type: "category",
+        data: tiers.map((t) => t.name),
+        inverse: true,
+        axisTick: { show: false },
+        axisLabel: { fontSize: 10 },
+      },
+      series: [
+        {
+          type: "bar",
+          barWidth: 12,
+          data: tiers.map((t) => ({
+            value: Number(t.value.toFixed(2)),
+            itemStyle: {
+              borderRadius: [0, 3, 3, 0],
+              color:
+                t.value >= 0
+                  ? { type: "linear", x: 0, y: 0, x2: 1, y2: 0, colorStops: [{ offset: 0, color: "rgba(220,38,38,0.35)" }, { offset: 1, color: "#dc2626" }] }
+                  : { type: "linear", x: 0, y: 0, x2: 1, y2: 0, colorStops: [{ offset: 0, color: "rgba(22,163,74,0.35)" }, { offset: 1, color: "#16a34a" }] },
+            },
+          })),
+          label: {
+            show: true,
+            position: "right",
+            fontSize: 9,
+            color: "inherit",
+            formatter: (p: any) => `${p.value >= 0 ? "+" : ""}${Number(p.value).toFixed(1)}亿`,
+          },
+        },
+      ],
+    };
+    const donutOption: EChartsOption = {
+      tooltip: {
+        trigger: "item",
+        formatter: (p: any) => `${p.name}<br/>净流入：${p.value >= 0 ? "+" : ""}${Number(p.value).toFixed(2)}亿`,
+      },
+      legend: { bottom: 0, textStyle: { fontSize: 10 }, itemWidth: 10, itemHeight: 10 },
+      series: [
+        {
+          type: "pie",
+          radius: ["46%", "70%"],
+          center: ["50%", "44%"],
+          avoidLabelOverlap: true,
+          itemStyle: { borderRadius: 4, borderColor: "#fff", borderWidth: 1 },
+          label: { show: false },
+          emphasis: { label: { show: true, fontSize: 11, fontWeight: "bold" } },
+          data: [
+            { name: "主力净流入", value: Math.abs(Number(main.toFixed(2))), itemStyle: { color: main >= 0 ? "#dc2626" : "#16a34a" } },
+            { name: "散户净流入", value: Math.abs(Number(retail.toFixed(2))), itemStyle: { color: retail >= 0 ? "#dc2626" : "#16a34a" } },
+          ],
+        },
+      ],
+    };
+    return { chartOption, donutOption };
+  }, [data]);
+
   if (loading) return <p className="text-xs text-muted">资金流加载中…</p>;
   if (!data) return <p className="text-xs text-muted">暂无资金流数据</p>;
+  const rangeMain = range === "5d" ? data.mainNetIn5 : range === "10d" ? data.mainNetIn10 : data.mainNetIn;
   const rows: Array<[string, number, boolean]> = [
     ["主力净流入", data.mainNetIn, true],
     ["超大单", data.superNetIn, true],
@@ -88,27 +181,63 @@ export function FlowPanel({ data, loading }: { data: FlowPanelData | null; loadi
   ];
   return (
     <div className="rounded-lg border border-border p-3">
-      <div className="flex items-center gap-2 mb-2">
+      <div className="flex items-center gap-2 mb-1">
         <p className="text-sm font-medium">资金流向</p>
         <span className={`text-[11px] px-1.5 py-0.5 rounded ${data.trend === "流入" ? "up bg-red-50 dark:bg-red-950/40" : data.trend === "流出" ? "down bg-emerald-50 dark:bg-emerald-950/40" : "text-muted bg-muted/40"}`}>
           {data.trend} {data.trendScore}分
         </span>
       </div>
-      <div className="space-y-1 text-xs">
+
+      {/* 时间范围切换 */}
+      <div className="flex rounded-md border border-border overflow-hidden text-xs mb-2 w-fit">
+        {([["1d", "当日"], ["5d", "5日"], ["10d", "10日"]] as const).map(([k, label]) => (
+          <button
+            key={k}
+            onClick={() => setRange(k)}
+            className={`px-2 py-0.5 ${range === k ? "bg-primary/15 text-primary font-medium" : "text-muted hover:text-foreground"}`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* 主数字：按时间范围切换 */}
+      <div className="flex items-baseline gap-2 mb-2">
+        <span className={`text-xl font-bold font-mono ${flowColor(Number(rangeMain))}`}>
+          {rangeMain == null ? "—" : `${Number(rangeMain) >= 0 ? "+" : ""}${fmtWan(Number(rangeMain) / 1e8)}`}
+        </span>
+        <span className="text-[11px] text-muted">主力净流入（{range === "1d" ? "当日" : range === "5d" ? "5日" : "10日"}）</span>
+      </div>
+
+      {/* 四档资金条形图 */}
+      <EChart option={chartOption} height={150} />
+
+      {/* 主力 vs 散户占比环图 */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
+        <EChart option={donutOption} height={150} className="min-w-0" />
+        <div className="flex flex-col justify-center text-xs space-y-1.5">
+          <div className="flex items-center justify-between">
+            <span className="text-muted">主力（超大+大单）</span>
+            <span className={`font-mono font-medium ${flowColor(data.mainNetIn)}`}>{fmtWan(data.mainNetIn / 1e8)}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-muted">散户（中+小单）</span>
+            <span className={`font-mono font-medium ${flowColor((data.midNetIn + data.smallNetIn))}`}>{fmtWan((data.midNetIn + data.smallNetIn) / 1e8)}</span>
+          </div>
+          <div className="flex items-center justify-between border-t border-border pt-1.5">
+            <span className="text-muted">净占比</span>
+            <span className={`font-mono font-medium ${flowColor(data.mainPct)}`}>{data.mainPct >= 0 ? "+" : ""}{data.mainPct.toFixed(2)}%</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-1 text-xs mt-2 pt-2 border-t border-border/60">
         {rows.map(([name, v, show]) => (
           <div key={name} className="flex items-center justify-between">
             <span className="text-muted">{name}</span>
             <span className={`font-mono font-medium ${flowColor(v)}`}>{show ? fmtWan(v / 1e8) : "—"}</span>
           </div>
         ))}
-        <div className="flex items-center justify-between pt-1 border-t border-border">
-          <span className="text-muted">5日主力净额</span>
-          <span className={`font-mono font-medium ${flowColor(data.mainNetIn5 ?? 0)}`}>{data.mainNetIn5 == null ? "—" : fmtWan(data.mainNetIn5 / 1e8)}</span>
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="text-muted">10日主力净额</span>
-          <span className={`font-mono font-medium ${flowColor(data.mainNetIn10 ?? 0)}`}>{data.mainNetIn10 == null ? "—" : fmtWan(data.mainNetIn10 / 1e8)}</span>
-        </div>
       </div>
     </div>
   );

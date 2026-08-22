@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import EChart from "@/components/charts/EChart";
 import type { EChartsOption } from "@/components/charts/echarts";
@@ -56,6 +56,8 @@ export default function MarketDashboard() {
   const [err, setErr] = useState("");
   const [refreshing, setRefreshing] = useState(false);
   const [view, setView] = useState<"table" | "bar">("table");
+  const [sortKey, setSortKey] = useState<"changePct" | "mainNetIn" | "amount" | "mainPct">("mainNetIn");
+  const [sortDir, setSortDir] = useState<1 | -1>(-1);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [detailMap, setDetailMap] = useState<Record<string, SectorStock[]>>({});
   const [detailLoading, setDetailLoading] = useState<string | null>(null);
@@ -108,6 +110,33 @@ export default function MarketDashboard() {
 
   const stockWatch = items.filter((i) => i.kind === "stock" || i.kind === "index" || i.kind === "etf");
   const sectorWatch = items.filter((i) => i.kind === "sector");
+
+  const sortedSectors = useMemo(() => {
+    return [...sectors].sort((a, b) => {
+      const va = a[sortKey] ?? 0;
+      const vb = b[sortKey] ?? 0;
+      return (vb - va) * sortDir;
+    });
+  }, [sectors, sortKey, sortDir]);
+
+  const toggleSort = (key: "changePct" | "mainNetIn" | "amount" | "mainPct") => {
+    if (sortKey === key) setSortDir((d) => (d === 1 ? -1 : 1));
+    else {
+      setSortKey(key);
+      setSortDir(key === "changePct" ? -1 : -1);
+    }
+  };
+
+  const SortTh = ({ k, children, className = "" }: { k: "changePct" | "mainNetIn" | "amount" | "mainPct"; children: React.ReactNode; className?: string }) => (
+    <button
+      onClick={() => toggleSort(k)}
+      className={`inline-flex items-center gap-1 hover:text-foreground transition-colors ${className}`}
+      title="点击排序"
+    >
+      {children}
+      <span className="text-[9px] opacity-70">{sortKey === k ? (sortDir === -1 ? "↓" : "↑") : "↕"}</span>
+    </button>
+  );
 
   const barOption = useMemo<EChartsOption>(() => {
     const vals = sectors.map((s) => s.mainNetIn / 1e8);
@@ -205,16 +234,16 @@ export default function MarketDashboard() {
               <thead>
                 <tr className="text-xs text-muted border-b border-border">
                   <th className="text-left py-1.5 pr-2">板块</th>
-                  <th className="text-right px-2">涨跌幅</th>
-                  <th className="text-right px-2">主力净流入</th>
-                  <th className="text-right px-2 hidden sm:table-cell">净占比</th>
-                  <th className="text-right px-2 hidden md:table-cell">成交额</th>
+                  <th className="text-right px-2"><SortTh k="changePct">涨跌幅</SortTh></th>
+                  <th className="text-right px-2"><SortTh k="mainNetIn">主力净流入</SortTh></th>
+                  <th className="text-right px-2 hidden sm:table-cell"><SortTh k="mainPct">净占比</SortTh></th>
+                  <th className="text-right px-2 hidden md:table-cell"><SortTh k="amount">成交额</SortTh></th>
                   <th className="text-left px-2 hidden lg:table-cell">龙头</th>
                   <th className="text-right pl-2"></th>
                 </tr>
               </thead>
               <tbody>
-                {sectors.map((s, i) => (
+                {sortedSectors.map((s, i) => (
                   <SectorRowComp
                     key={s.code}
                     s={s}

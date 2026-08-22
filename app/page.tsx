@@ -27,7 +27,7 @@ export default async function Home() {
   const latestTemp = articles.find((a: any) => a.type === "temperature");
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6 space-y-8">
+    <div className="mx-auto max-w-7xl px-3 sm:px-4 py-5 sm:py-6 space-y-8">
       {/* Hero */}
       <section className="rounded-xl bg-gradient-to-r from-primary to-primary-dark text-white p-6 md:p-8">
         <div className="flex flex-col md:flex-row md:items-center gap-6">
@@ -45,7 +45,7 @@ export default async function Home() {
               </Link>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3 min-w-[280px]">
+          <div className="grid grid-cols-2 gap-3">
             <div className="rounded-lg bg-white/10 p-3 text-center">
               <p className="text-xs opacity-80">宏观温度计</p>
               <p className="text-3xl font-bold font-mono mt-1">{temp}°</p>

@@ -22,7 +22,7 @@ export default async function MarketPage({ searchParams }: { searchParams: Promi
   const { tab } = await searchParams;
   const active = TABS.some((t) => t.key === tab) ? (tab as string) : "indexes";
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6 space-y-6">
+    <div className="mx-auto max-w-7xl px-3 sm:px-4 py-5 sm:py-6 space-y-6">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">市场洞察</h1>

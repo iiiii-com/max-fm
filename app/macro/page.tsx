@@ -99,7 +99,7 @@ export default async function MacroPage() {
   ];
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6 space-y-8">
+    <div className="mx-auto max-w-7xl px-3 sm:px-4 py-5 sm:py-6 space-y-8">
       <header>
         <h1 className="text-2xl font-bold">宏观经济</h1>
         <p className="text-sm text-muted mt-1">数据来源：东方财富数据中心（GDP / CPI / PPI / PMI / M1 / M2 / 税收收入 / 70城房价）</p>
