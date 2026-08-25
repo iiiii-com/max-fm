@@ -420,7 +420,7 @@ export default function KlineAnnotations({ chart, activeTool, annotations, onCha
       <svg
         ref={svgRef}
         className="absolute inset-0 z-10 kline-ann-svg"
-        style={{ touchAction: "none", cursor: activeTool === "select" ? "default" : "crosshair" }}
+        style={{ touchAction: activeTool === "select" ? "manipulation" : "none", cursor: activeTool === "select" ? "default" : "crosshair" }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
