@@ -11,6 +11,7 @@ export default function EChart({
   chartRef,
   onDataZoom,
   onReady,
+  children,
 }: {
   option: EChartsOption;
   height?: number | string;
@@ -21,6 +22,8 @@ export default function EChart({
   onDataZoom?: (e?: unknown) => void;
   /** chart 初始化完成后回调 */
   onReady?: (chart: echarts.ECharts) => void;
+  /** 渲染进图表容器内部（如 SVG 画线覆盖层）——子元素事件冒泡经过容器，ECharts 可同时收到滚轮/拖拽 */
+  children?: React.ReactNode;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const innerRef = useRef<echarts.ECharts | null>(null);
@@ -51,5 +54,9 @@ export default function EChart({
     innerRef.current?.setOption(option, { notMerge: false });
   }, [option]);
 
-  return <div ref={ref} style={{ height, width: "100%" }} className={className} />;
+  return (
+    <div ref={ref} style={{ height, width: "100%", position: "relative" }} className={className}>
+      {children}
+    </div>
+  );
 }
