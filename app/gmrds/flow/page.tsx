@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { ArrowLeft, BookOpenCheck, Database, FlaskConical, Table2 } from "lucide-react";
+import { ArrowLeft, BookOpenCheck, Database, FlaskConical, ListChecks, Table2, Wrench } from "lucide-react";
 import { Card } from "@/components/ui";
 import { FLOW_PRACTICES } from "@/lib/data/gmrds-deep";
+import { FLOW_PRAXIS, caseById } from "@/lib/data/gmrds-practical";
 import { DECISION_FLOW, academyBySlug } from "@/lib/data/gmrds";
 
 export const metadata = { title: "十一环节详解 | 研究体系 GMRDS" };
@@ -36,6 +37,8 @@ export default function FlowPage() {
       {/* 环节详解 */}
       {FLOW_PRACTICES.map((f) => {
         const flow = DECISION_FLOW.find((d) => d.no === f.no)!;
+        const praxis = FLOW_PRAXIS[f.no];
+        const cases = praxis.caseRefs.map(caseById).filter(Boolean);
         return (
           <section key={f.no} id={`step-${f.no}`} className="scroll-mt-20">
             <Card className="p-5 overflow-hidden">
@@ -60,6 +63,47 @@ export default function FlowPage() {
                 </div>
               </div>
 
+              {/* 实操：操作步骤 + 判断标准 */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <h3 className="flex items-center gap-1.5 text-sm font-bold mb-2 text-primary">
+                    <ListChecks className="w-4 h-4" /> 操作步骤（可落地）
+                  </h3>
+                  <ol className="space-y-1.5">
+                    {praxis.steps.map((s, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm leading-relaxed">
+                        <span className="flex items-center justify-center w-5 h-5 rounded text-[10px] font-bold text-white shrink-0 mt-0.5" style={{ background: STAGE_COLORS[f.no - 1] }}>{i + 1}</span>
+                        <span>{s}</span>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+                <div>
+                  <h3 className="flex items-center gap-1.5 text-sm font-bold mb-2 text-primary">
+                    <FlaskConical className="w-4 h-4" /> 判断标准（阈值 / 规则）
+                  </h3>
+                  <ul className="space-y-1.5">
+                    {praxis.criteria.map((c, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm leading-relaxed">
+                        <span className="text-primary mt-0.5">▸</span>
+                        <span>{c}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <h3 className="flex items-center gap-1.5 text-sm font-bold mt-4 mb-2 text-primary">
+                    <Wrench className="w-4 h-4" /> 执行工具
+                  </h3>
+                  <div className="flex flex-wrap gap-1.5">
+                    {praxis.tools.map((t) => (
+                      <span key={t.name} className="text-[11px] px-2 py-1 rounded border border-border bg-background/60" title={t.usage}>
+                        {t.name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* 方法论 + 数据来源 */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* 方法论 */}
                 <div>
@@ -123,6 +167,23 @@ export default function FlowPage() {
                   数据源：{f.demo.source} · {f.demo.note}
                 </p>
               </div>
+
+              {/* 案例引用 */}
+              {cases.length > 0 && (
+                <div className="mt-4 rounded-lg border border-primary/20 bg-primary/4 p-3">
+                  <p className="flex items-center gap-1.5 text-[11px] font-bold text-primary mb-2">
+                    <BookOpenCheck className="w-3.5 h-3.5" /> 真实案例佐证
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {cases.map((c) => c && (
+                      <Link key={c.id} href="/gmrds/cases" className="inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1.5 rounded-md border border-border bg-card hover:border-primary/40 transition-colors">
+                        <b>{c.name}</b>
+                        <span className="text-muted">· {c.lesson.slice(0, 30)}…</span>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
             </Card>
           </section>
         );

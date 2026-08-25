@@ -26,6 +26,8 @@ import {
   Library,
   Database,
   ShieldCheck,
+  BookOpenCheck,
+  Wrench,
 } from "lucide-react";
 
 /**
@@ -103,8 +105,9 @@ export const NAV: NavGroup[] = [
     children: [
       { href: "/gmrds", label: "体系总览", desc: "四大阶段 · 十一环节决策链", icon: Library },
       { href: "/gmrds/governance", label: "治理架构", desc: "十二学院 + 决策委员会 · 职责边界", icon: Landmark },
-      { href: "/gmrds/flow", label: "环节详解", desc: "十一环节 · 方法论 + 真实数据实操", icon: Workflow },
-      { href: "/gmrds/case", label: "传导案例", desc: "宏观 → 行业 → 标的真实数据演示", icon: GitCompareArrows },
+      { href: "/gmrds/flow", label: "环节详解", desc: "十一环节 · 操作步骤/判断标准/工具", icon: Workflow },
+      { href: "/gmrds/cases", label: "真实案例", desc: "安然·雷曼·可口可乐·特斯拉·瑞幸·微软", icon: BookOpenCheck },
+      { href: "/gmrds/toolkit", label: "实操工具箱", desc: "K线买卖点 · 雷达图 · 估值区间", icon: Wrench },
       { href: "/gmrds/data-platform", label: "数据互通", desc: "三层数据映射 · 字段标准 · 联动", icon: Database },
       { href: "/gmrds/implementation", label: "实施路线图", desc: "P0/P1/P2 · 里程碑 · 技术选型", icon: Rocket },
       { href: "/gmrds/sources", label: "来源核对", desc: "数据来源 · 核验结果 · 口径", icon: ShieldCheck },
