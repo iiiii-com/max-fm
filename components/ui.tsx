@@ -2,8 +2,8 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { ArrowUpRight, ArrowDownRight } from "lucide-react";
 
-export function Card({ className, children }: { className?: string; children: React.ReactNode }) {
-  return <div className={cn("card p-4", className)}>{children}</div>;
+export function Card({ className, style, children }: { className?: string; style?: React.CSSProperties; children: React.ReactNode }) {
+  return <div className={cn("card p-4", className)} style={style}>{children}</div>;
 }
 
 export function StatCard({

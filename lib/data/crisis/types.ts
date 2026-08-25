@@ -1,3 +1,8 @@
+/**
+ * 来源声明：本文件危机历史数据基于公开史料与权威历史记录整理（如美联储历史数据、
+ * 道琼斯/标普历史行情、公开学术与史料文献），数值可能存在历史口径差异；
+ * 阶段 K 线由行情接口实时绘制。核验日期：2026-08-25。
+ */
 export type CrisisLevel = "major" | "standard" | "brief";
 
 export type Regime = "crash" | "rally" | "range";

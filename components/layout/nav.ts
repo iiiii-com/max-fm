@@ -20,6 +20,12 @@ import {
   Waves,
   Search,
   User,
+  Compass,
+  Workflow,
+  Rocket,
+  Library,
+  Database,
+  ShieldCheck,
 } from "lucide-react";
 
 /**
@@ -89,6 +95,22 @@ export const NAV: NavGroup[] = [
       { href: "/history?tab=waves", label: "康波全景", desc: "五轮康波周期洞察", icon: Waves },
     ],
   },
+  {
+    href: "/gmrds",
+    label: "研究体系",
+    desc: "GMRDS · 十二大学院 · 决策流程 · 路线图",
+    icon: Compass,
+    children: [
+      { href: "/gmrds", label: "体系总览", desc: "四大阶段 · 十一环节决策链", icon: Library },
+      { href: "/gmrds/governance", label: "治理架构", desc: "十二学院 + 决策委员会 · 职责边界", icon: Landmark },
+      { href: "/gmrds/flow", label: "环节详解", desc: "十一环节 · 方法论 + 真实数据实操", icon: Workflow },
+      { href: "/gmrds/case", label: "传导案例", desc: "宏观 → 行业 → 标的真实数据演示", icon: GitCompareArrows },
+      { href: "/gmrds/data-platform", label: "数据互通", desc: "三层数据映射 · 字段标准 · 联动", icon: Database },
+      { href: "/gmrds/implementation", label: "实施路线图", desc: "P0/P1/P2 · 里程碑 · 技术选型", icon: Rocket },
+      { href: "/gmrds/sources", label: "来源核对", desc: "数据来源 · 核验结果 · 口径", icon: ShieldCheck },
+      { href: "/gmrds/roadmap", label: "迭代版本", desc: "V1 基础 → V2 专业 → V3 平台", icon: History },
+    ],
+  },
 ];
 
 /** 独立工具页（不进主导航下拉，用于面包屑与页脚） */
@@ -154,6 +176,10 @@ export function breadcrumbsFor(pathname: string, searchParams?: URLSearchParams 
     // 动态详情
     if (group.href === "/industry" && rest) return [...base, gCrumb, { label: "产业链详情" }];
     if (group.href === "/history" && rest) return [...base, gCrumb, { label: "危机重演" }];
+    if (group.href === "/gmrds" && rest) {
+      if (rest === "roadmap") return [...base, gCrumb, { label: "迭代路线图" }];
+      return [...base, gCrumb, { label: "学院详情" }];
+    }
 
     return [...base, gCrumb, { label: rest || groupDefaultLabel(group) }];
   }
