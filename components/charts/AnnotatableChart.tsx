@@ -6,11 +6,12 @@ import EChart from "./EChart";
 import KlineAnnotations, { type Annotation, type AnnotationStyle, type AnnotationTool, type DashType } from "./KlineAnnotations";
 
 const TOOLS: Array<{ key: AnnotationTool; label: string; title: string }> = [
-  { key: "select", label: "⛏ 选择", title: "选择/编辑标注（拖动端点，Del 删除）" },
-  { key: "trend", label: "↗ 趋势线", title: "绘制趋势线" },
+  { key: "select", label: "⛏ 选择", title: "选择/编辑标注（拖动移动、拖端点调角度、Del 删除）" },
+  { key: "trend", label: "↗ 趋势线", title: "绘制趋势线（拖出两个端点）" },
   { key: "hline", label: "─ 水平线", title: "绘制水平线（支撑/压力）" },
   { key: "vline", label: "│ 垂直线", title: "绘制垂直线（时间标记）" },
   { key: "ray", label: "➘ 射线", title: "绘制射线（从起点向一端无限延伸）" },
+  { key: "fib", label: "◆ 斐波那契", title: "绘制斐波那契回撤线（0-100% 七档）" },
   { key: "channel", label: "≡ 通道线", title: "绘制平行通道" },
   { key: "rect", label: "▭ 矩形", title: "绘制矩形区域" },
 ];
@@ -75,6 +76,7 @@ export default function AnnotatableChart({
   const [penWidth, setPenWidth] = useState(1.5);
   const [snapEnabled, setSnapEnabled] = useState(false);
   const [showStyle, setShowStyle] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   // 撤销/重做历史栈
   const [past, setPast] = useState<Annotation[][]>([]);
@@ -368,7 +370,21 @@ export default function AnnotatableChart({
               </button>
             ))}
           </div>
-          <span className="ml-auto text-muted/70">应用于新建标注 · Ctrl+Z 撤销 / Ctrl+Y 重做</span>
+          <span className="ml-auto text-muted/70">应用于新建标注 · 选中标注后点「应用到选中」修改已画线条</span>
+          {selectedId && (
+            <button
+              onClick={() => {
+                applyChange(
+                  annotations.map((a) =>
+                    a.id === selectedId ? { ...a, color: penColor, style: { dash: penDash, width: penWidth } } : a
+                  )
+                );
+              }}
+              className="px-2.5 py-1 rounded text-[11px] bg-primary text-white font-medium hover:bg-primary-dark"
+            >
+              ✓ 应用到选中标注
+            </button>
+          )}
         </div>
       )}
 
@@ -392,6 +408,7 @@ export default function AnnotatableChart({
             defaultStyle={defaultStyle}
             bars={snapBars}
             snapToHighLow={snapEnabled}
+            onSelectChange={setSelectedId}
           />
         )}
       </div>

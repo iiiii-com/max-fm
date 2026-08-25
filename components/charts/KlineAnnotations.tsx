@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { echarts } from "./echarts";
 
-export type AnnotationTool = "trend" | "hline" | "vline" | "channel" | "rect" | "ray" | "select";
+export type AnnotationTool = "trend" | "hline" | "vline" | "channel" | "rect" | "ray" | "fib" | "select";
 
 /** 线型样式 */
 export type DashType = "solid" | "dash" | "dot";
@@ -38,6 +38,8 @@ interface Props {
   bars?: Array<{ high: number; low: number }>;
   /** 是否开启端点吸附（贴近 K 线最高/最低价） */
   snapToHighLow?: boolean;
+  /** 选中标注变化回调（供样式面板"应用到选中"等使用） */
+  onSelectChange?: (id: string | null) => void;
 }
 
 const TOOL_COLORS: Record<Exclude<AnnotationTool, "select">, string> = {
@@ -47,6 +49,7 @@ const TOOL_COLORS: Record<Exclude<AnnotationTool, "select">, string> = {
   channel: "#f59e0b",
   rect: "#8b5cf6",
   ray: "#0ea5e9",
+  fib: "#e11d48",
 };
 
 /** 生成唯一 id（SSR 安全：模块级计数器，服务端与客户端一致） */
@@ -60,13 +63,21 @@ const uid = () => `ann-${++_uid}`;
  * - 删除：选中后按 Delete/Backspace 或双击
  * - 坐标映射：chart.convertFromPixel/convertToPixel，dataZoom 缩放平移后由父组件触发重绘
  */
-export default function KlineAnnotations({ chart, activeTool, annotations, onChange, defaultStyle, bars, snapToHighLow }: Props) {
+export default function KlineAnnotations({ chart, activeTool, annotations, onChange, defaultStyle, bars, snapToHighLow, onSelectChange }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [draft, setDraft] = useState<Annotation | null>(null); // 正在绘制的标注
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [dragging, setDragging] = useState<{ id: string; pointIdx: number } | null>(null);
+  // 整体移动：记录起始指针数据坐标 + 起始点集，按差值平移所有点
+  const [moving, setMoving] = useState<{ id: string; sx: number; sy: number; pts: Array<{ x: number; y: number }> } | null>(null);
   const [hoverId, setHoverId] = useState<string | null>(null);
   const [version, setVersion] = useState(0); // 强制重绘
+
+  /** 选中变化对外通知 */
+  useEffect(() => {
+    onSelectChange?.(selectedId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedId]);
 
   /** 吸附：把数据坐标的 y 贴近最近 K 线最高/最低价（x 取整到 K 线中心） */
   const snapPoint = useCallback(
@@ -137,11 +148,15 @@ export default function KlineAnnotations({ chart, activeTool, annotations, onCha
     if (!d) return;
 
     if (activeTool === "select") {
-      // 选择模式：命中标注则选中并阻止冒泡（避免触发图表平移）；空白处放行（图表手势可用）
+      // 选择模式：命中标注则选中并开始整体移动（按住拖动）；空白处放行（图表手势可用）
       const hit = hitTest(px, py);
       if (hit) {
         e.stopPropagation();
         setSelectedId(hit);
+        const target = annotations.find((a) => a.id === hit);
+        if (target) {
+          setMoving({ id: hit, sx: d.x, sy: d.y, pts: target.points.map((p) => ({ x: p.x, y: p.y })) });
+        }
       } else {
         setSelectedId(null);
       }
@@ -167,6 +182,21 @@ export default function KlineAnnotations({ chart, activeTool, annotations, onCha
     if (!svgRef.current) return;
     const { px, py } = pointerPos(e);
 
+    // 整体移动已选标注
+    if (moving && chart) {
+      e.stopPropagation();
+      const d = toData(px, py);
+      if (!d) return;
+      const dx = d.x - moving.sx;
+      const dy = d.y - moving.sy;
+      setAnnotations((list) =>
+        list.map((a) =>
+          a.id === moving.id ? { ...a, points: moving.pts.map((p) => ({ x: p.x + dx, y: p.y + dy })) } : a
+        )
+      );
+      return;
+    }
+
     // 拖拽已有标注端点
     if (dragging && chart) {
       e.stopPropagation();
@@ -191,7 +221,7 @@ export default function KlineAnnotations({ chart, activeTool, annotations, onCha
       const snap = snapPoint(d);
       setDraft((prev) => {
         if (!prev) return prev;
-        if (prev.tool === "trend" || prev.tool === "channel" || prev.tool === "rect" || prev.tool === "ray") {
+        if (prev.tool === "trend" || prev.tool === "channel" || prev.tool === "rect" || prev.tool === "ray" || prev.tool === "fib") {
           return { ...prev, points: [prev.points[0], snap] };
         }
         if (prev.tool === "hline") return { ...prev, points: [prev.points[0], { ...snap, y: prev.points[0].y }] };
@@ -207,6 +237,10 @@ export default function KlineAnnotations({ chart, activeTool, annotations, onCha
   };
 
   const onPointerUp = () => {
+    if (moving) {
+      setMoving(null);
+      return;
+    }
     if (dragging) {
       setDragging(null);
       return;
@@ -223,8 +257,9 @@ export default function KlineAnnotations({ chart, activeTool, annotations, onCha
   const isValid = (a: Annotation) => {
     if (a.points.length < 2) return false;
     const [p0, p1] = a.points;
-    // 水平线/垂直线/矩形需要两点的 x 或 y 差异
+    // 水平线/垂直线/斐波那契需要两点的 x 或 y 差异
     if (a.tool === "hline" || a.tool === "vline") return true;
+    if (a.tool === "fib") return Math.abs(p1.y - p0.y) > 0.5;
     const dx = Math.abs(p1.x - p0.x);
     const dy = Math.abs(p1.y - p0.y);
     return a.tool === "rect" ? dx > 0.5 && dy > 0.5 : dx > 0.5 || dy > 0.5;
@@ -245,6 +280,14 @@ export default function KlineAnnotations({ chart, activeTool, annotations, onCha
       } else if (a.tool === "vline") {
         const p = pts[0];
         if (Math.abs(px - p.x) <= 6) return a.id;
+      } else if (a.tool === "fib") {
+        // 斐波那契：命中任意一条水平回撤线
+        const [p0, p1] = pts;
+        const levels = [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1];
+        for (const lv of levels) {
+          const y = p0.y + (p1.y - p0.y) * lv;
+          if (Math.abs(py - y) <= 6) return a.id;
+        }
       } else {
         // 趋势线/通道线：线段距离；射线：点到射线距离
         const [p0, p1] = pts;
@@ -342,6 +385,41 @@ export default function KlineAnnotations({ chart, activeTool, annotations, onCha
           <line x1={p0.x} y1={p0.y} x2={p1.x} y2={p1.y} {...common} />
           <line x1={p0.x} y1={p0.y - dY} x2={p1.x} y2={p1.y - dY} {...common} />
         </>
+      );
+    }
+    if (a.tool === "fib" && pts.length >= 2) {
+      // 斐波那契回撤：0 / 0.236 / 0.382 / 0.5 / 0.618 / 0.786 / 1 七条水平线 + 价格标签
+      const [p0, p1] = pts;
+      const yData0 = a.points[0].y;
+      const yData1 = a.points[1].y;
+      const levels = [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1];
+      return (
+        <g>
+          {/* 趋势方向线（两点连线） */}
+          <line x1={p0.x} y1={p0.y} x2={p1.x} y2={p1.y} {...common} opacity={0.5} />
+          {levels.map((lv) => {
+            const y = p0.y + (p1.y - p0.y) * lv;
+            const price = yData0 + (yData1 - yData0) * lv;
+            return (
+              <g key={lv}>
+                <line
+                  x1={0}
+                  y1={y}
+                  x2={10000}
+                  y2={y}
+                  stroke={a.color}
+                  strokeWidth={1}
+                  strokeDasharray="5 4"
+                  opacity={isSel ? 0.95 : 0.55}
+                  pointerEvents="none"
+                />
+                <text x={10070} y={y + 3} fontSize={9} fill={a.color} opacity={0.9} textAnchor="end" pointerEvents="none">
+                  {lv === 0 ? "0%" : lv === 1 ? "100%" : `${(lv * 100).toFixed(1)}%`}　{price.toFixed(2)}
+                </text>
+              </g>
+            );
+          })}
+        </g>
       );
     }
     if (a.tool === "ray" && pts.length >= 2) {
