@@ -33,7 +33,8 @@ export default function IndexCompareChart({ indexes }: { indexes: IndexRef[] }) 
       setErr("");
       const results = await Promise.allSettled(
         indexes.map(async (ix) => {
-          const res = await fetch(`/api/stock/kline?secid=${ix.secid}`, { cache: "no-store" });
+          // 指数 K 线走东财数据源（腾讯 fqkline 对 100. 前缀美股指数处理错误）
+          const res = await fetch(`/api/index/kline?secid=${ix.secid}&days=60`, { cache: "no-store" });
           const j = await res.json();
           if (!Array.isArray(j?.klines) || !j.klines.length) throw new Error(j?.error ?? "empty");
           const bars: KlineBar[] = j.klines.slice(-60);
