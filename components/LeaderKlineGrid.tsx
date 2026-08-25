@@ -9,7 +9,7 @@ import { SECTOR_LEADERS } from "@/lib/data/leaders";
 import { THEME_ETFS } from "@/lib/data/leaders";
 import { mkMainAxis } from "@/lib/data/axis";
 import { sma } from "@/lib/data/indicators";
-import { mkKlineTooltip } from "@/lib/data/kline-tooltip";
+import { mkKlineTooltip, mkPctSeries } from "@/lib/data/kline-tooltip";
 
 interface MiniBar {
   date: string;
@@ -62,7 +62,7 @@ function MiniKline({ secid, name, onPick }: { secid: string; name: string; onPic
     const m20 = sma(closes, 20);
     return {
       animation: false,
-      grid: { left: 2, right: 2, top: 8, bottom: 2 },
+      grid: { left: 2, right: 2, top: 14, bottom: 2 },
       xAxis: mkMainAxis({ dataLength: dates.length, period: "day", firstDate: dates[0], lastDate: dates[dates.length - 1] }),
       yAxis: { type: "value", scale: true, show: false },
       tooltip: mkKlineTooltip({ formatter: (params: any) => {
@@ -79,6 +79,8 @@ function MiniKline({ secid, name, onPick }: { secid: string; name: string; onPic
           name: "K线", type: "candlestick", data: ohlc,
           itemStyle: { color, color0: "#16a34a", borderColor: color, borderColor0: "#16a34a" },
         },
+        // 逐根涨跌幅标注（scatter 叠加；迷你图只标最近 3 根避免重叠）
+        mkPctSeries({ bars, show: true, fontSize: 8, maxVisible: 3, keep: 3 }),
         { name: "MA5", type: "line", data: m5, smooth: true, showSymbol: false, lineStyle: { width: 0.8, color: "#f59e0b" } },
         { name: "MA20", type: "line", data: m20, smooth: true, showSymbol: false, lineStyle: { width: 0.8, color: "#3b82f6" } },
       ],
