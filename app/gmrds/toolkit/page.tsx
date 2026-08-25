@@ -5,6 +5,7 @@ import RadarChart from "@/components/gmrds/RadarChart";
 import ValuationBand from "@/components/gmrds/ValuationBand";
 import DrawdownChart from "@/components/gmrds/DrawdownChart";
 import InteractiveKlineLab from "@/components/gmrds/InteractiveKlineLab";
+import ScannerSection from "@/components/gmrds/ScannerSection";
 import shanghaiSample from "@/data/shanghai-sample.json";
 import shIndex from "@/data/sh-index.json";
 
@@ -48,6 +49,9 @@ export default function ToolkitPage() {
   // 真实数据：上证 2024-08 ~ 2025-06（219 根，腾讯日线）
   const bars = shanghaiSample as Array<{ date: string; open: number; close: number; high: number; low: number; volume: number }>;
   const risk = drawdownStats();
+  const scanBars = (shIndex as [string, number, number, number, number, number][])
+    .filter((b) => b[0] >= "2024-01-01")
+    .map((b) => ({ date: b[0], open: b[1], close: b[2], high: b[3], low: b[4], volume: Math.round(b[5]) }));
 
   // 买卖点标注（基于真实行情验证的关键点位）
   const marks = [
@@ -175,6 +179,14 @@ export default function ToolkitPage() {
           title="估值区间：当前 PE vs 合理区间"
           caption="图注：条形为合理区间（方法论测算输入），圆点为当前 PE（真实接口值，灰点=待接入）。当前值低于区间下限（绿）→ 低估区；高于上限（红）→ 高估区；区间内（蓝）→ 合理。区间边界为研究设定输入，随盈利预期更新。"
         />
+      </section>
+
+      {/* 买卖点扫描（规则引擎 + CSV 导入） */}
+      <section id="scanner" className="scroll-mt-20">
+        <h2 className="flex items-center gap-2 font-bold text-lg tracking-tight mb-3">
+          <CandlestickChart className="w-4.5 h-4.5 text-primary" /> 环节 7 · 买卖点扫描器（判断标准 + 经典形态）
+        </h2>
+        <ScannerSection defaultBars={scanBars} />
       </section>
 
       {/* 回撤与风险统计 */}
