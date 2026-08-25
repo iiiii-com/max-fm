@@ -100,18 +100,15 @@ export const NAV: NavGroup[] = [
   {
     href: "/gmrds",
     label: "研究体系",
-    desc: "GMRDS · 十二大学院 · 决策流程 · 路线图",
+    desc: "GMRDS · 十二学院 · 决策流程 · 工具箱",
     icon: Compass,
     children: [
       { href: "/gmrds", label: "体系总览", desc: "四大阶段 · 十一环节决策链", icon: Library },
       { href: "/gmrds/governance", label: "治理架构", desc: "十二学院 + 决策委员会 · 职责边界", icon: Landmark },
-      { href: "/gmrds/flow", label: "环节详解", desc: "十一环节 · 操作步骤/判断标准/工具", icon: Workflow },
+      { href: "/gmrds/flow", label: "环节实操", desc: "操作步骤 · 判断标准 · 执行工具", icon: Workflow },
+      { href: "/gmrds/toolkit", label: "实操工具箱", desc: "K线买卖点 · 雷达图 · 估值 · 回撤", icon: Wrench },
       { href: "/gmrds/cases", label: "真实案例", desc: "安然·雷曼·可口可乐·特斯拉·瑞幸·微软", icon: BookOpenCheck },
-      { href: "/gmrds/toolkit", label: "实操工具箱", desc: "K线买卖点 · 雷达图 · 估值区间", icon: Wrench },
-      { href: "/gmrds/data-platform", label: "数据互通", desc: "三层数据映射 · 字段标准 · 联动", icon: Database },
-      { href: "/gmrds/implementation", label: "实施路线图", desc: "P0/P1/P2 · 里程碑 · 技术选型", icon: Rocket },
-      { href: "/gmrds/sources", label: "来源核对", desc: "数据来源 · 核验结果 · 口径", icon: ShieldCheck },
-      { href: "/gmrds/roadmap", label: "迭代版本", desc: "V1 基础 → V2 专业 → V3 平台", icon: History },
+      { href: "/gmrds/roadmap", label: "发展路线", desc: "V1 基础 → V2 专业 → V3 平台 · 实施", icon: History },
     ],
   },
 ];

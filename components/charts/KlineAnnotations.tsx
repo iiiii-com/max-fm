@@ -494,24 +494,24 @@ export default function KlineAnnotations({ chart, activeTool, annotations, onCha
   const all = [...(draft ? [draft] : []), ...annotations];
 
   return (
-    <div className="relative">
-      <svg
-        ref={svgRef}
-        className="absolute inset-0 z-10 kline-ann-svg"
-        style={{ touchAction: activeTool === "select" ? "manipulation" : "none", cursor: activeTool === "select" ? "default" : "crosshair" }}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerLeave={() => setHoverId(null)}
-        onDoubleClick={onDoubleClick}
-      >
-        {all.map((a) => (
-          <g key={a.id} data-annotation={a.id}>
-            {renderAnnotation(a, a.id === draft?.id)}
-            {renderHandles(a)}
-          </g>
-        ))}
-      </svg>
-    </div>
+    // 关键：svg 直接覆盖在图表容器上（AnnotatableChart 提供 relative 容器），
+    // 必须 absolute + w-full h-full 撑满，否则包装 div 高度塌陷为 0 → 画线层点不到
+    <svg
+      ref={svgRef}
+      className="absolute inset-0 z-10 w-full h-full kline-ann-svg"
+      style={{ touchAction: activeTool === "select" ? "manipulation" : "none", cursor: activeTool === "select" ? "default" : "crosshair" }}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerLeave={() => setHoverId(null)}
+      onDoubleClick={onDoubleClick}
+    >
+      {all.map((a) => (
+        <g key={a.id} data-annotation={a.id}>
+          {renderAnnotation(a, a.id === draft?.id)}
+          {renderHandles(a)}
+        </g>
+      ))}
+    </svg>
   );
 }

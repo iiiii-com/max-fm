@@ -1,15 +1,52 @@
 import Link from "next/link";
-import { ArrowLeft, Wrench, CandlestickChart, Radar as RadarIcon, Scale } from "lucide-react";
+import { ArrowLeft, Wrench, CandlestickChart, Radar as RadarIcon, Scale, TrendingDown } from "lucide-react";
 import KlinePatternChart from "@/components/gmrds/KlinePatternChart";
 import RadarChart from "@/components/gmrds/RadarChart";
 import ValuationBand from "@/components/gmrds/ValuationBand";
+import DrawdownChart from "@/components/gmrds/DrawdownChart";
 import shanghaiSample from "@/data/shanghai-sample.json";
+import shIndex from "@/data/sh-index.json";
 
 export const metadata = { title: "实操工具箱 | 研究体系 GMRDS" };
+
+/** 真实回撤统计（上证 2020 起，收盘口径自算） */
+function drawdownStats() {
+  const closes: Array<[string, number]> = (shIndex as [string, number, number, number, number, number][])
+    .filter((b) => b[0] >= "2020-01-01")
+    .map((b) => [b[0], b[2]]);
+  if (closes.length < 2) return { stats: [], dd: [] };
+  const rets: number[] = [];
+  for (let i = 1; i < closes.length; i++) rets.push((closes[i][1] / closes[i - 1][1] - 1) * 100);
+  const mean = rets.reduce((a, b) => a + b, 0) / rets.length;
+  const sd = Math.sqrt(rets.reduce((a, r) => a + (r - mean) ** 2, 0) / rets.length);
+  const annRet = (Math.pow(closes[closes.length - 1][1] / closes[0][1], 252 / rets.length) - 1) * 100;
+  const annVol = sd * Math.sqrt(252);
+  const sharpe = (annRet - 2) / annVol;
+  let peak = closes[0][1];
+  let maxDD = 0;
+  const dd: Array<{ date: string; dd: number }> = [];
+  for (const [d, c] of closes) {
+    if (c > peak) peak = c;
+    const cur = (c / peak - 1) * 100;
+    if (cur < maxDD) maxDD = cur;
+    dd.push({ date: d, dd: Math.round(cur * 100) / 100 });
+  }
+  return {
+    stats: [
+      { label: "年化收益", value: `${annRet.toFixed(1)}%`, tone: annRet >= 0 ? ("up" as const) : ("down" as const) },
+      { label: "年化波动", value: `${annVol.toFixed(1)}%`, tone: "plain" as const },
+      { label: "夏普比率", value: sharpe.toFixed(2), tone: "plain" as const },
+      { label: "最大回撤", value: `${maxDD.toFixed(1)}%`, tone: "down" as const },
+      { label: "样本", value: `${closes.length} 交易日`, tone: "plain" as const },
+    ],
+    dd,
+  };
+}
 
 export default function ToolkitPage() {
   // 真实数据：上证 2024-08 ~ 2025-06（219 根，腾讯日线）
   const bars = shanghaiSample as Array<{ date: string; open: number; close: number; high: number; low: number; volume: number }>;
+  const risk = drawdownStats();
 
   // 买卖点标注（基于真实行情验证的关键点位）
   const marks = [
@@ -124,6 +161,22 @@ export default function ToolkitPage() {
           ]}
           title="估值区间：当前 PE vs 合理区间"
           caption="图注：条形为合理区间（方法论测算输入），圆点为当前 PE（真实接口值，灰点=待接入）。当前值低于区间下限（绿）→ 低估区；高于上限（红）→ 高估区；区间内（蓝）→ 合理。区间边界为研究设定输入，随盈利预期更新。"
+        />
+      </section>
+
+      {/* 回撤与风险统计 */}
+      <section id="risk" className="scroll-mt-20">
+        <h2 className="flex items-center gap-2 font-bold text-lg tracking-tight mb-3">
+          <TrendingDown className="w-4.5 h-4.5 text-primary" /> 环节 9 · 回撤与风险统计（真实数据自算）
+        </h2>
+        <DrawdownChart
+          ddSeries={risk.dd}
+          stats={risk.stats}
+          title="上证综指回撤曲线（2020-01 ~ 2026-08，收盘口径）"
+          caption={
+            "图注：真实行情自算（腾讯日线）。最大回撤发生在 2022 年（宏观紧缩 + 流动性收紧）；2024-2025 年修复至新高。" +
+            "判定标准（环节 9）：最大回撤 >20% 触发组合审查；年化波动 >30% 为高危；夏普 <0.5 需重新评估风险预算。"
+          }
         />
       </section>
 
