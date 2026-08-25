@@ -33,6 +33,14 @@
     display:none; white-space:nowrap; z-index:5;
   }
   .tip b{font-size:12px;}
+  .ctlbar{display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-bottom:8px; font-size:11px;}
+  .ctl{background:var(--card); border:1px solid var(--border); border-radius:6px; padding:4px 10px; font-size:12px; cursor:pointer; color:var(--text);}
+  .ctl:hover{border-color:var(--accent); color:var(--accent);}
+  .seg{display:flex; border:1px solid var(--border); border-radius:6px; overflow:hidden;}
+  .seg button{background:transparent; border:none; padding:4px 12px; font-size:11px; cursor:pointer; color:var(--muted);}
+  .seg button.on{background:var(--accent); color:#fff; font-weight:700;}
+  #btnPlay{background:var(--accent); color:#fff; border-color:var(--accent); font-weight:700;}
+  #btnPlay.playing{background:transparent; color:var(--accent);}
   .hint{display:flex; flex-wrap:wrap; gap:14px; font-size:11px; color:var(--muted); margin-top:10px;}
   .hint kbd{background:var(--bg); border:1px solid var(--border); border-radius:4px; padding:1px 6px; font-size:10px; font-family:inherit;}
   details{margin-top:12px; border:1px solid var(--border); border-radius:8px; padding:10px 12px; font-size:12px; color:var(--muted); line-height:1.8;}
@@ -53,6 +61,19 @@
     <span class="ma"><i style="background:#f59e0b"></i>MA5</span>
     <span class="ma"><i style="background:#3b82f6"></i>MA20</span>
     <span class="ma"><i style="background:#8b5cf6"></i>MA60</span>
+    <span style="margin-left:auto; display:inline-flex; gap:6px;">
+      <button class="ctl" id="btnZoomIn" title="放大">＋</button>
+      <button class="ctl" id="btnZoomOut" title="缩小">－</button>
+    </span>
+  </div>
+  <div class="ctlbar">
+    <div class="seg" id="segPeriod">
+      <button data-p="day" class="on">日K</button>
+      <button data-p="week">周K</button>
+      <button data-p="month">月K</button>
+    </div>
+    <button class="ctl" id="btnPlay" title="行情回放">▶ 行情回放</button>
+    <button class="ctl" id="btnReset" title="重置视图">重置</button>
     <span id="zoomLabel" style="margin-left:auto; font-variant-numeric:tabular-nums;"></span>
   </div>
   <div class="chart-wrap" id="wrap">
@@ -62,6 +83,7 @@
   <div class="hint">
     <span><kbd>滚轮</kbd> 缩放（以鼠标为中心）</span>
     <span><kbd>拖拽</kbd> 平移时间区间</span>
+    <span><kbd>＋ / －</kbd> 备用缩放按钮</span>
     <span><kbd>Shift + 滚轮</kbd> 快速平移</span>
     <span><kbd>触控板双指</kbd> 缩放 / 单指拖动平移</span>
     <span><kbd>悬停</kbd> 查看 OHLC 与涨跌幅</span>
@@ -103,6 +125,48 @@ const ctx = cv.getContext("2d");
 const tip = document.getElementById("tip");
 
 let bars = RAW;
+let period = "day";
+let playCount = null; // 回放显示根数
+let playTimer = null;
+
+/* 周期聚合：日 → 周 / 月 */
+function aggregate(unit){
+  const map = new Map();
+  const keyOf = (d) => unit === "month" ? d.slice(0,7) : (() => {
+    const dt = new Date(d); const day = (dt.getDay()+6)%7;
+    const mon = new Date(dt); mon.setDate(dt.getDate()-day);
+    return mon.toISOString().slice(0,10);
+  })();
+  for (const b of RAW){
+    const k = keyOf(b[0]);
+    if (!map.has(k)) map.set(k, [b[0], b[1], b[2], b[3], b[4], b[5]]);
+    else { const c = map.get(k); c[2]=b[2]; c[3]=Math.max(c[3],b[3]); c[4]=Math.min(c[4],b[4]); c[5]+=b[5]; }
+  }
+  return [...map.values()].sort((a,b)=> a[0]<b[0]?-1:1);
+}
+function switchPeriod(p){
+  period = p;
+  bars = p === "day" ? RAW : aggregate(p);
+  viewEnd = bars.length; viewCount = Math.min(120, bars.length);
+  playCount = null; stopPlay(); bgCache = null; requestRedraw();
+  document.querySelectorAll("#segPeriod button").forEach(b => b.classList.toggle("on", b.dataset.p === p));
+}
+function stopPlay(){ if (playTimer) { clearInterval(playTimer); playTimer = null; } document.getElementById("btnPlay").textContent = "▶ 行情回放"; document.getElementById("btnPlay").classList.remove("playing"); }
+function startPlay(){
+  stopPlay();
+  document.getElementById("btnPlay").textContent = "⏸ 暂停回放"; document.getElementById("btnPlay").classList.add("playing");
+  playTimer = setInterval(() => {
+    if (playCount == null) playCount = 60;
+    else if (playCount >= bars.length) { stopPlay(); playCount = null; requestRedraw(); return; }
+    else playCount += 2;
+    viewCount = Math.min(playCount, bars.length); viewEnd = bars.length; bgCache = null; requestRedraw();
+  }, 200);
+}
+document.getElementById("btnPlay").addEventListener("click", () => playTimer ? stopPlay() : startPlay());
+document.getElementById("btnReset").addEventListener("click", () => { stopPlay(); playCount = null; viewEnd = bars.length; viewCount = Math.min(120, bars.length); bgCache = null; requestRedraw(); });
+document.getElementById("btnZoomIn").addEventListener("click", () => doZoom(Math.min(viewEnd, bars.length-1), 0.8));
+document.getElementById("btnZoomOut").addEventListener("click", () => doZoom(Math.min(viewEnd, bars.length-1), 1.25));
+document.querySelectorAll("#segPeriod button").forEach(b => b.addEventListener("click", () => switchPeriod(b.dataset.p)));
 let W = 0, H = 0, dpr = 1;
 let plotW = 0, plotH = 0, plotL = 0, plotT = 0, volTop = 0;
 let viewEnd = bars.length;      // 可见区间末端索引（右闭）

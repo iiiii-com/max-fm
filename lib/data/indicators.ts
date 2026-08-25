@@ -255,3 +255,28 @@ export function buildSwingMarkPoints(swings: SwingMark[], opts: { maxCount?: num
     };
   });
 }
+
+/** 日 K 聚合为周 / 月 K（OHLCV 通用工具） */
+export function aggregateBars(bars: Array<{ date: string; open: number; close: number; high: number; low: number; volume: number }>, unit: "week" | "month") {
+  const keyOf = (d: string) => {
+    if (unit === "month") return d.slice(0, 7);
+    const dt = new Date(d);
+    const day = (dt.getDay() + 6) % 7; // 周一=0
+    const mon = new Date(dt);
+    mon.setDate(dt.getDate() - day);
+    return mon.toISOString().slice(0, 10);
+  };
+  const map = new Map<string, { date: string; open: number; close: number; high: number; low: number; volume: number }>();
+  for (const b of bars) {
+    const k = keyOf(b.date);
+    const cur = map.get(k);
+    if (!cur) map.set(k, { date: b.date, open: b.open, close: b.close, high: b.high, low: b.low, volume: b.volume });
+    else {
+      cur.close = b.close;
+      cur.high = Math.max(cur.high, b.high);
+      cur.low = Math.min(cur.low, b.low);
+      cur.volume += b.volume;
+    }
+  }
+  return [...map.values()].sort((a, b) => (a.date < b.date ? -1 : 1));
+}

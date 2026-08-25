@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { ArrowLeft, Wrench, CandlestickChart, Radar as RadarIcon, Scale, TrendingDown } from "lucide-react";
+import { ArrowLeft, Wrench, CandlestickChart, Radar as RadarIcon, Scale, TrendingDown, LayoutGrid } from "lucide-react";
 import KlinePatternChart from "@/components/gmrds/KlinePatternChart";
 import RadarChart from "@/components/gmrds/RadarChart";
 import ValuationBand from "@/components/gmrds/ValuationBand";
 import DrawdownChart from "@/components/gmrds/DrawdownChart";
+import InteractiveKlineLab from "@/components/gmrds/InteractiveKlineLab";
 import shanghaiSample from "@/data/shanghai-sample.json";
 import shIndex from "@/data/sh-index.json";
 
@@ -81,6 +82,18 @@ export default function ToolkitPage() {
             <Scale className="w-3.5 h-3.5" /> 估值区间测算
           </a>
         </div>
+      </section>
+
+      {/* 交互式 K 线实验台 */}
+      <section id="lab" className="scroll-mt-20">
+        <h2 className="flex items-center gap-2 font-bold text-lg tracking-tight mb-3">
+          <LayoutGrid className="w-4.5 h-4.5 text-primary" /> 交互式 K 线实验台 · 多周期 / 指标 / 回放
+        </h2>
+        <InteractiveKlineLab
+          data={(shIndex as [string, number, number, number, number, number][]).filter((b) => b[0] >= "2020-01-01").map((b) => ({
+            date: b[0], open: b[1], close: b[2], high: b[3], low: b[4], volume: b[5],
+          }))}
+        />
       </section>
 
       {/* K线形态与买卖点 */}
