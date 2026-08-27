@@ -130,6 +130,12 @@ export default function KlineAnnotations({ chart, activeTool, annotations, onCha
       let newStart = start + anchorOffset - newSpan * ratio;
       newStart = Math.min(100 - newSpan, Math.max(0, newStart));
       chart.dispatchAction({ type: "dataZoom", dataZoomIndex: 0, start: newStart, end: newStart + newSpan });
+      // ECharts 6 的 dispatchAction 只更新内部状态不强制重绘（canvas 不刷新），手动刷新渲染层
+      try {
+        (chart as any).getZr()?.refresh();
+      } catch {
+        /* ignore */
+      }
       setVersion((v) => v + 1);
     },
     [chart, getZoomRange, getPlotWidth, getPlotLeft]
@@ -270,6 +276,11 @@ export default function KlineAnnotations({ chart, activeTool, annotations, onCha
       const shift = ((p.px - px) / Math.max(50, plotW)) * span;
       const newStart = Math.min(100 - span, Math.max(0, p.start + shift));
       chart.dispatchAction({ type: "dataZoom", dataZoomIndex: 0, start: newStart, end: newStart + span });
+      try {
+        (chart as any).getZr()?.refresh();
+      } catch {
+        /* ignore */
+      }
       setVersion((v) => v + 1);
       return;
     }
@@ -323,9 +334,19 @@ export default function KlineAnnotations({ chart, activeTool, annotations, onCha
       return;
     }
 
-    // hover 检测
+    // hover 检测 + tooltip 转发（svg 捕获事件时 ECharts 收不到 hover，用 showTip 桥接）
     const hit = hitTest(px, py);
     setHoverId(hit);
+    if (chart && !(chart as any).isDisposed?.()) {
+      try {
+        const d = toData(px, py);
+        if (d && Number.isFinite(d.x)) {
+          chart.dispatchAction({ type: "showTip", seriesIndex: 0, dataIndex: Math.round(d.x) });
+        }
+      } catch {
+        /* ignore */
+      }
+    }
   };
 
   const onPointerUp = () => {
@@ -596,9 +617,8 @@ export default function KlineAnnotations({ chart, activeTool, annotations, onCha
       ref={svgRef}
       className="absolute inset-0 z-10 w-full h-full kline-ann-svg"
       style={{
-        // select：空白穿透给 ECharts（tooltip/缩放/平移原生可用），仅标注元素可交互（子元素 pointerEvents）
-        // 画线：svg 全捕获（wheel 经 onWheel 桥接 dispatchAction 缩放）
-        pointerEvents: activeTool === "select" ? "none" : "auto",
+        // 全程捕获事件：标注可交互（选中/拖动），空白处经 dispatchAction 桥接平移/缩放/tooltip
+        pointerEvents: "auto",
         touchAction: activeTool === "select" ? "manipulation" : "none",
         cursor: activeTool === "select" ? "default" : "crosshair",
       }}
@@ -606,7 +626,16 @@ export default function KlineAnnotations({ chart, activeTool, annotations, onCha
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
-      onPointerLeave={() => setHoverId(null)}
+      onPointerLeave={() => {
+        setHoverId(null);
+        if (chart && !chart.isDisposed?.()) {
+          try {
+            chart.dispatchAction({ type: "hideTip" });
+          } catch {
+            /* ignore */
+          }
+        }
+      }}
       onDoubleClick={onDoubleClick}
     >
       {all.map((a) => (

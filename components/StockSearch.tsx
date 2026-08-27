@@ -49,15 +49,12 @@ export default function StockSearch() {
   const [pctFont, setPctFont] = useState(9);
   // 缩放可视范围联动：涨跌幅标注随缩放全标可视区，不遗漏任何一根
   const [vRange, setVRange] = useState<[number, number] | null>(null);
-  const zoomTimer = useRef<number | null>(null);
   const onZoom = useCallback((e?: unknown) => {
     const ev = e as { batch?: Array<{ start?: number; end?: number }> } | undefined;
     const b = ev?.batch?.[0];
+    // 始终更新 vRange（React 合并 setState）：快速连续缩放时保持最新可视区间，
+    // 避免 option 重建把 dataZoom 重置回旧位置
     if (b && typeof b.start === "number" && typeof b.end === "number") {
-      if (zoomTimer.current != null) return;
-      zoomTimer.current = window.setTimeout(() => {
-        zoomTimer.current = null;
-      }, 120);
       setVRange([b.start as number, b.end as number]);
     }
   }, []);
