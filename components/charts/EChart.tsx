@@ -43,7 +43,11 @@ export default function EChart({
     return () => {
       window.removeEventListener("resize", onResize);
       if (onDataZoom) chart.off("datazoom", onDataZoom);
-      chart.dispose();
+      try {
+        chart.dispose();
+      } catch {
+        /* 组件已卸载时 dispose 可能抛 removeChild NotFoundError，忽略 */
+      }
       innerRef.current = null;
       if (chartRef) chartRef.current = null;
     };

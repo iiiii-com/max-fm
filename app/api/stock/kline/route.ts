@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { aggregateBars } from "@/lib/data/indicators";
+import { fetchSinaUsIndex, fetchTencentIndex, fetchEastmoneyIndex, TENCENT_SYMBOLS } from "@/lib/data/index-kline";
 
 export const dynamic = "force-dynamic";
 
@@ -85,10 +86,54 @@ export async function GET(req: Request) {
     }
   }
 
+  // ---- 源2.5：全球指数（100. 前缀）专用兜底 ----
+  if (mkt === "100") {
+    try {
+      // 新浪美股（SPX/NDX/DJIA）
+      const su = await fetchSinaUsIndex(code, days);
+      if (su?.length) {
+        return NextResponse.json({
+          name: code,
+          code,
+          secid,
+          period,
+          source: "新浪美股",
+          klines: su.slice(-days).map((b) => ({ ...b, amount: 0 })),
+        });
+      }
+      // 腾讯（美股三大指数 + 恒指 hkHSI）
+      const tx = await fetchTencentIndex(code, days);
+      if (tx?.length) {
+        return NextResponse.json({
+          name: code,
+          code,
+          secid,
+          period,
+          source: "腾讯",
+          klines: tx.slice(-days).map((b) => ({ ...b, amount: 0 })),
+        });
+      }
+      // 东财（N225/KS11/GDAXI/FTSE 等）
+      const em = await fetchEastmoneyIndex(secid, days);
+      if (em?.length) {
+        return NextResponse.json({
+          name: code,
+          code,
+          secid,
+          period,
+          source: "东方财富",
+          klines: em.slice(-days).map((b) => ({ ...b, amount: 0 })),
+        });
+      }
+    } catch {
+      /* fallthrough */
+    }
+  }
+
   // ---- 源3：腾讯 ----
   try {
-    const prefix = mkt === "1" ? "sh" : mkt === "0" ? "sz" : mkt === "100" ? "hk" : "sh";
-    const param = `${prefix}${code}`;
+    const prefix = mkt === "1" ? "sh" : mkt === "0" ? "sz" : mkt === "100" ? (TENCENT_SYMBOLS[code] ?? "hk") : "sh";
+    const param = mkt === "100" && TENCENT_SYMBOLS[code] ? TENCENT_SYMBOLS[code] : `${prefix}${code}`;
     const url = `https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param=${param},${period},,,${days},qfq`;
     const res = await fetch(url, {
       next: { revalidate: 120 },
