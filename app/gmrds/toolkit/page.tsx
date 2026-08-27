@@ -1,11 +1,13 @@
 import Link from "next/link";
-import { ArrowLeft, Wrench, CandlestickChart, Radar as RadarIcon, Scale, TrendingDown, LayoutGrid } from "lucide-react";
+import { ArrowLeft, Wrench, CandlestickChart, Radar as RadarIcon, Scale, TrendingDown, LayoutGrid, TestTubes, Sparkles } from "lucide-react";
 import KlinePatternChart from "@/components/gmrds/KlinePatternChart";
 import RadarChart from "@/components/gmrds/RadarChart";
 import ValuationBand from "@/components/gmrds/ValuationBand";
 import DrawdownChart from "@/components/gmrds/DrawdownChart";
 import LabStandalone from "@/components/gmrds/LabStandalone";
 import ScannerSection from "@/components/gmrds/ScannerSection";
+import BacktestLab from "@/components/gmrds/BacktestLab";
+import AIDataQA from "@/components/gmrds/AIDataQA";
 import VizBoundary from "@/components/gmrds/VizBoundary";
 import shanghaiSample from "@/data/shanghai-sample.json";
 import shIndex from "@/data/sh-index.json";
@@ -198,6 +200,26 @@ export default function ToolkitPage() {
         </h2>
         <VizBoundary name="买卖点扫描器">
           <ScannerSection defaultBars={scanBars} />
+        </VizBoundary>
+      </section>
+
+      {/* 策略回测 */}
+      <section id="backtest" className="scroll-mt-20">
+        <h2 className="flex items-center gap-2 font-bold text-lg tracking-tight mb-3">
+          <TestTubes className="w-4.5 h-4.5 text-primary" /> 策略回测 · 预设策略库（真实数据验证）
+        </h2>
+        <VizBoundary name="策略回测">
+          <BacktestLab />
+        </VizBoundary>
+      </section>
+
+      {/* AI 数据问答 */}
+      <section id="ai-qa" className="scroll-mt-20">
+        <h2 className="flex items-center gap-2 font-bold text-lg tracking-tight mb-3">
+          <Sparkles className="w-4.5 h-4.5 text-primary" /> AI 数据问答 · 站内真实数据即时回答
+        </h2>
+        <VizBoundary name="AI数据问答">
+          <AIDataQA />
         </VizBoundary>
       </section>
 

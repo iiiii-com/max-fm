@@ -303,6 +303,7 @@ export default function StockSearch() {
             <div className="flex gap-1 text-[10px]">
               <Link href="/invest" className="px-1.5 py-0.5 rounded bg-muted/50 text-muted hover:text-primary">大盘</Link>
               <Link href="/industry" className="px-1.5 py-0.5 rounded bg-muted/50 text-muted hover:text-primary">产业链</Link>
+              <Link href={`/stock/${encodeURIComponent(selected.secid)}`} className="px-1.5 py-0.5 rounded bg-primary/10 text-primary hover:bg-primary/20">深度页</Link>
             </div>
             <button
               onClick={() => toggle({ secid: selected.secid, code: selected.code, name: selected.name, kind: selected.kind === "index" ? "index" : "stock" })}
