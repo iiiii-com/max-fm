@@ -157,12 +157,8 @@ export async function fetchNorthbound(): Promise<Northbound | null> {
       date: String(d.hk2sz?.date2 ?? ""),
     };
   } catch {
-    // 断网 / 限频降级：静态估算数据（标注 delay，前端会展示披露说明）
-    const shIn = Number((Math.random() * 60 - 20).toFixed(0)) * 1e8;
-    const szIn = Number((Math.random() * 50 - 15).toFixed(0)) * 1e8;
-    const today = new Date();
-    const date = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-    return { shIn, szIn, totalIn: shIn + szIn, date };
+    // 断网 / 限频降级：不生成假数据，返回 null（前端展示「北向数据暂不可用」）
+    return null;
   }
 }
 

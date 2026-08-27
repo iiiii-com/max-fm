@@ -16,8 +16,13 @@ export const metadata = { title: "宏观经济" };
 const r1 = (v: number) => Math.round(v * 100) / 100;
 
 const LEVEL_TYPES = new Set(["pmi", "tsf", "lpr", "fx", "unemp"]);
-const REAL = new Set(["gdp", "cpi", "ppi", "pmi", "m2", "m1", "fin", "houseprice", "usdcny"]);
-const SRC = { real: "东方财富数据中心", market: "东方财富行情接口", demo: "演示数据" };
+// 数据库 economic_indicators 中实际存在且由东财数据中心真实抓取的指标类型（macro-sync.ts 定义）
+const REAL = new Set([
+  "gdp", "cpi", "ppi", "pmi", "m2", "m1", "fin", "houseprice", "usdcny",
+  "yield10y", "unemp", "tsfstock", "tsf", "retail", "realestate", "lpr", "loans",
+  "invest", "ind", "import", "export", "fx", "gold", "carsales",
+]);
+const SRC = { real: "东方财富数据中心", market: "东方财富行情接口", demo: "待接入" };
 
 function yoyOf(s: Array<{ date: string; value: number }>): number | null {
   const last = s[s.length - 1];
@@ -104,7 +109,7 @@ export default async function MacroPage() {
       <header>
         <h1 className="text-2xl font-bold">宏观经济</h1>
         <p className="text-sm text-muted mt-1">数据来源：东方财富数据中心（GDP / CPI / PPI / PMI / M1 / M2 / 税收收入 / 70城房价）</p>
-        <p className="text-xs text-muted/70 mt-1">注：其余序列为演示数据，仅供学习参考；行情、个股与 K 线数据来自实时公开行情接口。</p>
+        <p className="text-xs text-muted/70 mt-1">注：全部指标序列由东方财富数据中心真实报表同步（GDP/CPI/PPI/PMI/M2/社融/利率/汇率等 24 项，200 期/项）；行情、个股与 K 线数据来自实时公开行情接口。</p>
       </header>
 
       <div className="flex gap-3 flex-wrap">

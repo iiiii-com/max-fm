@@ -64,7 +64,7 @@ export default function HistoryAxis({
 
   useEffect(() => {
     const chart = chartRef.current;
-    if (!chart) return;
+    if (!chart || chart.isDisposed?.()) return;
     const onClick = (params: any) => {
       const e = events[params?.value?.[2] ?? -1];
       if (e) {
@@ -74,13 +74,13 @@ export default function HistoryAxis({
     };
     chart.on("click", onClick);
     return () => {
-      chart.off("click", onClick);
+      if (!chart.isDisposed?.()) chart.off("click", onClick);
     };
   }, [events, onSelect]);
 
   useEffect(() => {
     const chart = chartRef.current;
-    if (!chart) return;
+    if (!chart || chart.isDisposed?.()) return;
     const years = events.map((e) => e.year);
     if (!years.length) return;
     const min = Math.min(...years);
