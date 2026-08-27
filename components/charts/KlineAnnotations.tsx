@@ -111,9 +111,9 @@ export default function KlineAnnotations({ chart, activeTool, annotations, onCha
     }
   }, [chart]);
 
-  /** 滚轮缩放（锚点跟随鼠标位置） */
-  const onWheel = useCallback(
-    (e: React.WheelEvent<SVGSVGElement>) => {
+  /** 滚轮缩放（锚点跟随鼠标位置）——原生事件（React onWheel 为 passive，preventDefault 无效导致页面滚动冲突） */
+  const zoomByWheel = useCallback(
+    (e: WheelEvent) => {
       if (!chart || !svgRef.current) return;
       e.preventDefault();
       e.stopPropagation();
@@ -140,6 +140,14 @@ export default function KlineAnnotations({ chart, activeTool, annotations, onCha
     },
     [chart, getZoomRange, getPlotWidth, getPlotLeft]
   );
+
+  // 原生 wheel 监听（passive:false → preventDefault 生效，滚轮缩放时页面不滚动）
+  useEffect(() => {
+    const el = svgRef.current;
+    if (!el) return;
+    el.addEventListener("wheel", zoomByWheel, { passive: false });
+    return () => el.removeEventListener("wheel", zoomByWheel);
+  }, [zoomByWheel]);
 
   /** 选中变化对外通知 */
   useEffect(() => {
@@ -615,14 +623,15 @@ export default function KlineAnnotations({ chart, activeTool, annotations, onCha
     // 必须 absolute + w-full h-full 撑满，否则包装 div 高度塌陷为 0 → 画线层点不到
     <svg
       ref={svgRef}
-      className="absolute inset-0 z-10 w-full h-full kline-ann-svg"
+      className="absolute left-0 top-0 w-full kline-ann-svg"
       style={{
-        // 全程捕获事件：标注可交互（选中/拖动），空白处经 dispatchAction 桥接平移/缩放/tooltip
+        // 覆盖 K 线主图区（底部留 26px 给 dataZoom 滑块，滑块可拖拽/原生缩放）；wrapper 已 pointer-events-none 穿透
+        height: "calc(100% - 26px)",
         pointerEvents: "auto",
-        touchAction: activeTool === "select" ? "manipulation" : "none",
+        // 图表区域手势全部归图表（滚轮缩放/拖拽平移），页面滚动在图表外进行（避免手势冲突）
+        touchAction: "none",
         cursor: activeTool === "select" ? "default" : "crosshair",
       }}
-      onWheel={onWheel}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}

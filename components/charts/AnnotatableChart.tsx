@@ -399,7 +399,8 @@ export default function AnnotatableChart({
           onReady={(c) => setChart(c)}
         />
         {annotationsEnabled && (
-          <div className="absolute inset-0 z-10">
+          // wrapper 穿透（pointer-events-none）：底部 dataZoom 滑块区域不被遮挡，可拖拽/原生缩放
+          <div className="absolute inset-0 z-10 pointer-events-none">
             <KlineAnnotations
               chart={chart}
               activeTool={activeTool}
