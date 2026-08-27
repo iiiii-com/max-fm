@@ -5,6 +5,7 @@ import { fmt, fmtDate } from "@/lib/utils";
 import { Network, Landmark, TrendingUp, History } from "lucide-react";
 import { HISTORY_EVENTS } from "@/lib/data/history";
 import BoardCard from "@/components/BoardCard";
+import DashboardTerminal from "@/components/DashboardTerminal";
 import { bootstrap } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -59,6 +60,9 @@ export default async function Home() {
           </div>
         </div>
       </section>
+
+      {/* 数据终端：行情速览 / 全球热力 / 宏观仪表 / 板块资金（可拖拽排序 · 启停开关） */}
+      <DashboardTerminal />
 
       {/* 数据速览 */}
       <section>
