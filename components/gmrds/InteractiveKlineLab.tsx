@@ -24,7 +24,16 @@ const REAL_MARKS = [
  * 交互式 K 线实验台：多周期切换 / 指标叠加(MA/BOLL/MACD) / 行情回放 / 买卖点
  * 真实数据驱动（上证日线 → 周/月聚合）。
  */
-export default function InteractiveKlineLab({ data, height = 420 }: { data: LabBar[]; height?: number }) {
+export default function InteractiveKlineLab({
+  data,
+  height = 420,
+  marks,
+}: {
+  data: LabBar[];
+  height?: number;
+  /** 外部买卖点（自动扫描联动）；缺省用内置真实事件锚点 */
+  marks?: Array<{ date: string; label: string; type: "buy" | "sell" }>;
+}) {
   const [period, setPeriod] = useState<"day" | "week" | "month">("day");
   const [showMA, setShowMA] = useState(true);
   const [showBoll, setShowBoll] = useState(false);
@@ -90,10 +99,11 @@ export default function InteractiveKlineLab({ data, height = 420 }: { data: LabB
       series.push({ name: "DEA", type: "line", data: m.dea, xAxisIndex: 1, yAxisIndex: 1, showSymbol: false, lineStyle: { width: 1, color: "#3b82f6" } });
     }
     if (showMarks && period === "day") {
+      const activeMarks = marks ?? REAL_MARKS;
       series.push({
         name: "买卖点",
         type: "scatter",
-        data: REAL_MARKS.filter((m) => dates.includes(m.date)).map((m) => {
+        data: activeMarks.filter((m) => dates.includes(m.date)).map((m) => {
           const b = visible.find((x) => x.date === m.date);
           return {
             value: [m.date, b ? b.high * 1.01 : 0],

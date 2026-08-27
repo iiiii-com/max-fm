@@ -11,6 +11,7 @@ import ScorePanel, { FlowPanel } from "@/components/ScorePanel";
 import LeaderKlineGrid from "@/components/LeaderKlineGrid";
 import AnnotatableChart from "@/components/charts/AnnotatableChart";
 import DailyMoveBadge from "@/components/charts/DailyMoveBadge";
+import ContextStrip from "@/components/ContextStrip";
 import { mkKlineTooltip, mkPctLabel } from "@/lib/data/kline-tooltip";
 import { useWatchlist } from "@/lib/hooks/useWatchlist";
 import { useRefresh } from "@/lib/hooks/refresh";
@@ -317,6 +318,12 @@ export default function StockSearch() {
               {pct >= 0 ? "+" : ""}{pct.toFixed(2)}%
             </span>
           </div>
+
+          {/* 数据联动条：宏观 → 行业 → 估值（板块间流动） */}
+          <ContextStrip
+            name={selected.name}
+            pe={fund && typeof fund.pe === "number" ? fund.pe : null}
+          />
           <div className="flex items-center gap-2 mb-3 flex-wrap">
             <div className="flex rounded-md border border-border overflow-hidden text-xs">
               {(["day", "week", "month"] as const).map((p) => (

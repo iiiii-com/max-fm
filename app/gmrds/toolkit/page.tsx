@@ -4,7 +4,7 @@ import KlinePatternChart from "@/components/gmrds/KlinePatternChart";
 import RadarChart from "@/components/gmrds/RadarChart";
 import ValuationBand from "@/components/gmrds/ValuationBand";
 import DrawdownChart from "@/components/gmrds/DrawdownChart";
-import InteractiveKlineLab from "@/components/gmrds/InteractiveKlineLab";
+import LabStandalone from "@/components/gmrds/LabStandalone";
 import ScannerSection from "@/components/gmrds/ScannerSection";
 import VizBoundary from "@/components/gmrds/VizBoundary";
 import shanghaiSample from "@/data/shanghai-sample.json";
@@ -92,14 +92,13 @@ export default function ToolkitPage() {
       {/* 交互式 K 线实验台 */}
       <section id="lab" className="scroll-mt-20">
         <h2 className="flex items-center gap-2 font-bold text-lg tracking-tight mb-3">
-          <LayoutGrid className="w-4.5 h-4.5 text-primary" /> 交互式 K 线实验台 · 多周期 / 指标 / 回放
+          <LayoutGrid className="w-4.5 h-4.5 text-primary" /> 交互式 K 线实验台 · 多周期 / 指标 / 回放 / 买卖点联动
         </h2>
+        <p className="text-xs text-muted mb-3">
+          切换标的（A 股指数/个股 + 全球指数）拉取真实行情，自动扫描买卖点并标注（▲买/▼卖 + 强度 + 命中规则），叠加 MA/BOLL/MACD，日/周/月周期与行情回放自由操作。
+        </p>
         <VizBoundary name="交互式K线实验台">
-          <InteractiveKlineLab
-            data={(shIndex as [string, number, number, number, number, number][]).filter((b) => b[0] >= "2020-01-01").map((b) => ({
-              date: b[0], open: b[1], close: b[2], high: b[3], low: b[4], volume: b[5],
-            }))}
-          />
+          <LabStandalone />
         </VizBoundary>
       </section>
 

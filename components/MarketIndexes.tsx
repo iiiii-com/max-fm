@@ -8,6 +8,7 @@ import IndexCompareChart from "@/components/charts/IndexCompareChart";
 import MarketDashboard from "@/components/MarketDashboard";
 import CrisisImpactTable from "@/components/CrisisImpactTable";
 import GlobalIndexBoard from "@/components/GlobalIndexBoard";
+import GlobalHeatmap from "@/components/GlobalHeatmap";
 
 export const CORE_INDEXES = [
   { code: "000001", name: "上证指数", secid: "1.000001" },
@@ -77,6 +78,11 @@ export default async function MarketIndexes() {
           sub="美股（标普500/纳斯达克/道琼斯）· 日经 · KOSPI · 恒生 · 欧股实时行情 · 美股三大指数配历史 K 线走势（点击展开）"
         />
         <GlobalIndexBoard quotes={global} />
+      </section>
+
+      <section>
+        <SectionTitle title="全球涨跌全景" sub="全球主要市场指数与龙头股实时涨跌 · 板块矩阵 / 世界地图双视图 · 点击下钻 K 线" />
+        <GlobalHeatmap />
       </section>
 
       <section>
