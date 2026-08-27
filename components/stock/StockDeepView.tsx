@@ -2,9 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Database, Scale, Building2, TrendingUp } from "lucide-react";
+import { ArrowLeft, Database, Scale, Building2, TrendingUp, Activity, FileText } from "lucide-react";
 import ContextStrip from "@/components/ContextStrip";
 import InteractiveKlineLab from "@/components/gmrds/InteractiveKlineLab";
+import DepthPanel from "@/components/stock/DepthPanel";
+import ValuationPercentile from "@/components/stock/ValuationPercentile";
+import AnnouncementList from "@/components/stock/AnnouncementList";
 import ScorePanel, { FlowPanel, type ScorePanelData, type FlowPanelData } from "@/components/ScorePanel";
 import ValuationBand from "@/components/gmrds/ValuationBand";
 
@@ -26,6 +29,7 @@ interface FlowResp {
 
 /** 个股聚合深度页：K线 + 联动 + 财务 + 估值 + 评分资金流 */
 export default function StockDeepView({ secid }: { secid: string }) {
+  const isIndex = secid.startsWith("100.");
   const [bars, setBars] = useState<Array<{ date: string; open: number; close: number; high: number; low: number; volume: number }> | null>(null);
   const [fund, setFund] = useState<Fund | null>(null);
   const [flow, setFlow] = useState<FlowResp | null>(null);
@@ -37,7 +41,6 @@ export default function StockDeepView({ secid }: { secid: string }) {
     let cancelled = false;
     setLoading(true);
     setErr("");
-    const isIndex = secid.startsWith("100.");
     const klineApi = isIndex ? "/api/index/kline" : "/api/stock/kline";
     Promise.all([
       fetch(`${klineApi}?secid=${secid}&days=250`, { cache: "no-store" }).then((r) => r.json()),
@@ -114,6 +117,14 @@ export default function StockDeepView({ secid }: { secid: string }) {
             {bars?.length ? <InteractiveKlineLab data={bars} height={430} /> : <p className="text-sm text-muted">K 线数据暂不可用</p>}
           </section>
 
+          {/* 盘口 · 分时 · 量能 */}
+          <section>
+            <h2 className="flex items-center gap-2 font-bold text-lg tracking-tight mb-2">
+              <Activity className="w-4.5 h-4.5 text-primary" /> 盘口 · 分时 · 量能
+            </h2>
+            <DepthPanel secid={secid} flow={flow?.flow ?? null} />
+          </section>
+
           {/* 评分 + 资金流 */}
           <section>
             <h2 className="flex items-center gap-2 font-bold text-lg tracking-tight mb-2">
@@ -176,6 +187,26 @@ export default function StockDeepView({ secid }: { secid: string }) {
               />
             </div>
           </section>
+
+          {/* 估值分位（历史百分位） */}
+          {!isIndex ? (
+            <section>
+              <h2 className="flex items-center gap-2 font-bold text-lg tracking-tight mb-2">
+                <Database className="w-4.5 h-4.5 text-primary" /> 估值分位 · 近 5 年历史百分位
+              </h2>
+              <ValuationPercentile secid={secid} name={name} />
+            </section>
+          ) : null}
+
+          {/* 公告聚合 */}
+          {!isIndex ? (
+            <section>
+              <h2 className="flex items-center gap-2 font-bold text-lg tracking-tight mb-2">
+                <FileText className="w-4.5 h-4.5 text-primary" /> 公告聚合
+              </h2>
+              <AnnouncementList secid={secid} />
+            </section>
+          ) : null}
         </>
       )}
     </div>

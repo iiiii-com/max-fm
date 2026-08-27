@@ -4,6 +4,7 @@ import { SectionTitle, Card, Badge, AIFlag } from "@/components/ui";
 import { TrendCard } from "@/components/charts/IndicatorLine";
 import CompareTool from "@/components/charts/CompareTool";
 import RiskIndicators from "@/components/RiskIndicators";
+import MacroGauges from "@/components/macro/MacroGauges";
 import { MACRO_METRIC_COLORS } from "@/components/charts/palette";
 import { fmtDate } from "@/lib/utils";
 import { bootstrap } from "@/lib/db";
@@ -113,6 +114,10 @@ export default async function MacroPage() {
       </div>
 
       <RiskIndicators />
+
+      <section>
+        <MacroGauges />
+      </section>
 
       <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {cards.map((c) => {

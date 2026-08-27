@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 import RadarChart from "./RadarChart";
+import EChart from "@/components/charts/EChart";
+import type { EChartsOption } from "@/components/charts/echarts";
 
 export interface ScoreDef {
   no: number;
@@ -44,6 +46,35 @@ export default function ScorecardLab({ defs }: { defs: ScoreDef[] }) {
     { name: "当前评分", values: defs.map((d) => scores[d.no] ?? 0), color: "#c8102e" },
     { name: "中性线", values: defs.map(() => 0), color: "#94a3b8" },
   ];
+
+  // 评分瀑布：各环节加权贡献（得分 × 权重）
+  const contrib = defs.map((d) => ({
+    label: d.label.replace("评估", "").replace("判断", "").replace("确认", "").replace("研判", "").replace("定位", "").replace("确认", "").slice(0, 4),
+    v: Number(((scores[d.no] ?? 0) * d.weight).toFixed(1)),
+  }));
+  const waterfallOption: EChartsOption = {
+    animation: false,
+    grid: { left: 40, right: 30, top: 12, bottom: 24 },
+    xAxis: { type: "category", data: contrib.map((c) => c.label), axisLabel: { fontSize: 9 } },
+    yAxis: { type: "value", axisLabel: { fontSize: 9 }, splitLine: { lineStyle: { color: "#eef0ec" } } },
+    tooltip: { trigger: "axis", backgroundColor: "rgba(255,255,255,0.96)", borderColor: "#cbd5e1", textStyle: { color: "#1e293b", fontSize: 11 }, formatter: (p: any) => { const i = Array.isArray(p) ? p[0]?.dataIndex ?? 0 : 0; const c = contrib[i]; return `<b>${c.label}</b><br/>贡献 ${c.v >= 0 ? "+" : ""}${c.v}`; } },
+    series: [
+      {
+        type: "bar",
+        data: contrib.map((c) => ({
+          value: c.v,
+          itemStyle: { color: c.v >= 0 ? "rgba(215,0,11,0.75)" : "rgba(10,160,110,0.75)", borderRadius: 2 },
+        })),
+        barWidth: "55%",
+        markLine: {
+          silent: true, symbol: "none",
+          lineStyle: { color: "#8b5cf6", width: 1.2 },
+          label: { formatter: `加权总分 ${weighted.toFixed(1)}`, fontSize: 9, color: "#8b5cf6", position: "insideEndTop" },
+          data: [{ yAxis: 0 }],
+        },
+      },
+    ],
+  };
 
   return (
     <div className="rounded-xl border border-border bg-card p-4 sm:p-5 space-y-5">
@@ -103,6 +134,11 @@ export default function ScorecardLab({ defs }: { defs: ScoreDef[] }) {
             title="九环节评分雷达"
             caption="雷达图：环节 1-9 当前评分（红线）vs 中性线（灰）；正分偏多/负分偏空，形状直观呈现研究结论的方向一致性。"
           />
+          <div className="rounded-lg border border-border bg-card p-3">
+            <p className="text-[11px] font-bold text-primary mb-2">评分瀑布 · 各环节加权贡献 → 总分</p>
+            <EChart option={waterfallOption} height={260} />
+            <p className="text-[10px] text-muted mt-1">瀑布：每环节 = 得分 × 权重，正贡献红柱上伸、负贡献绿柱下探；右侧菱形为加权总分（未归一化）。</p>
+          </div>
           <p className="text-[11px] text-muted leading-relaxed rounded-lg border border-border p-3">
             <b>环节 11 复盘建议：</b>记录本评分快照，对比后续市场结果做四维归因（宏观β/行业α/个股α/择时），
             每季度校准一次权重与阈值（如综合分 65 阈值经回测验证后再启用）。

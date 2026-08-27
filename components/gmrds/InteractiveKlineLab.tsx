@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import EChart from "@/components/charts/EChart";
 import type { EChartsOption } from "@/components/charts/echarts";
-import { sma, boll, macd, aggregateBars } from "@/lib/data/indicators";
+import { sma, boll, macd, rsi, kdj, aggregateBars } from "@/lib/data/indicators";
 
 export interface LabBar {
   date: string;
@@ -38,6 +38,8 @@ export default function InteractiveKlineLab({
   const [showMA, setShowMA] = useState(true);
   const [showBoll, setShowBoll] = useState(false);
   const [showMacd, setShowMacd] = useState(true);
+  const [showRsi, setShowRsi] = useState(false);
+  const [showKdj, setShowKdj] = useState(false);
   const [showMarks, setShowMarks] = useState(true);
   // 回放：visibleCount = 当前显示根数（null = 全部）
   const [playCount, setPlayCount] = useState<number | null>(null);
@@ -114,7 +116,40 @@ export default function InteractiveKlineLab({
         symbol: "pin", symbolSize: 30, z: 8,
       });
     }
+    const hasOsc = (showRsi || showKdj) && period === "day";
+    if (hasOsc) {
+      const oscGrid = hasMacd ? 3 : 2;
+      if (showRsi) {
+        const r = rsi(closes, 14);
+        series.push({ name: "RSI14", type: "line", data: r, xAxisIndex: oscGrid, yAxisIndex: oscGrid, showSymbol: false, lineStyle: { width: 1, color: "#a855f7" } });
+      }
+      if (showKdj) {
+        const k = kdj(visible);
+        series.push({ name: "K", type: "line", data: k.k, xAxisIndex: oscGrid, yAxisIndex: oscGrid, showSymbol: false, lineStyle: { width: 1, color: "#3b82f6" } });
+        series.push({ name: "D", type: "line", data: k.d, xAxisIndex: oscGrid, yAxisIndex: oscGrid, showSymbol: false, lineStyle: { width: 1, color: "#f59e0b" } });
+        series.push({ name: "J", type: "line", data: k.j, xAxisIndex: oscGrid, yAxisIndex: oscGrid, showSymbol: false, lineStyle: { width: 0.8, color: "#94a3b8", type: "dashed" } });
+      }
+    }
     series.push({ name: "成交量", type: "bar", data: visible.map((b) => b.volume), xAxisIndex: hasMacd ? 2 : 1, yAxisIndex: hasMacd ? 2 : 1, itemStyle: { color: "rgba(100,116,139,0.5)" } });
+
+    // 动态 grid 布局：K线 / 成交量 / [MACD] / [RSI·KDJ]
+    const nGrid = 2 + (hasMacd ? 1 : 0) + (hasOsc ? 1 : 0);
+    const grid: any[] = [
+      { left: 56, right: 14, top: 34, height: hasMacd || hasOsc ? "44%" : "64%" },
+      { left: 56, right: 14, top: hasMacd || hasOsc ? "54%" : "72%", height: "14%" },
+    ];
+    if (hasMacd) grid.push({ left: 56, right: 14, top: "70%", height: "12%" });
+    if (hasOsc) grid.push({ left: 56, right: 14, top: hasMacd ? "84%" : "70%", height: "12%" });
+    const xAxes: any[] = [
+      { type: "category", data: dates, axisLabel: { fontSize: 10 } },
+      { type: "category", gridIndex: 1, data: dates, axisLabel: { show: false } },
+    ];
+    for (let g = 2; g < nGrid; g++) xAxes.push({ type: "category", gridIndex: g, data: dates, axisLabel: g === nGrid - 1 ? { fontSize: 9 } : { show: false } });
+    const yAxes: any[] = [
+      { scale: true, axisLabel: { fontSize: 10 }, splitLine: { lineStyle: { color: "#eef0ec" } } },
+      { gridIndex: 1, axisLabel: { fontSize: 9 }, splitLine: { show: false } },
+    ];
+    for (let g = 2; g < nGrid; g++) yAxes.push({ gridIndex: g, min: 0, max: 100, axisLabel: { fontSize: 8 }, splitLine: { show: false } });
 
     return {
       animation: false,
@@ -133,43 +168,16 @@ export default function InteractiveKlineLab({
         },
       },
       legend: { top: 2, right: 6, type: "scroll", textStyle: { fontSize: 10 }, data: series.map((s) => s.name) },
-      grid: hasMacd
-        ? [
-            { left: 56, right: 14, top: 34, height: "54%" },
-            { left: 56, right: 14, top: "64%", height: "16%" },
-            { left: 56, right: 14, top: "84%", height: "12%" },
-          ]
-        : [
-            { left: 56, right: 14, top: 34, height: "64%" },
-            { left: 56, right: 14, top: "72%", height: "22%" },
-          ],
-      xAxis: hasMacd
-        ? [
-            { type: "category", data: dates, axisLabel: { fontSize: 10 } },
-            { type: "category", gridIndex: 1, data: dates, axisLabel: { show: false } },
-            { type: "category", gridIndex: 2, data: dates, axisLabel: { fontSize: 9 } },
-          ]
-        : [
-            { type: "category", data: dates, axisLabel: { fontSize: 10 } },
-            { type: "category", gridIndex: 1, data: dates, axisLabel: { fontSize: 9 } },
-          ],
-      yAxis: hasMacd
-        ? [
-            { scale: true, axisLabel: { fontSize: 10 }, splitLine: { lineStyle: { color: "#eef0ec" } } },
-            { gridIndex: 1, axisLabel: { fontSize: 9 }, splitLine: { show: false } },
-            { gridIndex: 2, axisLabel: { fontSize: 9 }, splitLine: { show: false } },
-          ]
-        : [
-            { scale: true, axisLabel: { fontSize: 10 }, splitLine: { lineStyle: { color: "#eef0ec" } } },
-            { gridIndex: 1, axisLabel: { fontSize: 9 }, splitLine: { show: false } },
-          ],
+      grid,
+      xAxis: xAxes,
+      yAxis: yAxes,
       dataZoom: [
-        { type: "inside", xAxisIndex: hasMacd ? [0, 1, 2] : [0, 1], start: 0, end: 100 },
-        { type: "slider", xAxisIndex: hasMacd ? [0, 1, 2] : [0, 1], height: 14, bottom: 2, start: 0, end: 100 },
+        { type: "inside", xAxisIndex: Array.from({ length: nGrid }, (_, i) => i), start: 0, end: 100 },
+        { type: "slider", xAxisIndex: Array.from({ length: nGrid }, (_, i) => i), height: 14, bottom: 2, start: 0, end: 100 },
       ],
       series,
     };
-  }, [visible, showMA, showBoll, showMacd, showMarks, period]);
+  }, [visible, showMA, showBoll, showMacd, showRsi, showKdj, showMarks, period]);
 
   return (
     <div className="rounded-xl border border-border bg-card p-4">
@@ -188,6 +196,8 @@ export default function InteractiveKlineLab({
           ["MA", showMA, setShowMA],
           ["BOLL", showBoll, setShowBoll],
           ["MACD", showMacd, setShowMacd],
+          ["RSI", showRsi, setShowRsi],
+          ["KDJ", showKdj, setShowKdj],
           ["买卖点", showMarks, setShowMarks],
         ].map(([label, on, set]: any) => (
           <button key={label} onClick={() => set(!on)}
