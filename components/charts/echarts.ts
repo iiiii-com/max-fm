@@ -1,7 +1,10 @@
 "use client";
 
 import * as echarts from "echarts/core";
-import { LineChart, BarChart, ScatterChart, MapChart, GraphChart, CandlestickChart } from "echarts/charts";
+import {
+  LineChart, BarChart, ScatterChart, MapChart, GraphChart, CandlestickChart,
+  PieChart, RadarChart, GaugeChart, EffectScatterChart,
+} from "echarts/charts";
 import {
   TitleComponent, TooltipComponent, GridComponent, LegendComponent,
   VisualMapComponent, DataZoomComponent, MarkLineComponent, MarkPointComponent,
@@ -11,6 +14,7 @@ import { CanvasRenderer } from "echarts/renderers";
 
 echarts.use([
   LineChart, BarChart, ScatterChart, MapChart, GraphChart, CandlestickChart,
+  PieChart, RadarChart, GaugeChart, EffectScatterChart,
   TitleComponent, TooltipComponent, GridComponent, LegendComponent,
   VisualMapComponent, DataZoomComponent, MarkLineComponent, MarkPointComponent,
   DatasetComponent, TransformComponent,

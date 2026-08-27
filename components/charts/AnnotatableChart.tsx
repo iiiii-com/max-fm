@@ -388,7 +388,7 @@ export default function AnnotatableChart({
         </div>
       )}
 
-      {/* 图表 + 画线层（画线 SVG 渲染进 ECharts 容器内部，事件冒泡天然到达 ECharts） */}
+      {/* 图表 + 画线层（画线 SVG 移出 ECharts 容器，避免 ECharts dispose 清容器与 React 卸载竞争 removeChild） */}
       <div className="relative">
         <EChart
           option={finalOption}
@@ -397,10 +397,10 @@ export default function AnnotatableChart({
           chartRef={chartRef}
           onDataZoom={handleZoom}
           onReady={(c) => setChart(c)}
-        >
-          {annotationsEnabled && (
+        />
+        {annotationsEnabled && (
+          <div className="absolute inset-0 z-10">
             <KlineAnnotations
-              key={`${zoomTick}-${chart ? "ready" : "init"}`}
               chart={chart}
               activeTool={activeTool}
               annotations={annotations}
@@ -410,8 +410,8 @@ export default function AnnotatableChart({
               snapToHighLow={snapEnabled}
               onSelectChange={setSelectedId}
             />
-          )}
-        </EChart>
+          </div>
+        )}
       </div>
 
       {hint && <p className="text-[10px] text-muted leading-relaxed">{hint}</p>}

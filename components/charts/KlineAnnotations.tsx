@@ -72,6 +72,68 @@ export default function KlineAnnotations({ chart, activeTool, annotations, onCha
   const [moving, setMoving] = useState<{ id: string; sx: number; sy: number; pts: Array<{ x: number; y: number }> } | null>(null);
   const [hoverId, setHoverId] = useState<string | null>(null);
   const [version, setVersion] = useState(0); // 强制重绘
+  // 图表平移（select 模式空白拖拽 → dispatchAction dataZoom；svg 与 ECharts 为兄弟节点，事件不再依赖冒泡）
+  const panRef = useRef<{ px: number; start: number; end: number } | null>(null);
+
+  /** 当前 dataZoom 可视区间（百分比） */
+  const getZoomRange = useCallback((): { start: number; end: number } => {
+    if (!chart) return { start: 0, end: 100 };
+    try {
+      const dz = (chart.getOption() as any)?.dataZoom?.[0] || {};
+      return { start: Number(dz.start ?? 0), end: Number(dz.end ?? 100) };
+    } catch {
+      return { start: 0, end: 100 };
+    }
+  }, [chart]);
+
+  /** K 线绘制区宽度（容器宽 - grid 左右留白） */
+  const getPlotLeft = useCallback((): number => {
+    if (!chart) return 56;
+    try {
+      const g = (chart.getOption() as any)?.grid?.[0] || {};
+      return typeof g.left === "number" ? g.left : 56;
+    } catch {
+      return 56;
+    }
+  }, [chart]);
+
+  const getPlotWidth = useCallback((): number => {
+    if (!chart) return 600;
+    try {
+      const opt = chart.getOption() as any;
+      const g = opt?.grid?.[0] || {};
+      const w = chart.getWidth();
+      const left = typeof g.left === "number" ? g.left : 56;
+      const right = typeof g.right === "number" ? g.right : 14;
+      return Math.max(80, w - left - right);
+    } catch {
+      return 600;
+    }
+  }, [chart]);
+
+  /** 滚轮缩放（锚点跟随鼠标位置） */
+  const onWheel = useCallback(
+    (e: React.WheelEvent<SVGSVGElement>) => {
+      if (!chart || !svgRef.current) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const { px } = pointerPos(e);
+      const { start, end } = getZoomRange();
+      const span = end - start;
+      const factor = e.deltaY < 0 ? 0.82 : 1.2; // 上滚放大 / 下滚缩小
+      const newSpan = Math.min(100, Math.max(6, span * factor));
+      const plotW = getPlotWidth();
+      const plotLeft = getPlotLeft();
+      // 鼠标位置对应可视区间内的偏移比例保持（锚点不动）
+      const ratio = Math.min(1, Math.max(0, (px - plotLeft) / plotW));
+      const anchorOffset = span * ratio;
+      let newStart = start + anchorOffset - newSpan * ratio;
+      newStart = Math.min(100 - newSpan, Math.max(0, newStart));
+      chart.dispatchAction({ type: "dataZoom", dataZoomIndex: 0, start: newStart, end: newStart + newSpan });
+      setVersion((v) => v + 1);
+    },
+    [chart, getZoomRange, getPlotWidth, getPlotLeft]
+  );
 
   /** 选中变化对外通知 */
   useEffect(() => {
@@ -123,13 +185,27 @@ export default function KlineAnnotations({ chart, activeTool, annotations, onCha
     [chart]
   );
 
-  // 父组件触发重绘（dataZoom 后）
+  // 缩放/平移后重绘（datazoom 事件触发；toPixel 基于 convertToPixel 动态计算，重绘即更新位置）
+  useEffect(() => {
+    if (!chart || typeof (chart as any).isDisposed === "function" && (chart as any).isDisposed()) return;
+    const onZoom = () => setVersion((v) => v + 1);
+    chart.on("datazoom", onZoom);
+    return () => {
+      try {
+        if (!(chart as any).isDisposed?.()) chart.off("datazoom", onZoom);
+      } catch {
+        /* 已 dispose，忽略 */
+      }
+    };
+  }, [chart]);
+
+  // chart 就绪时重绘一次
   useEffect(() => {
     setVersion((v) => v + 1);
   }, [chart]);
 
-  /** 取指针（鼠标/触摸）在 SVG 内的像素坐标 */
-  const pointerPos = (e: React.PointerEvent<SVGSVGElement> | React.PointerEvent<SVGCircleElement>) => {
+  /** 取指针（鼠标/触摸）在 SVG 内的像素坐标（支持 pointer / wheel 事件） */
+  const pointerPos = (e: { clientX: number; clientY: number }) => {
     if (!svgRef.current) return { px: 0, py: 0 };
     const rect = svgRef.current.getBoundingClientRect();
     return { px: e.clientX - rect.left, py: e.clientY - rect.top };
@@ -148,7 +224,7 @@ export default function KlineAnnotations({ chart, activeTool, annotations, onCha
     if (!d) return;
 
     if (activeTool === "select") {
-      // 选择模式：命中标注则选中并开始整体移动（按住拖动）；空白处放行（图表手势可用）
+      // 选择模式：命中标注则选中并开始整体移动（按住拖动）；空白处 → 拖拽平移图表
       const hit = hitTest(px, py);
       if (hit) {
         e.stopPropagation();
@@ -159,6 +235,9 @@ export default function KlineAnnotations({ chart, activeTool, annotations, onCha
         }
       } else {
         setSelectedId(null);
+        // 空白拖拽 = 平移 K 线（事件桥接：dispatchAction dataZoom）
+        const { start, end } = getZoomRange();
+        panRef.current = { px, start, end };
       }
       return;
     }
@@ -181,6 +260,19 @@ export default function KlineAnnotations({ chart, activeTool, annotations, onCha
   const onPointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
     if (!svgRef.current) return;
     const { px, py } = pointerPos(e);
+
+    // 空白拖拽平移图表（select 模式）
+    if (panRef.current && chart) {
+      e.stopPropagation();
+      const p = panRef.current;
+      const plotW = getPlotWidth();
+      const span = p.end - p.start;
+      const shift = ((p.px - px) / Math.max(50, plotW)) * span;
+      const newStart = Math.min(100 - span, Math.max(0, p.start + shift));
+      chart.dispatchAction({ type: "dataZoom", dataZoomIndex: 0, start: newStart, end: newStart + span });
+      setVersion((v) => v + 1);
+      return;
+    }
 
     // 整体移动已选标注
     if (moving && chart) {
@@ -237,6 +329,10 @@ export default function KlineAnnotations({ chart, activeTool, annotations, onCha
   };
 
   const onPointerUp = () => {
+    if (panRef.current) {
+      panRef.current = null;
+      return;
+    }
     if (moving) {
       setMoving(null);
       return;
@@ -499,7 +595,14 @@ export default function KlineAnnotations({ chart, activeTool, annotations, onCha
     <svg
       ref={svgRef}
       className="absolute inset-0 z-10 w-full h-full kline-ann-svg"
-      style={{ touchAction: activeTool === "select" ? "manipulation" : "none", cursor: activeTool === "select" ? "default" : "crosshair" }}
+      style={{
+        // select：空白穿透给 ECharts（tooltip/缩放/平移原生可用），仅标注元素可交互（子元素 pointerEvents）
+        // 画线：svg 全捕获（wheel 经 onWheel 桥接 dispatchAction 缩放）
+        pointerEvents: activeTool === "select" ? "none" : "auto",
+        touchAction: activeTool === "select" ? "manipulation" : "none",
+        cursor: activeTool === "select" ? "default" : "crosshair",
+      }}
+      onWheel={onWheel}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
@@ -507,7 +610,7 @@ export default function KlineAnnotations({ chart, activeTool, annotations, onCha
       onDoubleClick={onDoubleClick}
     >
       {all.map((a) => (
-        <g key={a.id} data-annotation={a.id}>
+        <g key={a.id} data-annotation={a.id} style={{ pointerEvents: "visiblePainted" }}>
           {renderAnnotation(a, a.id === draft?.id)}
           {renderHandles(a)}
         </g>
