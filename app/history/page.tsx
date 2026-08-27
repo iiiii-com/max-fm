@@ -3,6 +3,7 @@ import BoardTabs from "@/components/BoardTabs";
 import HistoryAxis from "@/components/HistoryAxis";
 import BullBearCompare from "@/components/BullBearCompare";
 import { KonratiefWaves, DynastyTable, MerrillClock, CrisisTab } from "./tabs-lazy";
+import TimelineSearch from "@/components/history/TimelineSearch";
 import { Card, SectionTitle, Badge } from "@/components/ui";
 import {
   filterHistory, HISTORY_EVENTS, REGIONS, HISTORY_CATEGORIES, ERAS, eraOf, REGION_LABEL,
@@ -61,6 +62,9 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
 
       {active === "timeline" && (
         <section>
+          <div className="mb-3">
+            <TimelineSearch />
+          </div>
           <div className="flex flex-wrap gap-2 mb-2">
             {chips.map((c) => (
               <Link

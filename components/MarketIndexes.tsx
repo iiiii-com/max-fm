@@ -9,6 +9,7 @@ import MarketDashboard from "@/components/MarketDashboard";
 import CrisisImpactTable from "@/components/CrisisImpactTable";
 import GlobalIndexBoard from "@/components/GlobalIndexBoard";
 import GlobalHeatmap from "@/components/GlobalHeatmap";
+import IndexDetailPanel from "@/components/IndexDetailPanel";
 
 export const CORE_INDEXES = [
   { code: "000001", name: "上证指数", secid: "1.000001" },
@@ -83,6 +84,11 @@ export default async function MarketIndexes() {
       <section>
         <SectionTitle title="全球涨跌全景" sub="全球主要市场指数与龙头股实时涨跌 · 板块矩阵 / 世界地图双视图 · 点击下钻 K 线" />
         <GlobalHeatmap />
+      </section>
+
+      <section>
+        <SectionTitle title="指数详情 · 市场宽度" sub="指数阶段表现（近1年/1月/距年线/波动，真实自算）· 全市场涨跌冷热" />
+        <IndexDetailPanel />
       </section>
 
       <section>

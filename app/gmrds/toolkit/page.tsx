@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, Wrench, CandlestickChart, Radar as RadarIcon, Scale, TrendingDown, LayoutGrid, TestTubes, Sparkles } from "lucide-react";
+import { ArrowLeft, Wrench, CandlestickChart, Radar as RadarIcon, Scale, TrendingDown, LayoutGrid, TestTubes, Sparkles, BarChart3, ScanSearch, Zap } from "lucide-react";
 import KlinePatternChart from "@/components/gmrds/KlinePatternChart";
 import RadarChart from "@/components/gmrds/RadarChart";
 import ValuationBand from "@/components/gmrds/ValuationBand";
@@ -8,6 +8,9 @@ import LabStandalone from "@/components/gmrds/LabStandalone";
 import ScannerSection from "@/components/gmrds/ScannerSection";
 import BacktestLab from "@/components/gmrds/BacktestLab";
 import AIDataQA from "@/components/gmrds/AIDataQA";
+import FinancialTrends from "@/components/gmrds/FinancialTrends";
+import BatchScanner from "@/components/gmrds/BatchScanner";
+import TechLevels from "@/components/gmrds/TechLevels";
 import VizBoundary from "@/components/gmrds/VizBoundary";
 import shanghaiSample from "@/data/shanghai-sample.json";
 import shIndex from "@/data/sh-index.json";
@@ -200,6 +203,36 @@ export default function ToolkitPage() {
         </h2>
         <VizBoundary name="买卖点扫描器">
           <ScannerSection defaultBars={scanBars} />
+        </VizBoundary>
+      </section>
+
+      {/* 技术位 */}
+      <section id="tech-levels" className="scroll-mt-20">
+        <h2 className="flex items-center gap-2 font-bold text-lg tracking-tight mb-3">
+          <Zap className="w-4.5 h-4.5 text-primary" /> 技术位 · 支撑 / 压力 / 均线（真实行情自算）
+        </h2>
+        <VizBoundary name="技术位">
+          <TechLevels />
+        </VizBoundary>
+      </section>
+
+      {/* 财务趋势 */}
+      <section id="finance" className="scroll-mt-20">
+        <h2 className="flex items-center gap-2 font-bold text-lg tracking-tight mb-3">
+          <BarChart3 className="w-4.5 h-4.5 text-primary" /> 财务三表趋势 · 营收 / 净利 / 毛利率 / ROE（真实财报）
+        </h2>
+        <VizBoundary name="财务趋势">
+          <FinancialTrends />
+        </VizBoundary>
+      </section>
+
+      {/* 批量扫描 */}
+      <section id="batch-scan" className="scroll-mt-20">
+        <h2 className="flex items-center gap-2 font-bold text-lg tracking-tight mb-3">
+          <ScanSearch className="w-4.5 h-4.5 text-primary" /> 批量扫描 · 信号 / 估值 / 涨跌汇总（环节 7 联动）
+        </h2>
+        <VizBoundary name="批量扫描">
+          <BatchScanner />
         </VizBoundary>
       </section>
 

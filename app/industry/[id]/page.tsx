@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getChainBySlug, getChains, getChainNodes } from "@/lib/data/queries";
 import { Card, Badge, SectionTitle } from "@/components/ui";
 import ChainGraph from "@/components/charts/ChainGraph";
+import ChainQuotes from "@/components/industry/ChainQuotes";
 import { CHAIN_LEVEL_COLORS } from "@/components/charts/palette";
 import { bootstrap } from "@/lib/db";
 
@@ -138,6 +139,7 @@ export default async function ChainDetailPage({ params }: { params: Promise<{ id
                             <span key={c} className="text-xs px-2 py-0.5 rounded bg-border/40">{c}</span>
                           ))}
                         </div>
+                        <ChainQuotes companies={companies} />
                       </div>
                     </details>
                   );
