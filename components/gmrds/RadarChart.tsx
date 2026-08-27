@@ -52,19 +52,17 @@ export default function RadarChart({
         splitLine: { lineStyle: { color: "#e2e8f0" } },
         axisLine: { lineStyle: { color: "#e2e8f0" } },
       },
-      series: [
-        {
-          type: "radar",
-          data: series.map((s) => ({
-            name: s.name,
-            value: s.values,
-            lineStyle: { color: s.color, width: 2 },
-            itemStyle: { color: s.color },
-            areaStyle: { color: s.color, opacity: 0.12 },
-            symbolSize: 3,
-          })),
-        },
-      ],
+      // 多 radar series 结构：legend 精确匹配 series.name，避免
+      // "series not exists. Legend data should be same with series name" 警告导致雷达区渲染失败
+      series: series.map((s) => ({
+        type: "radar",
+        name: s.name,
+        data: [{ value: s.values }],
+        lineStyle: { color: s.color, width: 2 },
+        itemStyle: { color: s.color },
+        areaStyle: { color: s.color, opacity: 0.12 },
+        symbolSize: 3,
+      })),
     };
   }, [dims, series]);
 
