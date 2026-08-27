@@ -9,6 +9,7 @@ import MarketDashboard from "@/components/MarketDashboard";
 import CrisisImpactTable from "@/components/CrisisImpactTable";
 import GlobalIndexBoard from "@/components/GlobalIndexBoard";
 import GlobalHeatmap from "@/components/GlobalHeatmap";
+import SurgeBoard from "@/components/SurgeBoard";
 import IndexDetailPanel from "@/components/IndexDetailPanel";
 
 export const CORE_INDEXES = [
@@ -84,6 +85,11 @@ export default async function MarketIndexes() {
       <section>
         <SectionTitle title="全球涨跌全景" sub="全球主要市场指数与龙头股实时涨跌 · 板块矩阵 / 世界地图双视图 · 点击下钻 K 线" />
         <GlobalHeatmap />
+      </section>
+
+      <section>
+        <SectionTitle title="异动速报 · 热点追踪" sub="涨幅/资金/成交额异常标的速报 · 行业板块涨幅榜（东方财富实时，A股为主）" />
+        <SurgeBoard />
       </section>
 
       <section>

@@ -59,7 +59,14 @@ export default function MarketOverviewCard() {
             return (
               <div key={code} className="rounded-lg border border-border/60 px-2 py-1.5">
                 <p className="text-[10px] text-muted truncate">{name}</p>
-                <p className="text-[11px] text-muted">—</p>
+                {quotes.length === 0 && !err ? (
+                  <div className="mt-1.5 space-y-1 animate-pulse">
+                    <div className="h-3 bg-muted/30 rounded w-3/4" />
+                    <div className="h-2.5 bg-muted/20 rounded w-1/2" />
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-muted">—</p>
+                )}
               </div>
             );
           }

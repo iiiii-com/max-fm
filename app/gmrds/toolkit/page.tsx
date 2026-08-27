@@ -6,6 +6,7 @@ import ValuationBand from "@/components/gmrds/ValuationBand";
 import DrawdownChart from "@/components/gmrds/DrawdownChart";
 import LabStandalone from "@/components/gmrds/LabStandalone";
 import ScannerSection from "@/components/gmrds/ScannerSection";
+import DataNote from "@/components/DataNote";
 import BacktestLab from "@/components/gmrds/BacktestLab";
 import AIDataQA from "@/components/gmrds/AIDataQA";
 import FinancialTrends from "@/components/gmrds/FinancialTrends";
@@ -92,6 +93,12 @@ export default function ToolkitPage() {
             <Scale className="w-3.5 h-3.5" /> 估值区间测算
           </a>
         </div>
+        <DataNote
+          className="mt-3"
+          source="腾讯/东方财富/新浪多源实时行情 · 东财 F10 财报 · 国家统计局/央行宏观"
+          updated={null}
+          note="行情 20 秒级延迟；财报为最新披露期；口径（前复权/累计值）见各工具图注。所有数值可溯源，案例教学值已标注。"
+        />
       </section>
 
       {/* 交互式 K 线实验台 */}
