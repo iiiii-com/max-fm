@@ -10,6 +10,7 @@ import CrisisImpactTable from "@/components/CrisisImpactTable";
 import GlobalIndexBoard from "@/components/GlobalIndexBoard";
 import GlobalHeatmap from "@/components/GlobalHeatmap";
 import SurgeBoard from "@/components/SurgeBoard";
+import FundRank from "@/components/FundRank";
 import IndexDetailPanel from "@/components/IndexDetailPanel";
 
 export const CORE_INDEXES = [
@@ -90,6 +91,11 @@ export default async function MarketIndexes() {
       <section>
         <SectionTitle title="异动速报 · 热点追踪" sub="涨幅/资金/成交额异常标的速报 · 行业板块涨幅榜（东方财富实时，A股为主）" />
         <SurgeBoard />
+      </section>
+
+      <section>
+        <SectionTitle title="资金流向排名" sub="板块/个股主力资金流入流出 Top10（东财实时 f62 口径）" />
+        <FundRank />
       </section>
 
       <section>

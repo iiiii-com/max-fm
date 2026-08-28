@@ -6,6 +6,7 @@ import type { EChartsOption } from "echarts";
 import type { KlineBar } from "@/app/api/stock/kline/route";
 import { CHART_COLORS } from "./palette";
 import { mkMainAxis } from "@/lib/data/axis";
+import { aggregateBars } from "@/lib/data/indicators";
 
 export interface IndexRef {
   code: string;
@@ -26,18 +27,31 @@ export default function IndexCompareChart({ indexes }: { indexes: IndexRef[] }) 
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
+  const [period, setPeriod] = useState<"day" | "week" | "month">("day");
+
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
       setLoading(true);
       setErr("");
+      // 按周期取不同数据量：日 60 / 周 300（聚合 60 周）/ 月 750（聚合 30 月）
+      const days = period === "day" ? 60 : period === "week" ? 300 : 750;
       const results = await Promise.allSettled(
         indexes.map(async (ix) => {
           // 指数 K 线走东财数据源（腾讯 fqkline 对 100. 前缀美股指数处理错误）
-          const res = await fetch(`/api/index/kline?secid=${ix.secid}&days=60`, { cache: "no-store" });
+          const res = await fetch(`/api/index/kline?secid=${ix.secid}&days=${days}`, { cache: "no-store" });
           const j = await res.json();
           if (!Array.isArray(j?.klines) || !j.klines.length) throw new Error(j?.error ?? "empty");
-          const bars: KlineBar[] = j.klines.slice(-60);
+          let bars: KlineBar[] = j.klines.slice(-days);
+          // 周/月：日线聚合
+          if (period !== "day") {
+            const agg = aggregateBars(
+              bars.map((b) => ({ date: b.date, open: b.open, close: b.close, high: b.high, low: b.low, volume: b.volume })),
+              period
+            );
+            bars = agg.map((b) => ({ date: b.date, open: b.open, close: b.close, high: b.high, low: b.low, volume: b.volume, amount: b.volume }));
+            bars = bars.slice(-(period === "week" ? 60 : 30));
+          }
           const base = bars[0]?.close ?? 1;
           const points: Array<[string, number]> = bars
             .filter((b) => Number.isFinite(b.close) && b.close > 0)
@@ -60,7 +74,7 @@ export default function IndexCompareChart({ indexes }: { indexes: IndexRef[] }) 
     return () => {
       cancelled = true;
     };
-  }, [indexes]);
+  }, [indexes, period]);
 
   const option = useMemo<EChartsOption>(() => {
     if (!series.length) return {};
@@ -110,9 +124,21 @@ export default function IndexCompareChart({ indexes }: { indexes: IndexRef[] }) 
 
   return (
     <div className="card p-4">
-      <div className="flex items-center justify-between mb-1">
-        <p className="text-sm font-medium">近 60 交易日走势对比（起点 = 100）</p>
-        <span className="text-[10px] text-muted">收盘价归一化 · 约 2 分钟延迟</span>
+      <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
+        <p className="text-sm font-medium">
+          {period === "day" ? "近 60 交易日" : period === "week" ? "近 60 周" : "近 30 月"}走势对比（起点 = 100）
+        </p>
+        <div className="flex rounded-md border border-border overflow-hidden text-[11px]">
+          {(["day", "week", "month"] as const).map((p) => (
+            <button
+              key={p}
+              onClick={() => setPeriod(p)}
+              className={`px-2 py-0.5 ${period === p ? "bg-primary/15 text-primary font-medium" : "text-muted hover:text-foreground"}`}
+            >
+              {p === "day" ? "日线" : p === "week" ? "周线" : "月线"}
+            </button>
+          ))}
+        </div>
       </div>
       {loading && <p className="text-sm text-muted py-10 text-center">正在加载指数 K 线…</p>}
       {err && <p className="text-sm text-red-600 py-6">{err}</p>}

@@ -9,6 +9,7 @@ import DepthPanel from "@/components/stock/DepthPanel";
 import ValuationPercentile from "@/components/stock/ValuationPercentile";
 import AnnouncementList from "@/components/stock/AnnouncementList";
 import FlowBreakdown from "@/components/stock/FlowBreakdown";
+import FundTrendChart from "@/components/stock/FundTrendChart";
 import ScorePanel, { FlowPanel, type ScorePanelData, type FlowPanelData } from "@/components/ScorePanel";
 import ValuationBand from "@/components/gmrds/ValuationBand";
 
@@ -137,6 +138,7 @@ export default function StockDeepView({ secid }: { secid: string }) {
                 <div className="space-y-3">
                   {flow.flow && <FlowPanel data={flow.flow} />}
                   <FlowBreakdown flow={flow.flow} />
+                  <FundTrendChart secid={secid} />
                 </div>
               </div>
             ) : (
