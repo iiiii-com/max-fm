@@ -8,6 +8,7 @@ import InteractiveKlineLab from "@/components/gmrds/InteractiveKlineLab";
 import DepthPanel from "@/components/stock/DepthPanel";
 import ValuationPercentile from "@/components/stock/ValuationPercentile";
 import AnnouncementList from "@/components/stock/AnnouncementList";
+import FlowBreakdown from "@/components/stock/FlowBreakdown";
 import ScorePanel, { FlowPanel, type ScorePanelData, type FlowPanelData } from "@/components/ScorePanel";
 import ValuationBand from "@/components/gmrds/ValuationBand";
 
@@ -133,7 +134,10 @@ export default function StockDeepView({ secid }: { secid: string }) {
             {flow ? (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {flow.score && <ScorePanel data={flow.score} loading={false} />}
-                {flow.flow && <FlowPanel data={flow.flow} />}
+                <div className="space-y-3">
+                  {flow.flow && <FlowPanel data={flow.flow} />}
+                  <FlowBreakdown flow={flow.flow} />
+                </div>
               </div>
             ) : (
               <p className="text-sm text-muted py-4">指数不适用个股评分，查看指数对比/全球热力。</p>

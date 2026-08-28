@@ -9,15 +9,17 @@ export async function GET(req: Request) {
   // 东财 secuCode：1.600519 → 600519.SH；0.300750 → 300750.SZ
   const [mkt, code] = secid.split(".");
   if (!mkt || !code) return NextResponse.json({ ok: false, error: "secid 格式错误" }, { status: 400 });
-  const secuCode = `${code}.${mkt === "1" ? "SH" : mkt === "0" ? "SZ" : ""}`;
-  if (!secuCode.endsWith("SH") && !secuCode.endsWith("SZ")) {
+  // 指数（000001 等）用 SECURITY_CODE 过滤；个股用 SECUCODE（600519.SH）
+  const isIndex = ["000001", "399001", "399006", "000300", "000905", "000688"].includes(code);
+  if (!isIndex && mkt !== "1" && mkt !== "0") {
     return NextResponse.json({ ok: false, error: "估值分位暂仅支持 A 股个股/指数" }, { status: 400 });
   }
   try {
     // 近 5 年历史估值（约 1220 交易日）
+    const filter = isIndex ? `(SECURITY_CODE%3D%22${code}%22)` : `(SECUCODE%3D%22${code}.${mkt === "1" ? "SH" : "SZ"}%22)`;
     const url =
       `https://datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPT_VALUEANALYSIS_DET` +
-      `&columns=SECURITY_CODE,TRADE_DATE,PE_TTM,PB_MRQ&filter=(SECUCODE%3D%22${secuCode}%22)` +
+      `&columns=SECURITY_CODE,TRADE_DATE,PE_TTM,PB_MRQ&filter=${filter}` +
       `&pageNumber=1&pageSize=1240&sortTypes=-1&sortColumns=TRADE_DATE`;
     const res = await fetch(url, {
       headers: { "User-Agent": "Mozilla/5.0", Referer: "https://emweb.securities.eastmoney.com/" },
@@ -46,7 +48,7 @@ export async function GET(req: Request) {
     return NextResponse.json(
       {
         ok: true,
-        secuCode,
+        secuCode: isIndex ? code : `${code}.${mkt === "1" ? "SH" : "SZ"}`,
         updated: new Date().toISOString(),
         source: "东财历史估值（RPT_VALUEANALYSIS_DET）",
         current: { pe: Number(cur.toFixed(2)), pb: pts[pts.length - 1].pb != null ? Number(pts[pts.length - 1].pb!.toFixed(2)) : null },

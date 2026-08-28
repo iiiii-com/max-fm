@@ -354,8 +354,8 @@ function buildOption(
     xAxis: xAxes,
     yAxis: yAxes,
     dataZoom: [
-      { type: "inside", xAxisIndex: hasMacd ? [0, 1, 2] : [0, 1], start: vRange?.[0] ?? rangeStart, end: vRange?.[1] ?? 100, zoomOnMouseWheel: true },
-      { type: "slider", xAxisIndex: hasMacd ? [0, 1, 2] : [0, 1], height: 16, bottom: 4, start: vRange?.[0] ?? rangeStart, end: vRange?.[1] ?? 100 },
+      { type: "inside", xAxisIndex: hasMacd ? [0, 1, 2] : [0, 1], start: vRange?.[0] ?? rangeStart, end: vRange?.[1] ?? 100, zoomOnMouseWheel: true, minValueSpan: 2 },
+      { type: "slider", xAxisIndex: hasMacd ? [0, 1, 2] : [0, 1], height: 16, bottom: 4, start: vRange?.[0] ?? rangeStart, end: vRange?.[1] ?? 100, minValueSpan: 2 },
     ],
     series: [
       {

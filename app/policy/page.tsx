@@ -17,12 +17,26 @@ export default async function PolicyPage({ searchParams }: { searchParams: Promi
   const { cat } = await searchParams;
   await bootstrap();
   const all = await getPolicies();
+  // 最近同步时间 = 最新政策的更新时间（policy-sync 写入）；无则取最新发布日期
+  const lastSync = all.length ? Math.max(...all.map((p: any) => Number(p.updatedAt ?? 0) || new Date(p.publishDate ?? Date.now()).getTime())) : null;
+  // 7 天内政策标记 NEW
+  const now = Date.now();
+  const isNew = (p: any) => {
+    const d = p.publishDate ? new Date(p.publishDate).getTime() : 0;
+    return d && now - d < 7 * 24 * 3600 * 1000;
+  };
   const policies = cat && cat !== "全部" ? all.filter((p: any) => p.category === cat) : all;
   return (
     <div className="mx-auto max-w-7xl px-3 sm:px-4 py-5 sm:py-6 space-y-8">
       <header>
         <h1 className="text-2xl font-bold">政策解读</h1>
         <p className="text-sm text-muted mt-1">政策原文 + 三层 AI 解读（普通人视角 · 投资者视角 · 专业视角），实时同步自中国政府网、财政部、国家发展改革委、中国人民银行官网</p>
+        <p className="text-[11px] text-muted/80 mt-1.5 flex items-center gap-2 flex-wrap">
+          <span className="inline-flex items-center gap-1">📡 最近同步：
+            {lastSync ? new Date(lastSync).toLocaleString("zh-CN", { hour12: false }) : "—"}
+          </span>
+          <span className="text-muted/60">共 {all.length} 条政策 · 7 天内新增标「NEW」</span>
+        </p>
       </header>
 
       <div className="flex flex-wrap gap-2">
@@ -49,6 +63,7 @@ export default async function PolicyPage({ searchParams }: { searchParams: Promi
                   <Badge>{p.category || "政策"}</Badge>
                   {p.source && <Badge tone="green">{ORG_BADGE[p.source] ?? p.source}</Badge>}
                   <span className="text-xs text-muted">{fmtDate(p.publishDate)}</span>
+                  {isNew(p) && <Badge tone="red">NEW</Badge>}
                   <span className="text-xs text-muted ml-auto">{p.department}</span>
                 </div>
                 <h3 className="font-bold text-lg leading-snug">{p.title}</h3>

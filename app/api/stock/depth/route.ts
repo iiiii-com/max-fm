@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-/** 盘口摘要 + 当日分时（东财 push2，A股/指数） */
+/** 盘口摘要 + 当日分时 + 五档买卖盘（东财 push2 + 腾讯 qt，A股/指数） */
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const secid = searchParams.get("secid") ?? "1.600519";
@@ -14,6 +14,37 @@ export async function GET(req: Request) {
     );
     const qj = await q.json();
     const d = qj?.data ?? {};
+
+    // 0. 五档买卖盘（腾讯 qt.gtimg.cn，A股个股；指数无盘口返回 null）
+    let levels: Array<{ side: "bid" | "ask"; price: number; vol: number }> | null = null;
+    try {
+      const [mkt, code] = secid.split(".");
+      if (mkt === "1" || mkt === "0") {
+        const tencentSym = `${mkt === "1" ? "sh" : "sz"}${code}`;
+        const tq = await fetch(`https://qt.gtimg.cn/q=${tencentSym}`, {
+          headers: { "User-Agent": "Mozilla/5.0" }, signal: AbortSignal.timeout(6000),
+        });
+        const txt = await tq.text();
+        const m = txt.match(/="([^"]*)"/);
+        if (m) {
+          const p = m[1].split("~");
+          if (p.length > 29) {
+            levels = [];
+            for (let i = 0; i < 5; i++) {
+              const bidP = parseFloat(p[9 + i * 2]);
+              const bidV = parseFloat(p[10 + i * 2]);
+              const askP = parseFloat(p[19 + i * 2]);
+              const askV = parseFloat(p[20 + i * 2]);
+              if (isFinite(bidP) && bidP > 0) levels.push({ side: "bid", price: bidP, vol: bidV });
+              if (isFinite(askP) && askP > 0) levels.push({ side: "ask", price: askP, vol: askV });
+            }
+            levels.sort((a, b) => (a.side === b.side ? (a.side === "bid" ? b.price - a.price : a.price - b.price) : a.side === "ask" ? 1 : -1));
+          }
+        }
+      }
+    } catch {
+      levels = null; // 腾讯失败或指数无盘口
+    }
 
     // 2. 当日分时（trends2，点序列 f51 时间/f52 价/f53 均价/f54 成交量/f55 成交额/f56 均价累计）
     const t = await fetch(
@@ -58,6 +89,7 @@ export async function GET(req: Request) {
         changePct: d.f170 != null ? div(d.f170) : null,
         amplitude: d.f171 != null ? div(d.f171) : null, // 振幅（百分比）
         trends: trends.slice(-242), // 最近 242 个分时点（约一个交易日）
+        levels, // 五档买卖盘（腾讯 qt，A股个股；指数为 null）
         preClose: tj?.data?.preClose ?? div(d.f60),
       },
       { headers: { "Cache-Control": "public, max-age=15, s-maxage=15" } }

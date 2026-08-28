@@ -33,6 +33,7 @@ interface DepthData {
   changePct?: number | null;
   amplitude?: number | null;
   trends?: TrendPoint[];
+  levels?: Array<{ side: "bid" | "ask"; price: number; vol: number }> | null;
 }
 
 /** 盘口摘要 + 当日分时 + 量能（东财实时） */
@@ -114,6 +115,37 @@ export default function DepthPanel({ secid, flow }: { secid: string; flow?: { ma
 
   return (
     <div className="space-y-3">
+      {/* 五档买卖盘（腾讯 qt 真实） */}
+      {data.levels && data.levels.length ? (
+        <div className="grid grid-cols-2 gap-2">
+          <div className="rounded-lg border border-border/60 p-2">
+            <p className="text-[10px] text-muted mb-1.5">卖盘（五档）</p>
+            <div className="space-y-1">
+              {data.levels.filter((l) => l.side === "ask").slice(0, 5).reverse().map((l, i) => (
+                <div key={i} className="flex items-center justify-between text-[12px] font-mono">
+                  <span className="text-muted w-6">{5 - i}</span>
+                  <span className="font-bold">{l.price.toFixed(2)}</span>
+                  <span className="text-muted">{l.vol}手</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="rounded-lg border border-border/60 p-2">
+            <p className="text-[10px] text-muted mb-1.5">买盘（五档）</p>
+            <div className="space-y-1">
+              {data.levels.filter((l) => l.side === "bid").slice(0, 5).map((l, i) => (
+                <div key={i} className="flex items-center justify-between text-[12px] font-mono">
+                  <span className="text-muted w-6">{i + 1}</span>
+                  <span className="font-bold up">{l.price.toFixed(2)}</span>
+                  <span className="text-muted">{l.vol}手</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <p className="col-span-2 text-[10px] text-muted">五档盘口：腾讯实时（qt.gtimg.cn）· 指数无盘口属正常</p>
+        </div>
+      ) : null}
+
       {/* 盘口摘要 */}
       <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2">
         {[

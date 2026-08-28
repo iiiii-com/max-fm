@@ -26,6 +26,7 @@ export default function IndexDetailPanel() {
   const [sel, setSel] = useState(INDEXES[0]);
   const [d, setD] = useState<Detail | null>(null);
   const [err, setErr] = useState("");
+  const [pe, setPe] = useState<{ pe: number; pctile: number } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -55,6 +56,17 @@ export default function IndexDetailPanel() {
         });
       })
       .catch((e) => !cancelled && setErr(e?.message ?? "指数数据加载失败"));
+    // 指数 PE 分位（东财历史估值）
+    setPe(null);
+    fetch(`/api/stock/valuation-percentile?secid=${sel.secid}`, { cache: "no-store" })
+      .then((r) => r.json())
+      .then((j) => {
+        if (cancelled) return;
+        if (j?.ok && j.current?.pe != null && j.stats?.pctile != null) {
+          setPe({ pe: Number(j.current.pe), pctile: Number(j.stats.pctile) });
+        }
+      })
+      .catch(() => { /* PE 分位不可用则不显示 */ });
     return () => { cancelled = true; };
   }, [sel]);
 
@@ -97,6 +109,12 @@ export default function IndexDetailPanel() {
                 <p className="text-base font-bold font-mono" style={{ color: String(color) }}>{val}</p>
               </div>
             ))}
+            {pe ? (
+              <div className="rounded-lg border border-border/70 bg-card px-3 py-2">
+                <p className="text-[10px] text-muted">PE(TTM) · 5 年分位</p>
+                <p className="text-base font-bold font-mono">{pe.pe}（<span className={pe.pctile < 20 ? "down" : pe.pctile >= 80 ? "up" : ""}>{pe.pctile}%</span>）</p>
+              </div>
+            ) : null}
           </div>
           <p className="text-[10px] text-muted leading-relaxed">
             <b className="text-foreground">{d.name}</b> 现价 {d.price.toFixed(2)}：近 1 年与近 1 月表现、距 250 日线位置、年化波动均由真实日线自算

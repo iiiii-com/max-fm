@@ -23,6 +23,10 @@ export interface FlowPanelData {
   bigNetIn: number;
   midNetIn: number;
   smallNetIn: number;
+  superPct?: number | null;
+  bigPct?: number | null;
+  midPct?: number | null;
+  smallPct?: number | null;
   mainNetIn5: number | null;
   mainNetIn10: number | null;
   trend: string;

@@ -17,6 +17,10 @@ export interface StockFlow {
   bigNetIn: number; // 大单净额
   midNetIn: number; // 中单净额
   smallNetIn: number; // 小单净额
+  superPct: number | null; // 超大单占比%
+  bigPct: number | null; // 大单占比%
+  midPct: number | null; // 中单占比%
+  smallPct: number | null; // 小单占比%
   mainNetIn5: number | null; // 5日主力净流入
   mainNetIn10: number | null; // 10日主力净流入
   trend: "流入" | "流出" | "平衡";
@@ -48,13 +52,20 @@ export async function fetchStockFlow(secid: string): Promise<StockFlow | null> {
     const mainNetIn = Number(d.f62) || 0;
     const mainPct = Number(d.f184) || 0;
     const score = computeFlowScore(mainNetIn5, mainNetIn10, mainPct, rows.length);
+    // 四档净额与占比：取最近交易日（daykline 末行）——字段序：日期,主力,小单,中单,大单,超大单,主力%,小单%,中单%,大单%,超大单%,收盘,涨跌,...
+    const lastRow = rows.length ? String(rows[rows.length - 1]).split(",") : [];
+    const f = (i: number) => (lastRow.length > i ? parseFloat(lastRow[i]) : NaN);
     return {
       mainNetIn,
       mainPct,
-      superNetIn: Number(d.f66) || 0,
-      bigNetIn: Number(d.f69) || 0,
-      midNetIn: Number(d.f72) || 0,
-      smallNetIn: Number(d.f75) || 0,
+      superNetIn: isNaN(f(5)) ? 0 : f(5), // 超大单净额
+      bigNetIn: isNaN(f(4)) ? 0 : f(4),   // 大单净额
+      midNetIn: isNaN(f(3)) ? 0 : f(3),   // 中单净额
+      smallNetIn: isNaN(f(2)) ? 0 : f(2), // 小单净额
+      superPct: isNaN(f(10)) ? null : f(10),
+      bigPct: isNaN(f(9)) ? null : f(9),
+      midPct: isNaN(f(8)) ? null : f(8),
+      smallPct: isNaN(f(7)) ? null : f(7),
       mainNetIn5,
       mainNetIn10,
       trend: score > 60 ? "流入" : score < 40 ? "流出" : "平衡",
