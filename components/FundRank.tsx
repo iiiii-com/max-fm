@@ -30,7 +30,7 @@ function RankTable({ title, items, tone, icon }: { title: string; items: RankIte
               <tr key={it.code} className="border-b border-border/40 last:border-0">
                 <td className="py-1 pl-3 pr-1 text-muted text-[10px] font-mono w-5">{i + 1}</td>
                 <td className="py-1 pr-2">
-                  <Link href={it.code.startsWith("BK") ? `/industry` : `/stock/${it.code.startsWith("6") ? "1" : "0"}.${it.code}`} className="text-[12px] font-medium hover:text-primary">
+                  <Link href={it.code.startsWith("BK") ? `/sector?bk=${it.code}` : `/stock/${it.code.startsWith("6") ? "1" : "0"}.${it.code}`} className="text-[12px] font-medium hover:text-primary">
                     {it.name}
                   </Link>
                 </td>

@@ -5,7 +5,6 @@ import Link from "next/link";
 import EChart from "@/components/charts/EChart";
 import type { EChartsOption } from "@/components/charts/echarts";
 import StockDrawer, { type DrawerStock } from "@/components/StockDrawer";
-import SectorDrawer, { type DrawerSector } from "@/components/SectorDrawer";
 import { useWatchlist, type WatchItem } from "@/lib/hooks/useWatchlist";
 import { useRefresh } from "@/lib/hooks/refresh";
 
@@ -62,15 +61,14 @@ export default function MarketDashboard() {
   const [detailMap, setDetailMap] = useState<Record<string, SectorStock[]>>({});
   const [detailLoading, setDetailLoading] = useState<string | null>(null);
   const [drawer, setDrawer] = useState<DrawerStock | null>(null);
-  const [sectorDrawer, setSectorDrawer] = useState<DrawerSector | null>(null);
 
   const load = async () => {
     setRefreshing(true);
     try {
-      const res = await fetch("/api/sector/flow", { cache: "no-store" });
+      const res = await fetch("/api/sector/board?top=30&leaders=1", { cache: "no-store" });
       const j = await res.json();
       if (j?.ok) {
-        setSectors(j.sectors || []);
+        setSectors(j.list || []);
         setNorth(j.northbound);
       } else setErr(j?.error ?? "加载失败");
     } catch {
@@ -255,7 +253,6 @@ export default function MarketDashboard() {
                     details={detailMap[s.code]}
                     onToggleExpand={() => toggleExpand(s.code)}
                     onOpenDrawer={(st) => setDrawer(st)}
-                    onOpenKline={() => setSectorDrawer({ name: s.name, code: s.code, changePct: s.changePct, mainNetIn: s.mainNetIn })}
                   />
                 ))}
               </tbody>
@@ -315,7 +312,6 @@ export default function MarketDashboard() {
       </div>
 
       <StockDrawer stock={drawer} onClose={() => setDrawer(null)} />
-      <SectorDrawer sector={sectorDrawer} onClose={() => setSectorDrawer(null)} />
     </div>
   );
 }
@@ -330,7 +326,6 @@ function SectorRowComp({
   details,
   onToggleExpand,
   onOpenDrawer,
-  onOpenKline,
 }: {
   s: SectorRow;
   index: number;
@@ -341,7 +336,6 @@ function SectorRowComp({
   details?: SectorStock[];
   onToggleExpand: () => void;
   onOpenDrawer: (st: DrawerStock) => void;
-  onOpenKline: () => void;
 }) {
   return (
     <>
@@ -350,7 +344,7 @@ function SectorRowComp({
           <div className="flex items-center gap-2">
             <span className="text-[10px] text-muted font-mono w-5">{index + 1}</span>
             <Link
-              href={`/stock?q=${encodeURIComponent(s.name)}`}
+              href={`/sector?bk=${s.code}`}
               onClick={(e) => e.stopPropagation()}
               className="font-medium hover:text-primary"
             >
@@ -394,22 +388,13 @@ function SectorRowComp({
         </td>
         <td className="text-right pl-2">
           <div className="flex items-center justify-end gap-2">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onOpenKline();
-              }}
+            <Link
+              href={`/sector?bk=${s.code}`}
+              onClick={(e) => e.stopPropagation()}
               className="text-[10px] text-muted hover:text-primary border border-border/60 rounded px-1.5 py-0.5"
-              title="板块 K 线 + 资金流联动"
+              title="板块中心：K 线 + 资金流联动 + 成分股"
             >
               走势
-            </button>
-            <Link
-              href={`/stock?q=${encodeURIComponent(s.name)}`}
-              onClick={(e) => e.stopPropagation()}
-              className="text-[10px] text-muted hover:text-primary"
-            >
-              查看个股 →
             </Link>
           </div>
         </td>

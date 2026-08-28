@@ -13,6 +13,7 @@ import {
   CandlestickChart,
   LineChart,
   GitCompareArrows,
+  LayoutGrid,
   Waypoints,
   Boxes,
   Clock,
@@ -72,6 +73,7 @@ export const NAV: NavGroup[] = [
     icon: TrendingUp,
     children: [
       { href: "/market", label: "大盘指数", desc: "指数行情 · 板块资金流", icon: Gauge },
+      { href: "/sector", label: "板块中心", desc: "板块行情 · 资金 · K线 · 成分股", icon: LayoutGrid },
       { href: "/market?tab=stocks", label: "个股行情", desc: "K 线 + 资金双图联动 · 评分", icon: CandlestickChart },
       { href: "/etf", label: "ETF 专区", desc: "ETF 行情与持仓透视", icon: LineChart },
       { href: "/compare", label: "对比中心", desc: "股票 · 指数 · ETF 跨类型对比", icon: GitCompareArrows },

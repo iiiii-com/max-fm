@@ -137,7 +137,7 @@ export default function SurgeBoard() {
                     <tr key={s.code} className="border-b border-border/40 last:border-0">
                       <td className="py-1.5 pl-3 pr-2 font-medium">
                         <span className="text-muted text-[10px] mr-1">{i + 1}</span>
-                        {s.name}
+                        <Link href={`/sector?bk=${s.code}`} className="hover:text-primary">{s.name}</Link>
                       </td>
                       <td className={`py-1.5 px-2 text-right font-mono font-bold ${(s.pct ?? 0) >= 0 ? "up" : "down"}`}>
                         {(s.pct ?? 0) >= 0 ? "+" : ""}

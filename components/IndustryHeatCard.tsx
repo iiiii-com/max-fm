@@ -31,10 +31,10 @@ function fmtMoney(n: number) {
 function loadSectors(): Promise<SectorRow[]> {
   if (sectorCache) return Promise.resolve(sectorCache);
   if (!sectorPromise) {
-    sectorPromise = fetch("/api/sector/flow", { cache: "no-store" })
+    sectorPromise = fetch("/api/sector/board?top=60", { cache: "no-store" })
       .then((res) => res.json())
       .then((j) => {
-        sectorCache = Array.isArray(j?.sectors) ? (j.sectors as SectorRow[]) : [];
+        sectorCache = Array.isArray(j?.list) ? (j.list as SectorRow[]) : [];
         return sectorCache;
       })
       .catch(() => {
