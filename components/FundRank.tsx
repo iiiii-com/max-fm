@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { RefreshCw, TrendingUp, TrendingDown } from "lucide-react";
+import SectorFundHistory from "@/components/SectorFundHistory";
 
 interface RankItem { code: string; name: string; mainFlow: number; pct: number | null }
 interface RankData {
@@ -79,6 +80,7 @@ export default function FundRank() {
         <RankTable title="板块流出/最弱 Top10" items={d?.sectorOut ?? []} tone="out" icon={<TrendingDown className="w-3.5 h-3.5" />} />
         <RankTable title="个股流入 Top10" items={d?.stockIn ?? []} tone="in" icon={<TrendingUp className="w-3.5 h-3.5" />} />
       </div>
+      <SectorFundHistory sectors={(d?.sectorIn ?? []).map((s) => ({ code: s.code, name: s.name, mainFlow: s.mainFlow }))} />
       <p className="text-[10px] text-muted">数据源：东方财富实时资金流 · 20 秒级延迟 · 点击个股进入深度页（板块跳转产业链）</p>
     </div>
   );

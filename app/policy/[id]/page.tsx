@@ -25,6 +25,20 @@ const SECTOR_HINTS: Array<{ label: string; slug: string; words: string[] }> = [
   { label: "低空经济", slug: "lowaltitude", words: ["低空", "eVTOL", "无人机"] },
 ];
 
+/** 政策类别 → 影响方向（股市/楼市/消费/产业）映射（研究框架设定，供投资者参考） */
+const IMPACT_MAP: Record<string, string[]> = {
+  "货币政策": ["股市流动性", "利率敏感资产", "汇率"],
+  "财政": ["基建投资", "消费补贴", "企业税负"],
+  "财税": ["企业盈利", "消费", "产业投资"],
+  "房地产": ["楼市成交", "地产链（建材/家电）", "银行信贷"],
+  "产业政策": ["对应产业景气", "产业链上下游"],
+  "资本市场": ["券商", "直接融资", "市场情绪"],
+  "消费促进": ["消费板块", "零售/餐饮", "可选消费"],
+  "对外开放": ["出口链", "外资流入", "跨境贸易"],
+  "改革": ["对应改革领域", "市场预期"],
+  "民生": ["医疗/教育/社保", "消费"],
+};
+
 export default async function PolicyDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   await bootstrap();
@@ -33,6 +47,7 @@ export default async function PolicyDetailPage({ params }: { params: Promise<{ i
   const { policy: p, analysis } = row;
   const corpus = `${p.title} ${p.summary} ${p.content} ${analysis?.popular ?? ""} ${analysis?.professional ?? ""}`;
   const hitSectors = SECTOR_HINTS.filter((s) => s.words.some((w) => corpus.includes(w)));
+  const impacts = IMPACT_MAP[p.category ?? ""] ?? [];
 
   return (
     <div className="mx-auto max-w-7xl px-3 sm:px-4 py-5 sm:py-6 space-y-6">
@@ -111,6 +126,16 @@ export default async function PolicyDetailPage({ params }: { params: Promise<{ i
                 ))}
               </div>
             </>
+          )}
+          {impacts.length > 0 && (
+            <div className="mt-4 rounded-lg border border-border/60 px-3 py-2.5">
+              <p className="text-xs text-muted mb-1.5">潜在影响方向（研究框架设定，供参考）：</p>
+              <div className="flex flex-wrap gap-1.5">
+                {impacts.map((t) => (
+                  <span key={t} className="text-[11px] px-2 py-0.5 rounded-full bg-primary/8 text-primary border border-primary/20">{t}</span>
+                ))}
+              </div>
+            </div>
           )}
         </Card>
       </section>
