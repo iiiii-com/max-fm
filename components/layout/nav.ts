@@ -30,6 +30,7 @@ import {
   BookOpen,
   BookOpenCheck,
   Wrench,
+  TestTubes,
 } from "lucide-react";
 
 /**
@@ -106,6 +107,7 @@ export const NAV: NavGroup[] = [
     desc: "GMRDS · 十二学院 · 决策流程 · 工具箱",
     icon: Compass,
     children: [
+      { href: "/lab", label: "K线实验室", desc: "任意标的 · 八大实操模块联动教学", icon: TestTubes },
       { href: "/gmrds", label: "体系总览", desc: "四大阶段 · 十一环节决策链", icon: Library },
       { href: "/gmrds/governance", label: "治理架构", desc: "十二学院 + 决策委员会 · 职责边界", icon: Landmark },
       { href: "/gmrds/flow", label: "环节实操", desc: "操作步骤 · 判断标准 · 执行工具", icon: Workflow },

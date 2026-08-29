@@ -8,7 +8,7 @@ import {
 import {
   TitleComponent, TooltipComponent, GridComponent, LegendComponent,
   VisualMapComponent, DataZoomComponent, MarkLineComponent, MarkPointComponent,
-  DatasetComponent, TransformComponent,
+  GraphicComponent, DatasetComponent, TransformComponent,
 } from "echarts/components";
 import { CanvasRenderer } from "echarts/renderers";
 
@@ -17,7 +17,7 @@ echarts.use([
   PieChart, RadarChart, GaugeChart, EffectScatterChart,
   TitleComponent, TooltipComponent, GridComponent, LegendComponent,
   VisualMapComponent, DataZoomComponent, MarkLineComponent, MarkPointComponent,
-  DatasetComponent, TransformComponent,
+  GraphicComponent, DatasetComponent, TransformComponent,
   CanvasRenderer,
 ]);
 

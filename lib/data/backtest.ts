@@ -48,6 +48,7 @@ export interface BacktestResult {
   final: number;
   equityCurve: Array<{ date: string; nav: number; benchmark: number }>; // 净值曲线（策略 vs 买入持有）
   signals: Array<{ date: string; type: "buy" | "sell" }>;
+  trades: Trade[]; // 逐笔配对交易明细（含未平仓持仓）
 }
 
 const SMA = (arr: number[], n: number) => {
@@ -245,5 +246,6 @@ export function backtest(bars: BacktestBar[], strategy: Strategy, initial = 1000
     final: Math.round(final),
     equityCurve: equityCurve.filter((_, i) => i % 2 === 0 || i === equityCurve.length - 1), // 抽样减密
     signals: signals.filter((s) => s.type) as Array<{ date: string; type: "buy" | "sell" }>,
+    trades,
   };
 }
