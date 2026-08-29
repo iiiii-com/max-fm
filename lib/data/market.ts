@@ -98,6 +98,7 @@ export interface Northbound {
   szIn: number; // 深股通净流入
   totalIn: number;
   date: string;
+  stopped?: boolean; // 2024-08 起北向净买入停止实时披露：true 时前端显示说明，不展示误导性 0
 }
 
 export async function fetchNorthbound(): Promise<Northbound | null> {
@@ -109,6 +110,11 @@ export async function fetchNorthbound(): Promise<Northbound | null> {
     if (!d) return null;
     const shIn = Number(d.hk2sz?.dayNetAmtIn ?? 0) * 1e4; // 港股通(沪) 反向为北向
     const szIn = Number(d.hk2sh?.dayNetAmtIn ?? 0) * 1e4;
+    // 停止披露后东财把净买入字段填 "-"（NaN）或全 0 占位：识别后标记 stopped，避免展示误导性的「净流入 0」
+    const invalid = !Number.isFinite(shIn) || !Number.isFinite(szIn) || (shIn === 0 && szIn === 0);
+    if (invalid) {
+      return { shIn: 0, szIn: 0, totalIn: 0, date: String(d.hk2sz?.date2 ?? ""), stopped: true };
+    }
     return {
       shIn,
       szIn,

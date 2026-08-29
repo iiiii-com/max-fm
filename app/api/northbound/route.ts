@@ -91,19 +91,6 @@ async function fetchHoldings(): Promise<{ list: NorthboundHolding[]; date: strin
   }
 }
 
-const STATIC_HOLDINGS: NorthboundHolding[] = [
-  { name: "贵州茅台", secid: "1.600519", marketCap: 1400e8, ratio: 7.2 },
-  { name: "宁德时代", secid: "0.300750", marketCap: 1300e8, ratio: 11.5 },
-  { name: "美的集团", secid: "0.000333", marketCap: 700e8, ratio: 15.2 },
-  { name: "招商银行", secid: "1.600036", marketCap: 600e8, ratio: 8.1 },
-  { name: "长江电力", secid: "1.600900", marketCap: 500e8, ratio: 6.8 },
-  { name: "五粮液", secid: "0.000858", marketCap: 450e8, ratio: 9.3 },
-  { name: "中国平安", secid: "1.601318", marketCap: 400e8, ratio: 7.6 },
-  { name: "紫金矿业", secid: "1.601899", marketCap: 350e8, ratio: 6.2 },
-  { name: "汇川技术", secid: "0.300124", marketCap: 300e8, ratio: 14.1 },
-  { name: "立讯精密", secid: "0.002475", marketCap: 280e8, ratio: 10.4 },
-];
-
 export async function GET() {
   const [kline, rt] = await Promise.all([fetchKamtKline(30), fetchKamtRt()]);
   const holdings = await fetchHoldings();
@@ -146,6 +133,6 @@ export async function GET() {
     trend5: effectiveHistory.slice(-5).map((r) => r.value),
     holdings: holdings
       ? { list: holdings.list, source: "eastmoney", date: holdings.date }
-      : { list: STATIC_HOLDINGS, source: "static", date: "" },
+      : { list: [], source: "none", date: "" }, // 持仓接口失败时返回空列表，不使用任何编造数据
   });
 }

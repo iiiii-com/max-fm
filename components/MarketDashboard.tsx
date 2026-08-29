@@ -39,6 +39,7 @@ interface Northbound {
   szIn: number;
   totalIn: number;
   date: string;
+  stopped?: boolean; // 2024-08 起停止实时披露：true 时显示说明而非误导性 0
 }
 
 function fmtMoney(n: number) {
@@ -231,13 +232,13 @@ export default function MarketDashboard() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-xs text-muted border-b border-border">
-                  <th className="text-left py-1.5 pr-2">板块</th>
-                  <th className="text-right px-2"><SortTh k="changePct">涨跌幅</SortTh></th>
-                  <th className="text-right px-2"><SortTh k="mainNetIn">主力净流入</SortTh></th>
-                  <th className="text-right px-2 hidden sm:table-cell"><SortTh k="mainPct">净占比</SortTh></th>
-                  <th className="text-right px-2 hidden md:table-cell"><SortTh k="amount">成交额</SortTh></th>
-                  <th className="text-left px-2 hidden lg:table-cell">龙头</th>
-                  <th className="text-right pl-2"></th>
+                  <th scope="col" className="text-left py-1.5 pr-2">板块</th>
+                  <th scope="col" className="text-right px-2"><SortTh k="changePct">涨跌幅</SortTh></th>
+                  <th scope="col" className="text-right px-2"><SortTh k="mainNetIn">主力净流入</SortTh></th>
+                  <th scope="col" className="text-right px-2 hidden sm:table-cell"><SortTh k="mainPct">净占比</SortTh></th>
+                  <th scope="col" className="text-right px-2 hidden md:table-cell"><SortTh k="amount">成交额</SortTh></th>
+                  <th scope="col" className="text-left px-2 hidden lg:table-cell">龙头</th>
+                  <th scope="col" className="text-right pl-2"></th>
                 </tr>
               </thead>
               <tbody>
@@ -265,11 +266,20 @@ export default function MarketDashboard() {
         {north && (
           <div className="card p-4">
             <h3 className="font-bold text-sm mb-2">北向资金（{north.date}）</h3>
-            <div className="text-xs space-y-1.5">
-              <div className="flex justify-between"><span className="text-muted">沪股通</span><span className={`font-mono font-medium ${north.shIn >= 0 ? "up" : "down"}`}>{fmtMoney(north.shIn)}</span></div>
-              <div className="flex justify-between"><span className="text-muted">深股通</span><span className={`font-mono font-medium ${north.szIn >= 0 ? "up" : "down"}`}>{fmtMoney(north.szIn)}</span></div>
-              <div className="flex justify-between border-t border-border pt-1.5"><span className="text-muted">合计净流入</span><span className={`font-mono font-bold ${north.totalIn >= 0 ? "up" : "down"}`}>{fmtMoney(north.totalIn)}</span></div>
-            </div>
+            {north.stopped ? (
+              <p className="text-xs text-muted leading-relaxed">
+                沪深交易所自 2024 年 8 月 18 日起<span className="font-medium text-foreground">停止实时披露北向净买入金额</span>
+                ，目前仅披露成交总额。本站不虚构该数值，历史日度走势可在
+                <Link href="/analysis/bullbear" className="text-primary hover:underline"> 牛熊深度分析 </Link>
+                中结合市场阶段查看。
+              </p>
+            ) : (
+              <div className="text-xs space-y-1.5">
+                <div className="flex justify-between"><span className="text-muted">沪股通</span><span className={`font-mono font-medium ${north.shIn >= 0 ? "up" : "down"}`}>{fmtMoney(north.shIn)}</span></div>
+                <div className="flex justify-between"><span className="text-muted">深股通</span><span className={`font-mono font-medium ${north.szIn >= 0 ? "up" : "down"}`}>{fmtMoney(north.szIn)}</span></div>
+                <div className="flex justify-between border-t border-border pt-1.5"><span className="text-muted">合计净流入</span><span className={`font-mono font-bold ${north.totalIn >= 0 ? "up" : "down"}`}>{fmtMoney(north.totalIn)}</span></div>
+              </div>
+            )}
           </div>
         )}
 
@@ -357,6 +367,8 @@ function SectorRowComp({
               }}
               className={`text-[10px] ${has(s.code) ? "text-red-500" : "text-muted hover:text-primary"}`}
               title="自选板块"
+              aria-label={has(s.code) ? `移出「${s.name}」自选` : `将「${s.name}」加入自选`}
+              aria-pressed={has(s.code)}
             >
               {has(s.code) ? "★" : "☆"}
             </button>

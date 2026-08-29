@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/layout/Header";
@@ -16,11 +17,11 @@ export const metadata: Metadata = {
   description: "AI 驱动的全方位财经数据分析平台：政策解读、宏观经济、投资分析、中国经济分布图、产业链分析、个人理财建议。",
 };
 
-/** 移动端视口配置：viewport-fit=cover 支持刘海屏安全区；maximumScale=1 防止表单聚焦自动缩放 */
+/** 移动端视口配置：viewport-fit=cover 支持刘海屏安全区；不禁用用户缩放（WCAG 1.4.4），
+ *  iOS 聚焦自动缩放改由全局 CSS 保证表单控件字号 ≥16px 解决 */
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
   viewportFit: "cover",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#f7f7f5" },
@@ -32,18 +33,22 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const user = await getSession();
   return (
     <html lang="zh-CN" suppressHydrationWarning className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
-      <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `try{var t=localStorage.getItem('max-theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.classList.add('dark')}catch(e){}`,
-          }}
-        />
-      </head>
       <body className="min-h-full flex flex-col bg-background text-foreground overflow-x-clip">
+        {/* 主题初始化：next/script beforeInteractive 输出到 head，防首屏闪烁且不触发 React 组件内 script 警告 */}
+        <Script id="theme-init" strategy="beforeInteractive">
+          {`try{var t=localStorage.getItem('max-theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.classList.add('dark')}catch(e){}`}
+        </Script>
+        {/* 无障碍：键盘用户可跳过导航直达主内容 */}
+        <a
+          href="#main"
+          className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-2 focus:left-2 focus:px-3 focus:py-1.5 focus:rounded-md focus:bg-primary focus:text-white focus:text-sm"
+        >
+          跳转到主内容
+        </a>
         <ThemeProvider>
           <RefreshProvider>
             <Header user={user} />
-            <main className="flex-1">
+            <main id="main" className="flex-1">
               <Breadcrumbs />
               {children}
             </main>

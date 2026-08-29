@@ -12,7 +12,8 @@ export default function ChainGraphViewer({
   nodes: Array<{ id: string; chainId: string | null; name: string }>;
   links: Array<{ source: string; target: string }>;
 }) {
-  const [focus, setFocus] = useState<string>("all");
+  // 默认聚焦第一条链：全链 25+ 条一起渲染时节点标签重叠严重，聚焦视图可读性更好；用户可随时切回「全部」
+  const [focus, setFocus] = useState<string>(chains[0]?.id ?? "all");
 
   const filtered = useMemo(() => {
     if (focus === "all") return { nodes, links };

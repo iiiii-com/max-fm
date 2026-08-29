@@ -175,9 +175,7 @@ export function breadcrumbsFor(pathname: string, searchParams?: URLSearchParams 
 
     // 直系子模块（/macro/feeling 等）
     const directChild = group.children.find((c) => c.href.split("?")[0] === pathname);
-    if (directChild) return [...base, gCrumb, { href: directChild.href, label: directChild.label }];
-
-    // 动态详情
+    if (directChild) return [...base, gCrumb, { href: directChild.href, label: directChild.label }];    // 动态详情
     if (group.href === "/industry" && rest) return [...base, gCrumb, { label: "产业链详情" }];
     if (group.href === "/history" && rest) return [...base, gCrumb, { label: "危机重演" }];
     if (group.href === "/gmrds" && rest) {
@@ -188,6 +186,12 @@ export function breadcrumbsFor(pathname: string, searchParams?: URLSearchParams 
     return [...base, gCrumb, { label: rest || groupDefaultLabel(group) }];
   }
 
+  // 跨组子模块直链：/sector、/map、/etf、/compare 等不以所属组前缀开头，需单独匹配
+  for (const g of NAV) {
+    const child = g.children.find((c) => c.href.split("?")[0] === pathname);
+    if (child) return [...base, { href: g.href, label: g.label }, { label: child.label }];
+  }
+
   // 独立页
   const standalone: Record<string, Crumb[]> = {
     "/search": [...base, { label: "全局搜索" }],
@@ -195,6 +199,8 @@ export function breadcrumbsFor(pathname: string, searchParams?: URLSearchParams 
     "/disclaimer": [...base, { label: "免责声明" }],
     "/privacy": [...base, { label: "隐私政策" }],
     "/account": [...base, { label: "个人账户" }],
+    "/analysis/bullbear": [...base, { href: "/market", label: "市场洞察" }, { label: "牛熊深度分析" }],
+    "/cycle": [...base, { label: "牛熊周期" }],
   };
   if (standalone[pathname]) return standalone[pathname];
 

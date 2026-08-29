@@ -64,8 +64,13 @@ export default function MarketOverviewCard() {
                     <div className="h-3 bg-muted/30 rounded w-3/4" />
                     <div className="h-2.5 bg-muted/20 rounded w-1/2" />
                   </div>
+                ) : quotes.length === 0 ? (
+                  <p className="text-[11px] text-muted">加载失败</p>
                 ) : (
-                  <p className="text-[11px] text-muted">—</p>
+                  // 行情已到但缺该标的：明确标注缺失原因，不留无解释的「—」
+                  <p className="text-[11px] text-muted" title="该标的数据源暂不可达或休市，其余标的不受影响">
+                    源暂缺
+                  </p>
                 )}
               </div>
             );

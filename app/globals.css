@@ -44,6 +44,22 @@ body {
   font-family: var(--font-sans);
 }
 
+/* iOS Safari：表单控件聚焦时字号 <16px 会自动放大页面。
+   保证控件字号 ≥16px（不小于继承字号时取继承值），从而无需禁用用户缩放（WCAG 1.4.4） */
+input,
+textarea,
+select {
+  font-size: max(16px, 1em);
+}
+
+/* 顶部行情条：可横向滑动但隐藏滚动条（右侧有渐隐提示溢出） */
+.ticker-scroll {
+  scrollbar-width: none;
+}
+.ticker-scroll::-webkit-scrollbar {
+  display: none;
+}
+
 /* ============ 移动端适配基础 ============ */
 /* 防横向滚动：任何元素不得撑破视口（内容溢出请用容器内 overflow-x-auto） */
 html,

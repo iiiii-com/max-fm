@@ -221,24 +221,25 @@ export default function SectorCenter({ initialBk }: { initialBk?: string }) {
                 <h2 className="font-bold text-sm">板块行情全列表</h2>
                 <span className="text-[10px] text-muted">点击行展开成分股 · 走势进入详情</span>
               </div>
-              <div className="overflow-x-auto">
+              <div className="relative">
+                <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-xs text-muted border-b border-border">
-                      <th className="text-left py-1.5 pr-2">板块</th>
-                      <th className="text-right px-2 cursor-pointer hover:text-primary" onClick={() => setSort("changePct")}>
+                      <th scope="col" className="text-left py-1.5 pr-2">板块</th>
+                      <th scope="col" className="text-right px-2 cursor-pointer hover:text-primary" onClick={() => setSort("changePct")}>
                         涨跌幅{sortKey === "changePct" ? (sortDir === -1 ? " ↓" : " ↑") : ""}
                       </th>
-                      <th className="text-right px-2 cursor-pointer hover:text-primary" onClick={() => setSort("mainNetIn")}>
+                      <th scope="col" className="text-right px-2 cursor-pointer hover:text-primary" onClick={() => setSort("mainNetIn")}>
                         主力净流入{sortKey === "mainNetIn" ? (sortDir === -1 ? " ↓" : " ↑") : ""}
                       </th>
-                      <th className="text-right px-2 hidden sm:table-cell cursor-pointer hover:text-primary" onClick={() => setSort("mainPct")}>
+                      <th scope="col" className="text-right px-2 hidden sm:table-cell cursor-pointer hover:text-primary" onClick={() => setSort("mainPct")}>
                         净占比{sortKey === "mainPct" ? (sortDir === -1 ? " ↓" : " ↑") : ""}
                       </th>
-                      <th className="text-right px-2 hidden md:table-cell cursor-pointer hover:text-primary" onClick={() => setSort("amount")}>
+                      <th scope="col" className="text-right px-2 hidden md:table-cell cursor-pointer hover:text-primary" onClick={() => setSort("amount")}>
                         成交额{sortKey === "amount" ? (sortDir === -1 ? " ↓" : " ↑") : ""}
                       </th>
-                      <th className="text-right pl-2"></th>
+                      <th scope="col" className="text-right pl-2"></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -268,6 +269,8 @@ export default function SectorCenter({ initialBk }: { initialBk?: string }) {
                                   }}
                                   className={`text-[10px] ${has(s.code) ? "text-red-500" : "text-muted hover:text-primary"}`}
                                   title="自选板块"
+                                  aria-label={has(s.code) ? `移出「${s.name}」自选` : `将「${s.name}」加入自选`}
+                                  aria-pressed={has(s.code)}
                                 >
                                   {has(s.code) ? "★" : "☆"}
                                 </button>
@@ -328,6 +331,10 @@ export default function SectorCenter({ initialBk }: { initialBk?: string }) {
                     })}
                   </tbody>
                 </table>
+                </div>
+                {/* 移动端右侧渐隐遮罩：暗示可横向滑动 */}
+                <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-card to-transparent sm:hidden" aria-hidden />
+                <p className="text-[10px] text-muted mt-1 sm:hidden">← 左右滑动查看完整表格 →</p>
               </div>
             </div>
           </div>

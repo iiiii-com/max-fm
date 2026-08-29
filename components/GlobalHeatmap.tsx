@@ -124,7 +124,7 @@ export default function GlobalHeatmap() {
       ) : !data ? (
         <p className="text-sm text-muted py-6 text-center">全球行情加载中…</p>
       ) : mode === "matrix" ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-2.5">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-2.5">
           {data.map((g) => (
             <div key={g.market} className="rounded-lg border border-border overflow-hidden">
               <p className="text-[11px] font-bold px-2.5 py-1.5 bg-muted/30 border-b border-border">

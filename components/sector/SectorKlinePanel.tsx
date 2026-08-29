@@ -37,6 +37,7 @@ function fmtMoney(n: number) {
 /** 板块详情面板：K线收盘 + 主力资金联动 · 近 10 日资金历史 · 成分股主力 Top10 */
 export default function SectorKlinePanel({ sector, onClose }: { sector: DetailSector; onClose: () => void }) {
   const [rows, setRows] = useState<SectorKline[]>([]);
+  const [staleAsOf, setStaleAsOf] = useState<string | null>(null); // 源限频回落缓存时的数据时点
   const [trend, setTrend] = useState<FundPoint[]>([]);
   const [stocks, setStocks] = useState<SectorStock[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,13 +45,14 @@ export default function SectorKlinePanel({ sector, onClose }: { sector: DetailSe
   const [retrying, setRetrying] = useState(false);
   const [err, setErr] = useState("");
 
-  // K 线单独请求（东财偶发限频 → 自动重试 1 次）；资金历史/成分股并行且独立容错
+  // K 线单独请求（服务端带缓存兜底：源限频时返回最近成功数据并标注 asOf）；资金历史/成分股并行且独立容错
   useEffect(() => {
     let alive = true;
     setRows([]);
     setTrend([]);
     setStocks([]);
     setKlineErr(false);
+    setStaleAsOf(null);
     setLoading(true);
     setErr("");
 
@@ -62,6 +64,7 @@ export default function SectorKlinePanel({ sector, onClose }: { sector: DetailSe
           if (!alive) return;
           if (k?.ok && Array.isArray(k.list) && k.list.length) {
             setRows(k.list);
+            setStaleAsOf(k.stale ? String(k.asOf ?? "") : null);
             setKlineErr(false);
           } else if (isRetry) {
             setKlineErr(true);
@@ -236,7 +239,14 @@ export default function SectorKlinePanel({ sector, onClose }: { sector: DetailSe
         <div className="p-4 grid grid-cols-1 xl:grid-cols-3 gap-4">
           <div className="xl:col-span-2 space-y-4">
             <div>
-              <p className="text-xs font-medium mb-1.5 text-muted">近 60 日 · 收盘价 + 主力资金联动</p>
+              <p className="text-xs font-medium mb-1.5 text-muted flex items-center gap-2 flex-wrap">
+                <span>近 60 日 · 收盘价 + 主力资金联动</span>
+                {staleAsOf && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                    数据时点 {staleAsOf.slice(5, 16).replace("T", " ")} · 源限频，暂展示缓存
+                  </span>
+                )}
+              </p>
               {rows.length ? (
                 <EChart option={mainOption} height={300} />
               ) : klineErr ? (
@@ -254,12 +264,15 @@ export default function SectorKlinePanel({ sector, onClose }: { sector: DetailSe
                     onClick={() => {
                       setKlineErr(false);
                       setRows([]);
+                      setStaleAsOf(null);
                       setRetrying(true);
                       fetch(`/api/sector/kline?bk=${sector.code}&lmt=60`, { cache: "no-store" })
                         .then((r) => r.json())
                         .then((k) => {
-                          if (k?.ok && Array.isArray(k.list) && k.list.length) setRows(k.list);
-                          else setKlineErr(true);
+                          if (k?.ok && Array.isArray(k.list) && k.list.length) {
+                            setRows(k.list);
+                            setStaleAsOf(k.stale ? String(k.asOf ?? "") : null);
+                          } else setKlineErr(true);
                         })
                         .catch(() => setKlineErr(true))
                         .finally(() => setRetrying(false));

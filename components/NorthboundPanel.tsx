@@ -189,11 +189,11 @@ export default function NorthboundPanel() {
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm font-bold">北向重仓股 Top 10</p>
               <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted/40 text-muted">
-                {holdings?.source === "eastmoney" ? `月频披露 ${holdings.date ?? ""}` : "静态数据"}
+                {holdings?.source === "eastmoney" ? `月频披露 ${holdings.date ?? ""}` : "暂不可用"}
               </span>
             </div>
             {!holdings?.list?.length ? (
-              <p className="text-xs text-muted">暂无数据</p>
+              <p className="text-xs text-muted">重仓明细暂不可用（月频披露接口临时不可达），本站不使用估算数据填充。</p>
             ) : (
               <div className="divide-y divide-border/50">
                 {holdings.list.map((h, i) => (
