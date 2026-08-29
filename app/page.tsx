@@ -30,29 +30,32 @@ export default async function Home() {
   return (
     <div className="mx-auto max-w-7xl px-3 sm:px-4 py-5 sm:py-6 space-y-8">
       {/* Hero */}
-      <section className="rounded-xl bg-gradient-to-r from-primary to-primary-dark text-white p-6 md:p-8">
-        <div className="flex flex-col md:flex-row md:items-center gap-6">
+      <section className="relative rounded-xl bg-gradient-to-r from-primary via-primary-dark to-primary-dark text-white p-6 md:p-8 overflow-hidden">
+        {/* 光晕点缀：右上角暖光，增加纵深 */}
+        <div className="pointer-events-none absolute -top-24 -right-16 w-72 h-72 rounded-full bg-white/10 blur-3xl" aria-hidden />
+        <div className="pointer-events-none absolute -bottom-28 -left-10 w-64 h-64 rounded-full bg-black/10 blur-3xl" aria-hidden />
+        <div className="relative flex flex-col md:flex-row md:items-center gap-6">
           <div className="flex-1">
-            <h1 className="text-2xl md:text-3xl font-bold leading-snug">用数据理解经济，用理性面对温差</h1>
+            <h1 className="text-2xl md:text-3xl font-bold leading-snug tracking-tight">用数据理解经济，用理性面对温差</h1>
             <p className="mt-2 opacity-90 text-sm md:text-base">
               AI 驱动的全方位财经数据平台：政策解读 · 宏观分析 · 投资参考 · 中国经济发展全景 · 产业链透视 · 个人配置建议
             </p>
             <div className="mt-4 flex flex-wrap gap-3">
-              <Link href="/macro/feeling" className="px-4 py-2 rounded-lg bg-white/15 hover:bg-white/25 transition-colors text-sm font-medium">
+              <Link href="/macro/feeling" className="px-4 py-2 rounded-lg bg-white/15 backdrop-blur hover:bg-white/25 transition-colors duration-150 text-sm font-medium">
                 宏观 {temp}° vs 体感 {feeling.overall}°（温差 {diff > 0 ? "+" : ""}{diff}°）
               </Link>
-              <Link href="/macro" className="px-4 py-2 rounded-lg bg-white/15 hover:bg-white/25 transition-colors text-sm font-medium">
+              <Link href="/macro" className="px-4 py-2 rounded-lg bg-white/15 backdrop-blur hover:bg-white/25 transition-colors duration-150 text-sm font-medium">
                 查看宏观仪表盘
               </Link>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-lg bg-white/10 p-3 text-center">
+          <div className="grid grid-cols-2 gap-3 shrink-0">
+            <div className="rounded-lg bg-white/10 backdrop-blur p-3 text-center ring-1 ring-white/15">
               <p className="text-xs opacity-80">宏观温度计</p>
               <p className="text-3xl font-bold font-mono mt-1">{temp}°</p>
               <p className="text-xs mt-1 opacity-80">{temp >= 55 ? "偏暖" : temp >= 45 ? "中性" : "偏冷"}</p>
             </div>
-            <div className="rounded-lg bg-white/10 p-3 text-center">
+            <div className="rounded-lg bg-white/10 backdrop-blur p-3 text-center ring-1 ring-white/15">
               <p className="text-xs opacity-80">大众体感温度</p>
               <p className="text-3xl font-bold font-mono mt-1">{fmt(feeling.overall)}°</p>
               <p className="text-xs mt-1 opacity-80">基于 {feeling.sampleCount} 份问卷</p>
@@ -82,18 +85,19 @@ export default async function Home() {
       {/* AI 速评 */}
       {(latestDaily || latestMonthly) && (
         <section>
-          <Card className="p-5 border-l-4 border-l-primary">
-            <div className="flex items-center gap-2 mb-2">
+          <Card className="p-5 relative overflow-hidden">
+            <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-primary to-primary/30" aria-hidden />
+            <div className="flex items-center gap-2 mb-2 pl-2">
               <span className="font-bold">AI 速评</span>
               <AIFlag />
               <span className="text-xs text-muted ml-auto">
                 {latestDaily ? `今日复盘 · ${fmtDate(latestDaily.publishDate)}` : latestMonthly ? `宏观月报 · ${fmtDate(latestMonthly.publishDate)}` : ""}
               </span>
             </div>
-            <p className="text-sm text-muted leading-relaxed line-clamp-3">
+            <p className="text-sm text-muted leading-relaxed line-clamp-3 pl-2.5">
               {latestDaily?.summary ?? latestMonthly?.summary ?? "AI 分析生成中。"}
             </p>
-            <Link href={`/article/${latestDaily?.slug ?? latestMonthly?.slug}`} className="text-sm text-primary hover:underline mt-2 inline-block">
+            <Link href={`/article/${latestDaily?.slug ?? latestMonthly?.slug}`} className="text-sm text-primary hover:underline mt-2 inline-block pl-2.5">
               阅读全文 →
             </Link>
           </Card>
@@ -150,7 +154,7 @@ export default async function Home() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {[latestDaily, latestMonthly, latestTemp, ...articles.filter((a: any) => ![latestDaily, latestMonthly, latestTemp].includes(a))].filter(Boolean).slice(0, 6).map((a: any) => (
             <Link key={a!.id} href={`/article/${a!.slug}`}>
-              <Card className="h-full hover:shadow-md transition-shadow">
+              <Card className="h-full card-hover">
                 <div className="flex items-center gap-2 mb-2">
                   <Badge>{a!.type === "daily" ? "每日复盘" : a!.type === "monthly" ? "月度报告" : a!.type === "weekly" ? "每周周报" : "温差报告"}</Badge>
                   <AIFlag />

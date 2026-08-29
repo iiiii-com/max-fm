@@ -18,8 +18,10 @@ export default function Header({ user }: { user?: { name: string } | null }) {
     <header className="sticky top-0 z-50 bg-card/95 backdrop-blur border-b border-border safe-top">
       <div className="mx-auto max-w-7xl px-3 sm:px-4">
         <div className="flex items-center gap-2 sm:gap-4 h-14">
-          <Link href="/" className="flex items-center gap-2 shrink-0">
-            <span className="flex items-center justify-center w-8 h-8 rounded-md bg-primary text-white font-black text-lg">M</span>
+          <Link href="/" className="flex items-center gap-2 shrink-0 group">
+            <span className="flex items-center justify-center w-8 h-8 rounded-md bg-gradient-to-br from-[#d4203d] to-primary-dark text-white font-black text-lg shadow-sm transition-transform duration-200 group-hover:scale-105">
+              M
+            </span>
             <span className="font-bold text-lg sm:text-xl tracking-tight hidden sm:inline">Max 财经</span>
           </Link>
 
@@ -31,8 +33,8 @@ export default function Header({ user }: { user?: { name: string } | null }) {
                 <div key={g.href} className="relative group">
                   <Link
                     href={g.href}
-                    className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-sm transition-colors ${
-                      active ? "bg-primary/10 text-primary font-semibold" : "text-foreground/80 hover:bg-border/60"
+                    className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-sm transition-colors duration-150 ${
+                      active ? "bg-primary-soft text-primary font-semibold" : "text-foreground/80 hover:bg-border/60"
                     }`}
                   >
                     {g.label}
@@ -40,7 +42,7 @@ export default function Header({ user }: { user?: { name: string } | null }) {
                   </Link>
                   {/* 下拉面板 */}
                   <div className="absolute left-0 top-full pt-2 invisible opacity-0 -translate-y-1 group-hover:visible group-hover:opacity-100 group-hover:translate-y-0 group-focus-within:visible group-focus-within:opacity-100 transition-all duration-150">
-                    <div className="w-72 rounded-lg border border-border bg-card shadow-lg shadow-black/5 overflow-hidden">
+                    <div className="w-72 rounded-lg border border-border bg-card shadow-lg overflow-hidden">
                       <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border bg-background/70">
                         <g.icon className="w-4 h-4 text-primary shrink-0" />
                         <span className="text-xs font-semibold tracking-wide">{g.label}</span>
@@ -92,11 +94,11 @@ export default function Header({ user }: { user?: { name: string } | null }) {
               {open ? <X className="w-4.5 h-4.5" /> : <Menu className="w-4.5 h-4.5" />}
             </button>
             {user ? (
-              <Link href="/account" className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary text-white text-sm font-medium min-h-0">
+              <Link href="/account" className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary text-white text-sm font-medium min-h-0 shadow-sm hover:bg-primary-dark transition-colors duration-150">
                 <User className="w-4 h-4" /> <span className="hidden sm:inline">{user.name}</span>
               </Link>
             ) : (
-              <Link href="/login" className="flex px-3 py-2 rounded-md border border-primary text-primary text-sm font-medium hover:bg-primary/5">
+              <Link href="/login" className="flex px-3 py-2 rounded-md border border-primary text-primary text-sm font-medium hover:bg-primary-soft transition-colors duration-150">
                 登录
               </Link>
             )}

@@ -229,10 +229,10 @@ export default function MarketDashboard() {
           )
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm table-stripe">
               <thead>
                 <tr className="text-xs text-muted border-b border-border">
-                  <th scope="col" className="text-left py-1.5 pr-2">板块</th>
+                  <th scope="col" className="text-left py-2 pr-2">板块</th>
                   <th scope="col" className="text-right px-2"><SortTh k="changePct">涨跌幅</SortTh></th>
                   <th scope="col" className="text-right px-2"><SortTh k="mainNetIn">主力净流入</SortTh></th>
                   <th scope="col" className="text-right px-2 hidden sm:table-cell"><SortTh k="mainPct">净占比</SortTh></th>
@@ -349,14 +349,14 @@ function SectorRowComp({
 }) {
   return (
     <>
-      <tr onClick={onToggleExpand} className="border-b border-border/50 last:border-0 cursor-pointer hover:bg-muted/30">
+      <tr onClick={onToggleExpand} className="border-b border-border/50 last:border-0 cursor-pointer">
         <td className="py-1.5 pr-2">
           <div className="flex items-center gap-2">
             <span className="text-[10px] text-muted font-mono w-5">{index + 1}</span>
             <Link
               href={`/sector?bk=${s.code}`}
               onClick={(e) => e.stopPropagation()}
-              className="font-medium hover:text-primary"
+              className="font-medium hover:text-primary whitespace-nowrap"
             >
               {s.name}
             </Link>

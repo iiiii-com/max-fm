@@ -3,20 +3,20 @@ import { NAV, FOOTER_UTILITY } from "./nav";
 
 export default function Footer() {
   return (
-    <footer className="border-t border-border mt-12 safe-bottom">
+    <footer className="border-t border-border mt-12 bg-gradient-to-b from-transparent to-surface/40 safe-bottom">
       <div className="mx-auto max-w-7xl px-4 py-10 text-sm text-muted">
         {/* 站点地图 */}
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 sm:gap-8 mb-8">
           {NAV.map((g) => (
             <div key={g.href}>
-              <Link href={g.href} className="flex items-center gap-1.5 mb-3 text-foreground font-semibold hover:text-primary transition-colors">
+              <Link href={g.href} className="flex items-center gap-1.5 mb-3 text-foreground font-semibold hover:text-primary transition-colors duration-150">
                 <g.icon className="w-4 h-4 text-primary" />
                 {g.label}
               </Link>
               <ul className="space-y-1.5">
                 {g.children.map((c) => (
                   <li key={c.href}>
-                    <Link href={c.href} className="hover:text-foreground hover:underline transition-colors">
+                    <Link href={c.href} className="hover:text-foreground hover:underline transition-colors duration-150">
                       {c.label}
                     </Link>
                   </li>
