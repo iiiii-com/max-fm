@@ -1,16 +1,24 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import Breadcrumbs from "@/components/layout/Breadcrumbs";
+import ShellChrome from "@/components/layout/ShellChrome";
 import { RefreshProvider } from "@/lib/hooks/refresh";
 import { ThemeProvider } from "@/components/theme-provider";
 import { getSession } from "@/lib/auth";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
+/* K线实验室终端字体（复刻 GMT 终端视觉；数字表格 + 中文回退系统黑体） */
+const ibmPlexMono = IBM_Plex_Mono({
+  variable: "--font-ibm-plex-mono",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: { default: "Max 财经数据平台", template: "%s | Max 财经数据平台" },
@@ -32,7 +40,7 @@ export const viewport: Viewport = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const user = await getSession();
   return (
-    <html lang="zh-CN" suppressHydrationWarning className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
+    <html lang="zh-CN" suppressHydrationWarning className={`${geistSans.variable} ${geistMono.variable} ${ibmPlexMono.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-background text-foreground overflow-x-clip">
         {/* 主题初始化：next/script beforeInteractive 输出到 head，防首屏闪烁且不触发 React 组件内 script 警告 */}
         <Script id="theme-init" strategy="beforeInteractive">
@@ -47,12 +55,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         </a>
         <ThemeProvider>
           <RefreshProvider>
-            <Header user={user} />
-            <main id="main" className="flex-1">
-              <Breadcrumbs />
+            <ShellChrome header={<Header user={user} />} breadcrumbs={<Breadcrumbs />} footer={<Footer />}>
               {children}
-            </main>
-            <Footer />
+            </ShellChrome>
           </RefreshProvider>
         </ThemeProvider>
       </body>

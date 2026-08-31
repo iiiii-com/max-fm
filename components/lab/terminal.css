@@ -1,0 +1,863 @@
+/* ============================================================
+   MX//K线实验室 终端视觉系统 —— 复刻 GMT//全球市场终端
+   black bg · amber command bar · hard-edge windows · mono type
+   作用域：全部规则限定在 #lab-root 内，不污染站点全局样式
+   ============================================================ */
+
+#lab-root {
+  --bg: #000000;
+  --bg-panel: #050505;
+  --bg-raise: #0a0a0a;
+  --fg: #d7d7d7;
+  --fg-dim: #8a8a8a;
+  --fg-faint: #5a5a5a;
+  --line: #292929;
+  --line-strong: #3a3a3a;
+  --amber: #f28c00;
+  --amber-dim: #b26a00;
+  --amber-bg: #1a1000;
+  /* 涨跌色（A 股惯例：红涨 / 绿跌 / 灰平） */
+  --up: #ff4d4f;
+  --up-deep: #5a1416;
+  --down: #00c176;
+  --down-deep: #004d30;
+  --flat: #6e6e6e;
+  --cyan: #4dd0e1;
+  --danger: #ff5c8a;
+  --gmt-mono: var(--font-ibm-plex-mono), "IBM Plex Mono", ui-monospace, "PingFang SC",
+    "Microsoft YaHei", "Noto Sans CJK SC", Menlo, Consolas, monospace;
+  --cmdbar-h: 34px;
+  --tape-h: 30px;
+  --toolbar-h: 32px;
+  --gap: 8px;
+  --rowh: 84px;
+
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--gmt-mono);
+  font-size: 12px;
+  line-height: 1.65;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+#lab-root *,
+#lab-root *::before,
+#lab-root *::after {
+  box-sizing: border-box;
+}
+#lab-root [hidden] {
+  display: none !important;
+}
+#lab-root ::selection {
+  background: var(--amber);
+  color: #000;
+}
+#lab-root button,
+#lab-root input,
+#lab-root select {
+  font-family: var(--gmt-mono);
+}
+#lab-root button {
+  font-size: 11px;
+  background: none;
+  border: 1px solid var(--line-strong);
+  color: var(--fg);
+  cursor: pointer;
+  padding: 2px 8px;
+  border-radius: 0;
+}
+#lab-root button:hover {
+  border-color: var(--amber);
+  color: var(--amber);
+}
+#lab-root button:focus-visible,
+#lab-root a:focus-visible,
+#lab-root [tabindex]:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 1px;
+}
+#lab-root input[type="search"],
+#lab-root input[type="text"],
+#lab-root select {
+  font-size: 10px;
+  background: #000;
+  color: var(--fg);
+  border: 1px solid var(--line-strong);
+  padding: 2px 6px;
+  border-radius: 0;
+}
+#lab-root input:focus,
+#lab-root select:focus {
+  border-color: var(--amber);
+  outline: none;
+}
+/* 终端内涨跌色覆盖站点全局 .up/.down（ID 特异性更高） */
+#lab-root .up {
+  color: var(--up);
+}
+#lab-root .down {
+  color: var(--down);
+}
+#lab-root .flat {
+  color: var(--flat);
+}
+#lab-root ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+#lab-root ::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+}
+
+/* ---------- 主题反转层：教学卡内容复用站点语义类，在此整体映射为终端深色 ---------- */
+#lab-root .text-muted {
+  color: var(--fg-dim) !important;
+}
+#lab-root .text-foreground {
+  color: var(--fg) !important;
+}
+#lab-root .bg-card {
+  background: var(--bg-panel) !important;
+}
+#lab-root .border-border {
+  border-color: var(--line) !important;
+}
+#lab-root .border-border\/50,
+#lab-root .border-border\/70 {
+  border-color: color-mix(in srgb, var(--line) 60%, transparent) !important;
+}
+#lab-root .text-primary {
+  color: var(--amber) !important;
+}
+#lab-root .bg-primary {
+  background: var(--amber) !important;
+  color: #000 !important;
+}
+#lab-root .bg-primary\/10 {
+  background: var(--amber-bg) !important;
+}
+#lab-root .bg-primary-soft {
+  background: var(--amber-bg) !important;
+  color: var(--amber) !important;
+}
+#lab-root .hover\:bg-primary-soft:hover {
+  background: var(--amber-bg) !important;
+}
+#lab-root .hover\:text-primary:hover {
+  color: var(--amber) !important;
+}
+#lab-root .hover\:bg-border\/60:hover {
+  background: var(--line) !important;
+}
+#lab-root .bg-background\/90 {
+  background: rgba(0, 0, 0, 0.9) !important;
+}
+#lab-root .bg-muted\/30 {
+  background: var(--bg-raise) !important;
+}
+#lab-root .hover\:bg-muted\/30:hover {
+  background: var(--bg-raise) !important;
+}
+/* 浅色底徽章/标签 → 深色等效 */
+#lab-root .bg-red-50 {
+  background: var(--up-deep) !important;
+}
+#lab-root .bg-red-50.text-red-700,
+#lab-root .bg-red-50.text-red-600 {
+  color: #ff8a8c !important;
+}
+#lab-root .bg-emerald-50 {
+  background: var(--down-deep) !important;
+}
+#lab-root .bg-emerald-50.text-emerald-700,
+#lab-root .bg-emerald-50.text-emerald-600 {
+  color: #4ade80 !important;
+}
+#lab-root .bg-border\/50,
+#lab-root .bg-border\/60 {
+  background: var(--line) !important;
+}
+#lab-root .ring-1,
+#lab-root .shadow-sm,
+#lab-root .shadow-md {
+  --tw-shadow-color: #000;
+}
+#lab-root .rounded-lg,
+#lab-root .rounded-md,
+#lab-root .rounded-xl {
+  border-radius: 1px;
+}
+#lab-root .focus\:border-primary\/60:focus,
+#lab-root .focus-within\:border-primary\/60:focus-within {
+  border-color: var(--amber) !important;
+}
+#lab-root .focus\:shadow-\[0_0_0_3px_var\(--ring\)\]:focus,
+#lab-root .focus-within\:shadow-\[0_0_0_3px_var\(--ring\)\]:focus-within {
+  box-shadow: 0 0 0 2px var(--amber-bg) !important;
+}
+#lab-root .divide-y > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--line) !important;
+}
+/* 输入联想下拉 */
+#lab-root .shadow-lg {
+  box-shadow: none !important;
+}
+/* lucide 图标继承文字色即可，无需处理 */
+
+/* ---------- 命令栏 ---------- */
+.gmt-cmdbar {
+  height: var(--cmdbar-h);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: linear-gradient(180deg, #f28c00 0%, #e07f00 100%);
+  color: #000;
+  padding: 0 10px;
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  border-bottom: 1px solid #000;
+}
+.gmt-cmd-left {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  white-space: nowrap;
+}
+.gmt-logo {
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+}
+.gmt-logo b {
+  font-weight: 700;
+  opacity: 0.55;
+}
+.gmt-ver {
+  font-size: 10px;
+  opacity: 0.7;
+}
+.gmt-cmd-mid {
+  display: flex;
+  gap: 6px;
+  margin-left: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.gmt-cmd-mid::-webkit-scrollbar {
+  display: none;
+}
+.gmt-cmd-btn {
+  border: 1px solid rgba(0, 0, 0, 0.45);
+  color: #000;
+  font-weight: 600;
+  font-size: 10px;
+  padding: 1px 7px;
+  background: rgba(0, 0, 0, 0.08);
+  white-space: nowrap;
+}
+.gmt-cmd-btn:hover {
+  background: #000;
+  color: var(--amber);
+  border-color: #000;
+}
+.gmt-cmd-btn[aria-pressed="true"] {
+  background: #000;
+  color: var(--amber);
+  border-color: #000;
+}
+.gmt-cmd-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  white-space: nowrap;
+}
+.gmt-mode-badge {
+  background: #000;
+  color: var(--amber);
+  font-weight: 700;
+  font-size: 10px;
+  padding: 2px 8px;
+  letter-spacing: 1px;
+}
+.gmt-conn {
+  font-size: 10px;
+  font-weight: 600;
+}
+.gmt-clock {
+  font-weight: 700;
+  font-size: 13px;
+  min-width: 9ch;
+  text-align: right;
+}
+
+/* ---------- 跑马灯 ---------- */
+.gmt-tape-wrap {
+  height: var(--tape-h);
+  display: flex;
+  align-items: stretch;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--line-strong);
+  position: sticky;
+  top: var(--cmdbar-h);
+  z-index: 190;
+  overflow: hidden;
+}
+.gmt-tape-ctl {
+  border: none;
+  border-right: 1px solid var(--line-strong);
+  color: var(--amber);
+  font-size: 10px;
+  padding: 0 8px;
+  flex: 0 0 auto;
+}
+.gmt-tape-viewport {
+  overflow: hidden;
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+.gmt-tape {
+  display: flex;
+  white-space: nowrap;
+  will-change: transform;
+  animation: gmt-tape-scroll 90s linear infinite;
+}
+.gmt-tape.paused {
+  animation-play-state: paused;
+}
+.gmt-tape-wrap:hover .gmt-tape {
+  animation-play-state: paused;
+}
+@keyframes gmt-tape-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+.gmt-tape-item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 7px;
+  padding: 0 16px;
+  border-right: 1px solid var(--line);
+  cursor: pointer;
+  font-size: 11px;
+  background: none;
+  border-top: none;
+  border-bottom: none;
+  border-left: none;
+  border-radius: 0;
+}
+.gmt-tape-item:hover {
+  background: var(--amber-bg);
+  color: var(--fg);
+}
+.gmt-tape-item.on {
+  background: var(--amber-bg);
+  color: var(--amber);
+}
+.gmt-tape-item .ts {
+  color: var(--fg-dim);
+  font-weight: 600;
+}
+.gmt-tape-item.on .ts {
+  color: var(--amber);
+}
+.gmt-tape-item .tl,
+.gmt-tape-item .tp {
+  min-width: 7ch;
+  text-align: right;
+}
+
+/* ---------- 工具栏 ---------- */
+.gmt-toolbar {
+  min-height: var(--toolbar-h);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 10px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--line-strong);
+  position: sticky;
+  top: calc(var(--cmdbar-h) + var(--tape-h));
+  z-index: 180;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.gmt-toolbar::-webkit-scrollbar {
+  display: none;
+}
+.gmt-tb-btn {
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  padding: 3px 9px;
+  color: var(--fg-dim);
+  white-space: nowrap;
+}
+.gmt-tb-btn[aria-pressed="true"],
+.gmt-tb-btn.on {
+  background: var(--amber);
+  color: #000;
+  border-color: var(--amber);
+  font-weight: 700;
+}
+.gmt-tb-btn.warn:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+.gmt-tb-label {
+  color: var(--amber);
+  font-size: 10px;
+  font-weight: 600;
+}
+.gmt-tb-sep {
+  width: 1px;
+  height: 16px;
+  background: var(--line-strong);
+  margin: 0 4px;
+  flex: 0 0 auto;
+}
+.gmt-edit-hint {
+  color: var(--amber);
+  font-size: 10px;
+  margin-left: auto;
+  white-space: nowrap;
+}
+.gmt-tb-group {
+  position: relative;
+}
+.gmt-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  background: var(--bg-raise);
+  border: 1px solid var(--amber);
+  min-width: 220px;
+  z-index: 300;
+}
+.gmt-menu button {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid var(--line);
+  padding: 6px 10px;
+  color: var(--fg);
+  text-align: left;
+}
+.gmt-menu button:hover {
+  background: var(--amber-bg);
+  color: var(--amber);
+}
+.gmt-menu button:disabled {
+  color: var(--fg-faint);
+  cursor: default;
+  background: none;
+}
+
+/* ---------- 网格与组件卡 ---------- */
+.gmt-grid {
+  position: relative;
+  padding: var(--gap);
+  min-height: 60vh;
+}
+.gmt-widget {
+  position: absolute;
+  background: var(--bg-panel);
+  border: 1px solid var(--line-strong);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 1px;
+}
+.gmt-widget.min .gmt-w-body {
+  display: none;
+}
+.gmt-widget.zoomed {
+  z-index: 300;
+}
+.gmt-w-head {
+  flex: 0 0 22px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #000;
+  border-bottom: 1px solid var(--line-strong);
+  padding: 0 4px 0 8px;
+  font-size: 10px;
+  user-select: none;
+}
+.gmt-widget.focused .gmt-w-head,
+.gmt-widget.dragging .gmt-w-head {
+  background: var(--amber);
+  color: #000;
+}
+.gmt-w-num {
+  color: var(--amber);
+  font-weight: 700;
+}
+.gmt-widget.focused .gmt-w-num,
+.gmt-widget.dragging .gmt-w-num {
+  color: #000;
+}
+.gmt-w-title {
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.gmt-w-asof {
+  margin-left: auto;
+  color: var(--fg-faint);
+  font-size: 9px;
+  white-space: nowrap;
+}
+.gmt-widget.focused .gmt-w-asof {
+  color: #000;
+}
+.gmt-w-btn {
+  border: none;
+  color: var(--fg-dim);
+  padding: 0 5px;
+  font-size: 10px;
+  line-height: 18px;
+  flex: 0 0 auto;
+}
+.gmt-w-btn:hover {
+  color: var(--amber);
+  background: var(--line);
+}
+.gmt-widget.focused .gmt-w-btn:hover {
+  color: #000;
+  background: rgba(0, 0, 0, 0.2);
+}
+.gmt-w-drag {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: calc(100% - 118px);
+  cursor: default;
+  display: none;
+}
+#lab-root.editing .gmt-w-drag {
+  display: block;
+}
+#lab-root.editing .gmt-widget:not(.locked) .gmt-w-drag {
+  cursor: grab;
+}
+.gmt-w-drag:active {
+  cursor: grabbing;
+}
+.gmt-w-resize {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 16px;
+  height: 16px;
+  cursor: nwse-resize;
+  display: none;
+  z-index: 5;
+  background: linear-gradient(135deg, transparent 50%, var(--amber) 50%);
+}
+#lab-root.editing .gmt-widget:not(.locked) .gmt-w-resize {
+  display: block;
+}
+.gmt-w-order {
+  display: none;
+  gap: 2px;
+}
+#lab-root.editing .gmt-w-order {
+  display: flex;
+}
+.gmt-w-body {
+  flex: 1;
+  overflow: auto;
+  position: relative;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+  display: flex;
+  flex-direction: column;
+}
+.gmt-w-body > * {
+  flex: 0 0 auto;
+}
+.gmt-w-body > .gmt-fill {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.gmt-note {
+  font-size: 9px;
+  color: var(--fg-faint);
+  padding: 3px 8px;
+  border-top: 1px solid var(--line);
+}
+
+/* ---------- 控件行 / chip / 表格 / stat ---------- */
+.gmt-ctl-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-raise);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.gmt-chip {
+  border: 1px solid var(--line-strong);
+  color: var(--fg-dim);
+  font-size: 9px;
+  padding: 1px 7px;
+  letter-spacing: 0.5px;
+}
+.gmt-chip.on {
+  background: var(--amber);
+  color: #000;
+  border-color: var(--amber);
+  font-weight: 700;
+}
+.gmt-chip:hover {
+  border-color: var(--amber);
+  color: var(--amber);
+}
+.gmt-chip.on:hover {
+  color: #000;
+}
+.gmt-search {
+  flex: 1;
+  min-width: 200px;
+  font-size: 11px !important;
+  padding: 3px 8px !important;
+}
+.gmt-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10px;
+}
+.gmt-table td,
+.gmt-table th {
+  border-bottom: 1px solid var(--line);
+  padding: 2px 6px;
+  text-align: right;
+  white-space: nowrap;
+}
+.gmt-table th {
+  color: var(--amber);
+  text-align: left;
+  position: sticky;
+  top: 0;
+  background: #000;
+  font-weight: 600;
+  z-index: 2;
+}
+.gmt-table td:first-child,
+.gmt-table th:first-child {
+  text-align: left;
+}
+.gmt-table tbody tr {
+  cursor: pointer;
+}
+.gmt-table tbody tr:hover {
+  background: var(--amber-bg);
+}
+.gmt-stat-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1px;
+  background: var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.gmt-stat {
+  background: var(--bg-panel);
+  padding: 3px 9px;
+  min-width: 86px;
+  flex: 1 0 auto;
+}
+.gmt-stat .sl {
+  font-size: 8px;
+  color: var(--fg-dim);
+  letter-spacing: 0.5px;
+}
+.gmt-stat .sv {
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.gmt-legend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 9px;
+  color: var(--fg-dim);
+  padding: 3px 8px;
+  border-top: 1px solid var(--line);
+}
+.gmt-legend-bar {
+  width: 110px;
+  height: 8px;
+  border: 1px solid var(--line-strong);
+  background: linear-gradient(90deg, #004d30 0%, #0b2a1b 25%, #141414 50%, #2a0b0c 75%, #5a1416 100%);
+}
+.gmt-empty {
+  color: var(--fg-faint);
+  font-size: 10px;
+  padding: 12px 10px;
+  text-align: center;
+}
+
+/* ---------- 检查器 ---------- */
+.gmt-inspector {
+  position: fixed;
+  top: var(--cmdbar-h);
+  right: 0;
+  bottom: 0;
+  width: 320px;
+  max-width: 88vw;
+  background: var(--bg-panel);
+  border-left: 1px solid var(--amber);
+  z-index: 250;
+  display: flex;
+  flex-direction: column;
+}
+.gmt-insp-head {
+  flex: 0 0 30px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+  background: #000;
+  border-bottom: 1px solid var(--line-strong);
+  color: var(--amber);
+  font-size: 11px;
+  font-weight: 700;
+}
+.gmt-insp-body {
+  flex: 1;
+  overflow: auto;
+  padding: 10px;
+  font-size: 11px;
+  scrollbar-width: thin;
+}
+.gmt-insp-body dt {
+  color: var(--fg-dim);
+  font-size: 9px;
+  letter-spacing: 0.5px;
+  margin-top: 8px;
+}
+.gmt-insp-body dt:first-child {
+  margin-top: 0;
+}
+.gmt-insp-body dd {
+  color: var(--fg);
+  margin: 1px 0 0;
+  word-break: break-all;
+}
+.gmt-insp-body dd.gmt-insp-v {
+  color: var(--amber);
+  font-size: 15px;
+  font-weight: 700;
+}
+.gmt-insp-empty {
+  color: var(--fg-faint);
+  font-size: 10px;
+  line-height: 1.8;
+}
+
+/* ---------- 帮助浮层 ---------- */
+.gmt-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  z-index: 400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.gmt-overlay-box {
+  background: var(--bg-panel);
+  border: 1px solid var(--amber);
+  max-width: 560px;
+  width: 100%;
+  max-height: 86vh;
+  overflow: auto;
+}
+.gmt-overlay-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: #000;
+  border-bottom: 1px solid var(--line-strong);
+  color: var(--amber);
+  font-weight: 700;
+  font-size: 12px;
+}
+.gmt-overlay-body {
+  padding: 12px;
+  font-size: 11px;
+}
+.gmt-kv {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+.gmt-kv td {
+  border-bottom: 1px solid var(--line);
+  padding: 4px 8px;
+}
+.gmt-kv td:first-child {
+  color: var(--amber);
+  font-weight: 600;
+  white-space: nowrap;
+  width: 14ch;
+}
+.gmt-help-note {
+  color: var(--fg-dim);
+  font-size: 10px;
+  margin-top: 10px;
+  line-height: 1.8;
+}
+
+/* ---------- 移动端：线性堆叠 ---------- */
+@media (max-width: 767px) {
+  .gmt-grid {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap);
+  }
+  .gmt-widget {
+    position: static !important;
+    width: 100% !important;
+    height: 420px;
+  }
+  .gmt-widget.min {
+    height: 23px;
+  }
+  .gmt-widget.zoomed {
+    position: fixed !important;
+    inset: var(--cmdbar-h) 0 0 0;
+    width: 100% !important;
+    height: calc(100vh - var(--cmdbar-h)) !important;
+  }
+  .gmt-cmd-mid .gmt-cmd-site {
+    display: none;
+  }
+  .gmt-clock {
+    display: none;
+  }
+}
+@media (min-width: 768px) {
+  .gmt-widget {
+    height: auto;
+  }
+}
