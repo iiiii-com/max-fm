@@ -53,7 +53,7 @@ export default async function MarketIndexes() {
                   </div>
                   <p className="text-xl font-bold font-mono mt-1">{fmt(q.price, 2)}</p>
                   <div className="flex items-center gap-2 mt-1">
-                    <p className={`text-sm font-mono px-1.5 py-0.5 rounded ${up ? "bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-400" : "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400"}`}>
+                    <p className={`text-sm font-mono px-1.5 py-0.5 rounded ${up ? "bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-400" : "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"}`}>
                       {up ? "▲" : "▼"} {q.changePct >= 0 ? "+" : ""}{fmtPct(q.changePct)}　{q.changeAmount >= 0 ? "+" : ""}{fmt(q.changeAmount, 2)}
                     </p>
                   </div>

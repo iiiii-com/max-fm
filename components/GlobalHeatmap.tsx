@@ -20,8 +20,8 @@ interface HeatGroup {
 }
 
 const UP = "#dc2626"; // 涨=红（A股惯例）
-const DOWN = "#16a34a"; // 跌=绿
-const FLAT = "#94a3b8";
+const DOWN = "#15803d"; // 跌=绿（green-700，白底对比度 ≥4.5）
+const FLAT = "#64748b";
 
 /** 简化世界地图市场点位（x/y 为 viewBox 680×340 坐标） */
 const MAP_POINTS: Array<{ name: string; x: number; y: number }> = [

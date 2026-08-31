@@ -49,6 +49,7 @@ export default function SectorFundHistory({ sectors }: { sectors: Sector[] }) {
           <History className="w-3.5 h-3.5" /> 板块主力资金近 10 日
         </span>
         <select
+          aria-label="选择板块"
           value={sel?.code ?? ""}
           onChange={(e) => {
             const s = sectors.find((x) => x.code === e.target.value);

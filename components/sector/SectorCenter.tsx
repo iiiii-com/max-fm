@@ -252,7 +252,7 @@ export default function SectorCenter({ initialBk }: { initialBk?: string }) {
                             onClick={() => toggleExpand(s.code)}
                             className="border-b border-border/50 last:border-0 cursor-pointer"
                           >
-                            <td className="py-1.5 pr-2">
+                            <th scope="row" className="py-1.5 pr-2 text-left font-normal">
                               <div className="flex items-center gap-2">
                                 <span className="text-[10px] text-muted font-mono w-5">{i + 1}</span>
                                 <Link
@@ -276,7 +276,7 @@ export default function SectorCenter({ initialBk }: { initialBk?: string }) {
                                 </button>
                                 <span className={`text-[10px] text-muted transition-transform ${open ? "rotate-90" : ""}`}>▸</span>
                               </div>
-                            </td>
+                            </th>
                             <td className={`text-right px-2 font-mono ${s.changePct >= 0 ? "up" : "down"}`}>
                               {s.changePct >= 0 ? "+" : ""}{s.changePct.toFixed(2)}%
                             </td>

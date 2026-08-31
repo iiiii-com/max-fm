@@ -123,8 +123,8 @@ const KEY_METRICS = [
 ];
 
 const DIR_META: Record<string, { label: string; cls: string }> = {
-  up: { label: "利好/反弹", cls: "bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-400" },
-  down: { label: "利空/回调", cls: "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400" },
+  up: { label: "利好/反弹", cls: "bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-400" },
+  down: { label: "利空/回调", cls: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400" },
 };
 
 export default function BullBearReport() {
