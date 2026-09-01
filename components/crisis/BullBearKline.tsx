@@ -354,8 +354,10 @@ function buildOption(
     xAxis: xAxes,
     yAxis: yAxes,
     dataZoom: [
-      { type: "inside", xAxisIndex: hasMacd ? [0, 1, 2] : [0, 1], start: vRange?.[0] ?? rangeStart, end: vRange?.[1] ?? 100, zoomOnMouseWheel: true, minValueSpan: 2 },
-      { type: "slider", xAxisIndex: hasMacd ? [0, 1, 2] : [0, 1], height: 16, bottom: 4, start: vRange?.[0] ?? rangeStart, end: vRange?.[1] ?? 100, minValueSpan: 2 },
+      /* category 轴下用 minSpan（百分比）而非 minValueSpan（对 category 无效）：
+         0.05% ≈ 4-5 根日K，保证放大上限足够小；maxSpan 100 允许全览 */
+      { type: "inside", xAxisIndex: hasMacd ? [0, 1, 2] : [0, 1], start: vRange?.[0] ?? rangeStart, end: vRange?.[1] ?? 100, zoomOnMouseWheel: true, minSpan: 0.05, maxSpan: 100 },
+      { type: "slider", xAxisIndex: hasMacd ? [0, 1, 2] : [0, 1], height: 16, bottom: 4, start: vRange?.[0] ?? rangeStart, end: vRange?.[1] ?? 100, minSpan: 0.05, maxSpan: 100 },
     ],
     series: [
       {
