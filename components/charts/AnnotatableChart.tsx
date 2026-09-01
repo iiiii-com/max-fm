@@ -39,6 +39,8 @@ interface Props {
   snapBars?: Array<{ high: number; low: number }>;
   /** 额外图表回调 */
   onDataZoom?: (e?: unknown) => void;
+  /** 透传图表实例（外部需要局部更新 series / dispatchAction 时使用，如缩放联动标注） */
+  chartRef?: React.MutableRefObject<echarts.ECharts | null>;
   /** 遮罩说明文案 */
   hint?: string;
 }
@@ -61,9 +63,11 @@ export default function AnnotatableChart({
   storageKey,
   snapBars,
   onDataZoom,
+  chartRef: externalChartRef,
   hint,
 }: Props) {
-  const chartRef = useRef<echarts.ECharts | null>(null);
+  const innerRef = useRef<echarts.ECharts | null>(null);
+  const chartRef = externalChartRef ?? innerRef;
   const [chart, setChart] = useState<echarts.ECharts | null>(null);
   const [activeTool, setActiveTool] = useState<AnnotationTool>("select");
   const [showTip, setShowTip] = useState(true);

@@ -391,17 +391,30 @@ export default function BullBearKline() {
   const [showPct, setShowPct] = useState(true);
   const [pctPos, setPctPos] = useState<"top" | "bottom">("top");
   const [pctFont, setPctFont] = useState(9);
-  // 缩放可视范围（dataZoom start/end 百分比，null=未缩放）：涨跌幅标注随缩放联动，不遗漏任何一根
-  const [vRange, setVRange] = useState<[number, number] | null>(null);
-  const onZoom = useCallback((e?: unknown) => {
-    const ev = e as { batch?: Array<{ start?: number; end?: number }> } | undefined;
-    const b = ev?.batch?.[0];
-    // 始终更新 vRange：快速连续缩放时保持最新可视区间，避免 option 重建重置 dataZoom
-    if (b && typeof b.start === "number" && typeof b.end === "number") {
-      setVRange([b.start as number, b.end as number]);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // 当前可视窗口（start/end 百分比）：只用于缩放时局部更新涨跌幅标注，
+  // 不进入 option 重建 —— dataZoom 完全由 ECharts 内部管理，消除「缩放被 React 重置」的反馈回路
+  const chartRef = useRef<echarts.ECharts | null>(null);
+  const viewRef = useRef<[number, number] | null>(null);
+
+  /** 用当前窗口局部更新「涨跌幅」标注系列（不重建 option，不动 dataZoom，缩放无上限） */
+  const syncPctSeries = useCallback(() => {
+    const chart = chartRef.current;
+    if (!chart) return;
+    const pctSeries = mkPctSeries({ bars: viewBarsRef.current, show: showPct, position: pctPos, fontSize: pctFont, pctRange: viewRef.current });
+    chart.setOption({ series: [{ name: "涨跌幅", ...(pctSeries as any) }] } as any, { notMerge: false });
+  }, [showPct, pctPos, pctFont]);
+
+  const onZoom = useCallback(
+    (e?: unknown) => {
+      const ev = e as { batch?: Array<{ start?: number; end?: number }> } | undefined;
+      const b = ev?.batch?.[0];
+      if (b && typeof b.start === "number" && typeof b.end === "number") {
+        viewRef.current = [b.start, b.end];
+        syncPctSeries();
+      }
+    },
+    [syncPctSeries]
+  );
 
   const toggleIndicator = (k: IndicatorKey) => {
     setIndicators((cur) => (cur.includes(k) ? cur.filter((x) => x !== k) : [...cur, k]));
@@ -412,21 +425,29 @@ export default function BullBearKline() {
     const reliable = BARS.filter((b) => b.date >= "1993-01-04");
     return period === "month" ? aggregateMonthly(reliable) : reliable;
   }, [period]);
+  // bars 的 ref 副本：缩放回调里局部更新标注需要最新 bars
+  const viewBarsRef = useRef(bars);
+  viewBarsRef.current = bars;
 
   // 快速定位：按起始百分比设置 dataZoom（默认全部展示，可一键聚焦近 N 年）
-  const rangeStart = useMemo(() => {
-    if (range === "all") return 0;
-    const cutoff = new Date();
-    cutoff.setFullYear(cutoff.getFullYear() - (range === "5y" ? 5 : range === "10y" ? 10 : 20));
-    const cutoffStr = cutoff.toISOString().slice(0, 10);
-    const idx = bars.findIndex((b) => b.date >= cutoffStr);
-    if (idx <= 0) return 0;
-    return Math.round((idx / bars.length) * 100);
-  }, [range, bars]);
+  const rangeStartFor = useCallback(
+    (k: "all" | "5y" | "10y" | "20y") => {
+      if (k === "all") return 0;
+      const cutoff = new Date();
+      cutoff.setFullYear(cutoff.getFullYear() - (k === "5y" ? 5 : k === "10y" ? 10 : 20));
+      const cutoffStr = cutoff.toISOString().slice(0, 10);
+      const idx = bars.findIndex((b) => b.date >= cutoffStr);
+      if (idx <= 0) return 0;
+      return Math.round((idx / bars.length) * 100);
+    },
+    [bars]
+  );
+  const rangeStart = useMemo(() => rangeStartFor(range), [range, rangeStartFor]);
 
   const option = useMemo(
-    () => buildOption(bars, BULL_BEAR_CYCLES, period, rangeStart, indicators, showSwing, showPct, pctPos, pctFont, vRange),
-    [bars, period, rangeStart, indicators, showSwing, showPct, pctPos, pctFont, vRange]
+    // vRange 已移出 option：dataZoom 由 ECharts 自管，缩放不再重建 option（修复放大受限）
+    () => buildOption(bars, BULL_BEAR_CYCLES, period, rangeStart, indicators, showSwing, showPct, pctPos, pctFont, null),
+    [bars, period, rangeStart, indicators, showSwing, showPct, pctPos, pctFont]
   );
 
   return (
@@ -450,7 +471,21 @@ export default function BullBearKline() {
                 key={k}
                 onClick={() => {
                   setRange(k);
-                  setVRange(null); // 快速定位：重置缩放视窗，让 rangeStart 生效
+                  // 快速定位：dispatchAction 设置 dataZoom（rangeStart 会在 option 重建后应用，
+                  // 这里立即定位避免闪烁）；随后按新窗口更新涨跌幅标注
+                  const chart = chartRef.current;
+                  if (chart && k !== "all") {
+                    const nextStart = rangeStartFor(k);
+                    if (nextStart > 0) {
+                      chart.dispatchAction({ type: "dataZoom", start: nextStart, end: 100 });
+                      viewRef.current = [nextStart, 100];
+                      syncPctSeries();
+                    }
+                  } else if (chart) {
+                    chart.dispatchAction({ type: "dataZoom", start: 0, end: 100 });
+                    viewRef.current = null;
+                    syncPctSeries();
+                  }
                 }}
                 className={`px-2 py-1 ${range === k ? "bg-primary/15 text-primary font-medium" : "text-muted hover:text-foreground"}`}
               >
@@ -464,7 +499,7 @@ export default function BullBearKline() {
                 key={p}
                 onClick={() => {
                   setPeriod(p);
-                  setVRange(null);
+                  viewRef.current = null;
                 }}
                 className={`px-2.5 py-1 ${period === p ? "bg-primary/15 text-primary font-medium" : "text-muted hover:text-foreground"}`}
               >
@@ -558,6 +593,7 @@ export default function BullBearKline() {
         storageKey="bullbear-kline-ann"
         snapBars={bars}
         onDataZoom={onZoom}
+        chartRef={chartRef}
         hint="画线标注：选择工具后在图上拖拽创建；选择模式拖动端点编辑，Del/Backspace 或双击删除；样式面板可调颜色/线型/线宽；开启吸附后端点贴近 K 线最高/最低价；标注自动保存，刷新后恢复，可导出/导入 JSON。"
       />
 
