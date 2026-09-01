@@ -1,57 +1,59 @@
 @import "tailwindcss";
 
-/* ============ 设计 Token：浅色（纸张质感） ============ */
+/* ============ 设计 Token：MX 终端风格（全站统一深色终端） ============
+   复刻 GMT//全球市场终端：黑底 · 琥珀命令色 · 硬边窗口 · 等宽字 · 红涨绿跌
+   两套 token 均为深色（明暗切换改为「暗度」微调，不再回到纸张浅色） */
 :root {
-  --background: #f7f7f5;
-  --foreground: #171717;
-  --card: #ffffff;
-  --surface: #f1f1ee; /* 次级面板 / 表格条纹 / 代码块 */
-  --border: #e5e5e0;
-  --border-strong: #d4d4cd;
-  --muted: #6b6b64;
-  --primary: #c8102e;
-  --primary-dark: #a00d26;
-  --primary-soft: rgba(200, 16, 46, 0.08); /* 主色浅底（激活背景/选中态） */
-  --up: #d7000b;
-  --down: #0aa06e;
-  --accent: #b45309; /* 琥珀警示/标注 */
-  --accent-soft: rgba(180, 83, 9, 0.09);
-  --ring: rgba(200, 16, 46, 0.28); /* 焦点环 */
+  --background: #050505; /* 页面底 */
+  --foreground: #d7d7d7; /* 主文字 */
+  --card: #0a0a0a; /* 卡片 / 面板 */
+  --surface: #141414; /* 次级面板 / 表格条纹 / 代码块 */
+  --border: #292929;
+  --border-strong: #3a3a3a;
+  --muted: #8a8a8a; /* 次要文字（黑底对比度 4.6:1） */
+  --primary: #f28c00; /* 终端琥珀 */
+  --primary-dark: #b26a00;
+  --primary-soft: rgba(242, 140, 0, 0.12); /* 激活 / 选中底 */
+  --up: #ff4d4f; /* 涨 = 红（A 股惯例） */
+  --down: #00c176; /* 跌 = 绿 */
+  --accent: #f28c00; /* 警示 / 标注 */
+  --accent-soft: rgba(242, 140, 0, 0.1);
+  --ring: rgba(242, 140, 0, 0.35); /* 焦点环 */
 
-  /* 阴影（浅色下用低透明度黑） */
-  --shadow-xs: 0 1px 2px rgba(23, 23, 20, 0.05);
-  --shadow-sm: 0 1px 3px rgba(23, 23, 20, 0.06), 0 1px 2px rgba(23, 23, 20, 0.04);
-  --shadow-md: 0 4px 14px rgba(23, 23, 20, 0.08), 0 2px 4px rgba(23, 23, 20, 0.05);
-  --shadow-lg: 0 14px 36px rgba(23, 23, 20, 0.12), 0 4px 10px rgba(23, 23, 20, 0.06);
+  /* 终端为硬边窗口：阴影仅保留极淡的层次，视觉主要靠 1px 边框 */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.55);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.65);
 
-  /* 圆角 */
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
+  /* 圆角：硬边（1px 微圆角，与终端窗口一致） */
+  --radius-sm: 1px;
+  --radius-md: 1px;
+  --radius-lg: 1px;
 }
 
-/* ============ 设计 Token：深色（OLED 终端） ============ */
+/* ============ 设计 Token：终端深色（更沉的底，明暗切换仍可用） ============ */
 .dark {
-  --background: #101014;
-  --foreground: #e8e8e6;
-  --card: #18181d;
-  --surface: #14141a;
-  --border: #2a2a31;
-  --border-strong: #3c3c46;
-  --muted: #9a9aa2;
-  --primary: #e84a5f;
-  --primary-dark: #c8102e;
-  --primary-soft: rgba(232, 74, 95, 0.12);
-  --up: #ff5252;
-  --down: #2fd39a;
-  --accent: #d99a4e;
-  --accent-soft: rgba(217, 154, 78, 0.12);
-  --ring: rgba(232, 74, 95, 0.4);
+  --background: #000000;
+  --foreground: #d7d7d7;
+  --card: #050505;
+  --surface: #101010;
+  --border: #292929;
+  --border-strong: #3a3a3a;
+  --muted: #8a8a8a;
+  --primary: #f28c00;
+  --primary-dark: #b26a00;
+  --primary-soft: rgba(242, 140, 0, 0.14);
+  --up: #ff4d4f;
+  --down: #00c176;
+  --accent: #f28c00;
+  --accent-soft: rgba(242, 140, 0, 0.12);
+  --ring: rgba(242, 140, 0, 0.4);
 
-  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.35);
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.45), 0 2px 4px rgba(0, 0, 0, 0.3);
-  --shadow-lg: 0 14px 36px rgba(0, 0, 0, 0.55), 0 4px 10px rgba(0, 0, 0, 0.35);
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.6);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.65);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.7);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.75);
 }
 
 @theme inline {
@@ -77,8 +79,9 @@
   --radius-sm: var(--radius-sm);
   --radius-md: var(--radius-md);
   --radius-lg: var(--radius-lg);
-  --font-sans: var(--font-geist-sans), "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
-  --font-mono: var(--font-geist-mono), "JetBrains Mono", Consolas, monospace;
+  /* 终端等宽字体：拉丁/数字用 IBM Plex Mono，中文回退系统黑体（与 K 线实验室一致） */
+  --font-sans: var(--font-ibm-plex-mono), "IBM Plex Mono", ui-monospace, "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+  --font-mono: var(--font-ibm-plex-mono), "IBM Plex Mono", ui-monospace, "JetBrains Mono", Consolas, monospace;
 }
 
 body {
@@ -163,28 +166,28 @@ a:active,
 .up { color: var(--up); }
 .down { color: var(--down); }
 
-/* ============ 组件基础样式 ============ */
+/* ============ 组件基础样式（终端化） ============ */
 
-/* 卡片：细边框 + 微阴影 + 克制的悬停提升（配合 hover:shadow 类使用） */
+/* 卡片：硬边窗口 —— 1px 边框 + 纯色底，无圆角无阴影层次 */
 .card {
   background: var(--card);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-xs);
+  box-shadow: none;
 }
 .card-hover {
-  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
 }
 .card-hover:hover {
-  box-shadow: var(--shadow-md);
-  border-color: var(--border-strong);
+  border-color: var(--primary);
+  background: var(--primary-soft);
 }
 
-/* 输入框 */
+/* 输入框：黑底 + 琥珀聚焦边 */
 .input {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  background: #000;
+  border: 1px solid var(--border-strong);
+  border-radius: 1px;
   padding: 0.5rem 0.75rem;
   font-size: 0.875rem;
   color: var(--foreground);
@@ -194,14 +197,17 @@ a:active,
 .input:focus {
   outline: none;
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px var(--ring);
+  box-shadow: 0 0 0 2px var(--ring);
+}
+.input::placeholder {
+  color: var(--muted);
 }
 
-/* 键盘可达性：统一的焦点环（视觉设计上不依赖颜色单一指示） */
+/* 键盘可达性：统一的琥珀焦点环 */
 :focus-visible {
   outline: 2px solid var(--primary);
-  outline-offset: 2px;
-  border-radius: 2px;
+  outline-offset: 1px;
+  border-radius: 1px;
 }
 
 /* 表格：条纹 + 行悬停 + 等宽数字（配合 .table-stripe 使用） */
@@ -215,10 +221,61 @@ a:active,
   background: var(--primary-soft);
 }
 
-/* 文本选中品牌色 */
+/* 文本选中：琥珀底黑字（终端惯例） */
 ::selection {
   background: var(--primary);
-  color: #fff;
+  color: #000;
+}
+
+/* ---------- 终端适配层：把残留的浅色语义类映射为深色等效 ----------
+   仅改配色，不改结构与内容；避免换肤后白底/深色字不可读 */
+/* 浅底标签 → 深底亮字（原 bg-*-50 + text-*-600/700 组合） */
+.bg-red-50, .bg-red-100 { background-color: #5a1416 !important; }
+.bg-emerald-50, .bg-green-50 { background-color: #004d30 !important; }
+.bg-amber-50, .bg-yellow-50, .bg-orange-50 { background-color: #4a2f00 !important; }
+.bg-sky-50, .bg-blue-50, .bg-cyan-50 { background-color: #06303a !important; }
+.bg-violet-50, .bg-purple-50, .bg-indigo-50 { background-color: #2a1a4a !important; }
+.bg-gray-50, .bg-slate-50, .bg-zinc-50, .bg-neutral-50 { background-color: var(--surface) !important; }
+/* 深色文字 → 提亮（黑底上 600/700/800/900 级色不可读） */
+.text-red-600, .text-red-700, .text-red-800, .text-red-900,
+.text-rose-600, .text-rose-700 { color: #ff8a8c !important; }
+.text-emerald-600, .text-emerald-700, .text-emerald-800,
+.text-green-600, .text-green-700, .text-green-800 { color: #4ade80 !important; }
+.text-amber-600, .text-amber-700, .text-amber-800,
+.text-yellow-600, .text-yellow-700, .text-orange-600, .text-orange-700 { color: #fbbf24 !important; }
+.text-sky-600, .text-sky-700, .text-blue-600, .text-blue-700,
+.text-cyan-600, .text-cyan-700 { color: #67d8e8 !important; }
+.text-violet-600, .text-violet-700, .text-purple-600, .text-purple-700,
+.text-indigo-600, .text-indigo-700 { color: #b39ddb !important; }
+.text-gray-600, .text-gray-700, .text-slate-600, .text-slate-700,
+.text-zinc-600, .text-zinc-700, .text-neutral-600, .text-neutral-700 { color: var(--muted) !important; }
+/* 白底 / 白字 */
+.bg-white { background-color: var(--card) !important; }
+.text-black { color: #000 !important; }
+/* 主色（琥珀）底上的白字 → 黑字：琥珀 #F28C00 上白字对比度仅 2.9，黑字 8.1 */
+.bg-primary.text-white,
+.bg-primary .text-white,
+.bg-primary-dark .text-white,
+.from-primary .text-white,
+.to-primary-dark .text-white,
+.bg-gradient-to-r.from-primary .text-white { color: #000 !important; }
+/* 半透明黑底（遮罩/渐隐）在深色下加亮，避免糊成一团 */
+.bg-black\/20, .bg-black\/30, .bg-black\/40, .bg-black\/50, .bg-black\/60 {
+  background-color: rgba(0, 0, 0, 0.72) !important;
+}
+/* 半透明白底（Hero 玻璃感等）在深色下改为主色微光，保留层次不刺眼 */
+.bg-white\/5, .bg-white\/10, .bg-white\/15, .bg-white\/20, .bg-white\/25 {
+  background-color: rgba(242, 140, 0, 0.12) !important;
+}
+/* 强调色实心徽章（400/500 级亮底）上的白字 → 黑字：终端惯例的高对比标签 */
+[class*="-400"].text-white, [class*="-500"].text-white,
+[class*="-400"] .text-white, [class*="-500"] .text-white,
+[class*="-400"] .font-black, [class*="-500"] .font-black {
+  color: #000 !important;
+}
+/* 低透明度次要文字提亮：原本为浅色底设计的 /40~/70 在黑底上过淡 */
+.text-muted\/40, .text-muted\/50, .text-muted\/60, .text-muted\/70, .text-muted\/80 {
+  color: color-mix(in srgb, var(--muted) 85%, transparent) !important;
 }
 
 /* 桌面滚动条细化（WebKit） */

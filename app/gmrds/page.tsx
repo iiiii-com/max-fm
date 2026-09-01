@@ -113,7 +113,7 @@ export default function GmrdsPage() {
                 <div key={step.no} className="relative rounded-lg border border-border p-3 bg-background/60 hover:border-primary/40 transition-colors">
                   <div className="flex items-start gap-2.5">
                     <span
-                      className="flex items-center justify-center w-6 h-6 rounded-full text-[11px] font-bold text-white shrink-0"
+                      className="flex items-center justify-center w-6 h-6 rounded-full text-[11px] font-bold text-black shrink-0"
                       style={{ background: stageColor }}
                     >
                       {step.no}

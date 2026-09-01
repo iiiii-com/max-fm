@@ -32,13 +32,12 @@ export default function EChart({
   // 初始化只需一次；option 更新由下方 effect 处理
   useEffect(() => {
     if (!ref.current) return;
-    // K线实验室终端（#lab-root）内强制走 ECharts dark 主题：黑底浅字与终端视觉一致
-    const inLab = !!ref.current.closest?.("#lab-root");
-    const useDark = theme === "dark" || inLab;
+    // 全站终端风格：图表统一走 ECharts dark 主题（黑底浅字，与终端视觉一致）
+    const useDark = true;
     const chart = echarts.init(ref.current, useDark ? "dark" : undefined);
     innerRef.current = chart;
     if (chartRef) chartRef.current = chart;
-    // dark 主题自带深色画布底，终端卡片需要透明以露出 --bg-panel
+    // dark 主题自带深蓝紫画布底，终端风格需要透明以露出卡片底色
     chart.setOption(useDark ? { backgroundColor: "transparent", ...option } : option);
     const onResize = () => chart.resize();
     window.addEventListener("resize", onResize);

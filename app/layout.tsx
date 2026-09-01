@@ -32,8 +32,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f7f7f5" },
-    { media: "(prefers-color-scheme: dark)", color: "#101014" },
+    { media: "(prefers-color-scheme: light)", color: "#050505" },
+    { media: "(prefers-color-scheme: dark)", color: "#000000" },
   ],
 };
 
@@ -44,7 +44,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body className="min-h-full flex flex-col bg-background text-foreground overflow-x-clip">
         {/* 主题初始化：next/script beforeInteractive 输出到 head，防首屏闪烁且不触发 React 组件内 script 警告 */}
         <Script id="theme-init" strategy="beforeInteractive">
-          {`try{var t=localStorage.getItem('max-theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.classList.add('dark')}catch(e){}`}
+          {`try{var t=localStorage.getItem('max-theme');if(t!=='light')document.documentElement.classList.add('dark')}catch(e){}`}
         </Script>
         {/* 无障碍：键盘用户可跳过导航直达主内容 */}
         <a
