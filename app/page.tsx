@@ -134,7 +134,7 @@ export default async function Home() {
               { href: "/industry?tab=chains", label: "产业链列表" },
             ]} />
           </BoardCard>
-          <BoardCard href="/history" title="历史演进" desc="时间线 · 康波全景 · 朝代对照 · 危机重演" accent="bg-emerald-600" icon={<History className="w-4.5 h-4.5" />}>
+          <BoardCard href="/history" title="历史演进" desc="牛熊周期 · 康波全景 · 历史时间线" accent="bg-emerald-600" icon={<History className="w-4.5 h-4.5" />}>
             <p className="mb-2.5 text-xs text-muted">{HISTORY_EVENTS.length} 条事件 · {crisisCount} 场危机重演</p>
             <QuickLinks links={[
               { href: "/history", label: "历史时间线" },

@@ -130,7 +130,7 @@ export default function HistoryAxis({
         type: "category",
         data: regionRows.map((r) => REGION_LABEL[r]),
         axisLabel: { fontSize: 11 },
-        splitLine: { show: true, lineStyle: { color: "#e5e5e0", type: "dashed" } },
+        splitLine: { show: true, lineStyle: { color: "#292929", type: "dashed" } },
       },
       dataZoom: [
         { type: "inside", filterMode: "none", zoomOnMouseWheel: true },

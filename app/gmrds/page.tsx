@@ -2,11 +2,15 @@ import Link from "next/link";
 import {
   Globe, Landmark, Droplets, Waves, Network, Building2, Scale, CandlestickChart,
   Calculator, PieChart, Shield, Sparkles, ArrowRight, GitBranch, Rocket, Workflow,
-  Database, FlaskConical, Users, Layers,
+  Database, FlaskConical, Users, Layers, TrendingUp, TestTubes, Activity, LineChart,
 } from "lucide-react";
 import { Card } from "@/components/ui";
 import { ACADEMIES, DECISION_FLOW, FLOW_STAGES, ROADMAP, INTEGRATION_PILLARS, academyBySlug } from "@/lib/data/gmrds";
 import FlowCycle from "@/components/gmrds/FlowCycle";
+import { getRecentAggregated } from "@/lib/data/queries";
+import { fetchSectors } from "@/lib/data/quotes";
+import { fmtDate } from "@/lib/utils";
+import { bootstrap } from "@/lib/db";
 
 const DEEP_ENTRIES = [
   { href: "/gmrds/governance", icon: Users, title: "治理架构", desc: "十二学院 + 决策委员会 · 职责分工 / 组织边界 / 协作机制" },
@@ -34,7 +38,16 @@ const ICONS: Record<string, typeof Globe> = {
 
 export const metadata = { title: "研究体系 GMRDS" };
 
-export default function GmrdsPage() {
+export default async function GmrdsPage() {
+  await bootstrap();
+  const [agg, sectors] = await Promise.all([getRecentAggregated(), fetchSectors().catch(() => [])]);
+  const macroCards = [
+    { label: "GDP 同比", value: agg.latestGdp, unit: "%", key: "gdp" },
+    { label: "CPI 同比", value: agg.latestCpi, unit: "%", key: "cpi" },
+    { label: "制造业 PMI", value: agg.latestPmi, unit: "", key: "pmi" },
+    { label: "M2 同比", value: agg.latestM2, unit: "%", key: "m2" },
+  ];
+  const topSectors = [...sectors].sort((a, b) => b.changePct - a.changePct).slice(0, 5);
   return (
     <div className="mx-auto max-w-7xl px-3 sm:px-4 py-5 sm:py-6 space-y-8">
       {/* Hero */}
@@ -58,6 +71,91 @@ export default function GmrdsPage() {
           </Link>
           <Link href="/gmrds/roadmap" className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border text-xs font-medium hover:border-primary/50">
             <Rocket className="w-3.5 h-3.5" /> 迭代路线图
+          </Link>
+        </div>
+      </section>
+
+      {/* 真实数据 · 决策链实证：用当前市场真实数据把「宏观 → 行业 → 标的」走一遍 */}
+      <section>
+        <SectionTitle
+          title="决策链 · 今日实证"
+          desc="体系不是空转：以下全部为当前真实行情与宏观数据，逐一对应研究体系的输入环节"
+          extra={
+            <Link href="/lab" className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-primary text-primary text-xs font-medium hover:bg-primary/10 transition-colors">
+              <TestTubes className="w-3.5 h-3.5" /> 到 K线实验室实操
+            </Link>
+          }
+        />
+        {/* 阶段一：宏观环境（环境学院输入） */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+          {macroCards.map((m) => (
+            <Link key={m.key} href={`/macro#${m.key === "pmi" ? "pmi" : "gdp"}`} className="group">
+              <Card className="p-3.5 h-full transition-all group-hover:border-primary/40">
+                <p className="text-[10px] text-muted font-semibold tracking-wider">STAGE 1 · 宏观环境</p>
+                <p className="text-xs text-muted mt-1">{m.label}</p>
+                <p className={`font-mono font-bold text-xl mt-0.5 ${m.key === "cpi" && (m.value ?? 0) > 3 ? "up" : m.key === "pmi" && (m.value ?? 50) < 50 ? "down" : ""}`}>
+                  {m.value?.toFixed?.(1) ?? "—"}
+                  <span className="text-xs font-normal text-muted ml-0.5">{m.unit}</span>
+                </p>
+                <p className="text-[10px] text-muted/70 mt-1">真实数据 · 点击看趋势</p>
+              </Card>
+            </Link>
+          ))}
+        </div>
+        {/* 阶段二：行业景气（行业学院输入） */}
+        <Card className="p-4 mb-3">
+          <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+            <p className="text-xs font-bold text-muted tracking-wider">STAGE 2 · 行业景气 — 今日领涨板块（真实行情）</p>
+            <Link href="/sector" className="text-xs text-primary hover:underline">板块中心 →</Link>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {topSectors.map((s) => (
+              <Link
+                key={s.code}
+                href={`/sector?bk=${s.code}`}
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md border border-border text-xs hover:border-primary/50 transition-colors"
+              >
+                <span className="font-medium">{s.name}</span>
+                <span className={`font-mono font-bold ${s.changePct >= 0 ? "up" : "down"}`}>
+                  {s.changePct >= 0 ? "+" : ""}
+                  {s.changePct.toFixed(2)}%
+                </span>
+              </Link>
+            ))}
+            {!topSectors.length && <span className="text-xs text-muted">板块行情源暂缺 · 稍后自动恢复</span>}
+          </div>
+        </Card>
+        {/* 阶段三/四：标的与执行（标的研究学院 + 策略学院输入） */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <Link href="/lab" className="group">
+            <Card className="p-4 h-full transition-all group-hover:border-primary/40">
+              <div className="flex items-center gap-2 mb-1">
+                <TestTubes className="w-4 h-4 text-primary" />
+                <p className="text-xs font-bold text-muted tracking-wider">STAGE 3 · 标的研究</p>
+              </div>
+              <p className="font-bold text-sm">任意 A 股 / 指数 · 真实 K 线与财报</p>
+              <p className="text-xs text-muted mt-1 leading-relaxed">形态识别 / 财务雷达 / 估值区间 / 技术位 —— 与今日行情同步的实操工具</p>
+            </Card>
+          </Link>
+          <Link href="/gmrds/scorecard" className="group">
+            <Card className="p-4 h-full transition-all group-hover:border-primary/40">
+              <div className="flex items-center gap-2 mb-1">
+                <Activity className="w-4 h-4 text-primary" />
+                <p className="text-xs font-bold text-muted tracking-wider">STAGE 3 · 量化评分</p>
+              </div>
+              <p className="font-bold text-sm">多因子评分卡 · 输入 / 权重 / 输出透明</p>
+              <p className="text-xs text-muted mt-1 leading-relaxed">估值、动量、质量、情绪四维评分 —— 判断标准全部公开可复算</p>
+            </Card>
+          </Link>
+          <Link href="/history" className="group">
+            <Card className="p-4 h-full transition-all group-hover:border-primary/40">
+              <div className="flex items-center gap-2 mb-1">
+                <LineChart className="w-4 h-4 text-primary" />
+                <p className="text-xs font-bold text-muted tracking-wider">STAGE 4 · 周期定位</p>
+              </div>
+              <p className="font-bold text-sm">牛熊周期 × 康波位置 · 以史为鉴</p>
+              <p className="text-xs text-muted mt-1 leading-relaxed">21 轮 A 股牛熊对比 + 六波康波波浪图 —— 给决策一个时间维度</p>
+            </Card>
           </Link>
         </div>
       </section>
@@ -294,11 +392,14 @@ export default function GmrdsPage() {
   );
 }
 
-function SectionTitle({ id, title, desc }: { id?: string; title: string; desc?: string }) {
+function SectionTitle({ id, title, desc, extra }: { id?: string; title: string; desc?: string; extra?: React.ReactNode }) {
   return (
-    <div id={id} className="mb-3">
-      <h2 className="font-bold text-lg tracking-tight">{title}</h2>
-      {desc && <p className="text-xs text-muted mt-0.5">{desc}</p>}
+    <div id={id} className="mb-3 flex items-end justify-between gap-3 flex-wrap">
+      <div>
+        <h2 className="font-bold text-lg tracking-tight">{title}</h2>
+        {desc && <p className="text-xs text-muted mt-0.5">{desc}</p>}
+      </div>
+      {extra}
     </div>
   );
 }

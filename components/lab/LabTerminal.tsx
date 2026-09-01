@@ -9,6 +9,7 @@
    全部数据基于真实行情与财报接口，严禁虚构。
    ============================================================ */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { RefreshCw, Search } from "lucide-react";
 import "./terminal.css";
 import GmtCard from "./GmtCard";
@@ -132,9 +133,22 @@ const CARD_LABELS: Record<string, string> = {
 
 const toSecid = (code: string) => (/^\d{6}$/.test(code) ? `${code.startsWith("6") ? "1" : "0"}.${code}` : code);
 
+/** 已知指数代码（用于 kind 判定：财报/估值模块需区分指数与个股） */
+const INDEX_CODES_REF = new Set(["000001", "399001", "399006", "000300", "000905", "000688", "000016", "399005", "000852"]);
+
 export default function LabTerminal() {
   // ---- 标的与数据（原 LabPage 状态逻辑） ----
-  const [symbol, setSymbol] = useState<SymbolSel>(QUICK[0]);
+  // 支持 /lab?secid=1.600519&name=贵州茅台 预选标的（跨板块互通：从板块中心/个股页带上下文进入）
+  const searchParams = useSearchParams();
+  const [symbol, setSymbol] = useState<SymbolSel>(() => {
+    const secid = searchParams.get("secid")?.trim();
+    if (secid && /^\d+\.\w+$/.test(secid)) {
+      const name = searchParams.get("name")?.trim() || secid;
+      const code = secid.split(".")[1] ?? "";
+      return { secid, name, kind: INDEX_CODES_REF.has(code) ? "index" : "stock" };
+    }
+    return QUICK[0];
+  });
   const [period, setPeriod] = useState<Period>("day");
   const [bars, setBars] = useState<LabBar[]>([]);
   const [loading, setLoading] = useState(true);
@@ -185,7 +199,9 @@ export default function LabTerminal() {
         if (Array.isArray(j?.klines) && j.klines.length) {
           setBars(j.klines);
           setAsOf(j.klines[j.klines.length - 1].date);
-          if (j.name && j.name !== symbol.secid) setSymbol((s) => ({ ...s, name: j.name }));
+          // API 返回的 name 可能是代码形式（sh601318/601318），此时保留用户传入的中文名
+          if (j.name && !/^[a-z]{1,3}\d{6}$/i.test(String(j.name)) && j.name !== symbol.secid)
+            setSymbol((s) => ({ ...s, name: j.name }));
         } else {
           setBars([]);
           setErr(j?.error ?? "K 线数据暂不可用，请重试");
@@ -332,15 +348,12 @@ export default function LabTerminal() {
     }, [])
   );
 
-  /** 已知指数代码（用于 kind 判定：财报/估值模块需区分指数与个股） */
-  const INDEX_CODES = new Set(["000001", "399001", "399006", "000300", "000905", "000688", "000016", "399005", "000852"]);
-
   /** 跑马灯点击联动：仅 A 股代码（6 位数字）可下钻为教学标的，
    *  全球指数（DJI/HSI…）与板块（BK…）仅作行情参考——其财报/估值为不同口径，切进去会报参数错误 */
   const onTapePick = useCallback((tq: TapeQuote) => {
     const code = tq.code;
     if (!/^\d{6}$/.test(code)) return;
-    setSymbol({ secid: toSecid(code), name: tq.name, kind: INDEX_CODES.has(code) ? "index" : "stock" });
+    setSymbol({ secid: toSecid(code), name: tq.name, kind: INDEX_CODES_REF.has(code) ? "index" : "stock" });
   }, []);
 
   const periodBtn = (p: Period, label: string) => (

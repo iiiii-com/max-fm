@@ -31,7 +31,7 @@ export const METRICS = [
   { type: "loans", name: "新增人民币贷款", unit: "万亿" },
   { type: "gold", name: "伦敦金现货", unit: "美元/盎司" },
   { type: "carsales", name: "乘用车零售销量", unit: "万辆" },
-].map((m) => ({ ...m, color: MACRO_METRIC_COLORS[m.type] ?? "#171717" }));
+].map((m) => ({ ...m, color: MACRO_METRIC_COLORS[m.type] ?? "#d7d7d7" }));
 
 export default function CompareTool() {
   const [a, setA] = useState("gdp");
@@ -97,7 +97,7 @@ export default function CompareTool() {
         {
           type: log && canLog ? "log" : "value", scale: true, name: `${metaA.name}(${metaA.unit || "-"})`,
           nameTextStyle: { fontSize: 10 }, axisLabel: { fontSize: 10 },
-          splitLine: { lineStyle: { color: "#e5e5e0", type: "dashed" } },
+          splitLine: { lineStyle: { color: "#292929", type: "dashed" } },
         },
         {
           type: log && canLog ? "log" : "value", scale: true, name: `${metaB.name}(${metaB.unit || "-"})`,

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { TestTubes } from "lucide-react";
 import { fetchQuotes, fetchGlobalQuotes } from "@/lib/data/quotes";
 import { getArticles } from "@/lib/data/queries";
 import { SectionTitle, Badge, AIFlag } from "@/components/ui";
@@ -35,6 +36,16 @@ export default async function MarketIndexes() {
 
   return (
     <div className="space-y-8">
+      {/* 跨板块互通：行情 → 教学实操（携带上证指数上下文进入 K线实验室） */}
+      <div className="flex items-center gap-2 flex-wrap text-xs">
+        <Link
+          href="/lab?secid=1.000001&name=上证指数"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-primary text-primary font-medium hover:bg-primary/10 transition-colors"
+        >
+          <TestTubes className="w-3.5 h-3.5" /> 到 K线实验室 · 任意标的教学实操
+        </Link>
+        <Link href="/lab" className="text-muted hover:text-primary underline underline-offset-2">切换任意股票 / 指数</Link>
+      </div>
       <section>
         <SectionTitle title="核心指数" sub="A 股主要指数 + 恒生指数实时行情 · 悬停看详情 · 点击卡片直达个股行情" />
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">

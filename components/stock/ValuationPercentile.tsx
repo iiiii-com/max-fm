@@ -36,7 +36,7 @@ export default function ValuationPercentile({ secid, name }: { secid: string; na
     tooltip: { trigger: "axis", backgroundColor: "rgba(255,255,255,0.96)", borderColor: "#cbd5e1", textStyle: { color: "#1e293b", fontSize: 11 }, formatter: (p: any) => { const i = Array.isArray(p) ? p[0]?.dataIndex ?? 0 : 0; const pt = d.series?.[i]; return pt ? `<b>${pt.date}</b><br/>PE(TTM) ${pt.pe}` : ""; } },
     grid: { left: 46, right: 16, top: 30, bottom: 26 },
     xAxis: { type: "category", data: d.series?.map((p) => p.date) ?? [], axisLabel: { fontSize: 8, interval: Math.floor((d.series?.length ?? 1) / 5) } },
-    yAxis: { type: "value", scale: true, axisLabel: { fontSize: 9 }, splitLine: { lineStyle: { color: "#e5e5e0", type: "dashed" } } },
+    yAxis: { type: "value", scale: true, axisLabel: { fontSize: 9 }, splitLine: { lineStyle: { color: "#292929", type: "dashed" } } },
     series: [
       {
         name: "PE(TTM)", type: "line", data: d.series?.map((p) => p.pe) ?? [], showSymbol: false, lineStyle: { width: 1.4, color: "#3b82f6" },

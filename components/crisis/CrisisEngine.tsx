@@ -144,7 +144,7 @@ function mkCandleOption(bars: Bar[], opts: { markData?: any[]; markArea?: any[];
       {
         type: "value", scale: true, gridIndex: 0,
         axisLabel: { fontSize: 10 },
-        splitLine: { lineStyle: { color: "#e5e5e0", type: "dashed" } },
+        splitLine: { lineStyle: { color: "#292929", type: "dashed" } },
       },
       { type: "value", gridIndex: 1, axisLabel: { fontSize: 9 }, splitLine: { show: false } },
     ],
@@ -427,7 +427,7 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
       },
       yAxis: {
         type: "value", scale: true,
-        splitLine: { lineStyle: { color: "#e5e5e0", type: "dashed" } },
+        splitLine: { lineStyle: { color: "#292929", type: "dashed" } },
         axisLabel: { fontSize: 9 },
       },
       series: [{
@@ -609,7 +609,7 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
       xAxis: { type: "category", data: dates, axisLabel: { fontSize: 9, rotate: 30 } },
       yAxis: {
         type: "value", scale: true,
-        splitLine: { lineStyle: { color: "#e5e5e0", type: "dashed" } },
+        splitLine: { lineStyle: { color: "#292929", type: "dashed" } },
       },
       series: seriesData.map((s) => ({
         name: s.name, type: "line" as const, data: s.data, smooth: true,
@@ -644,7 +644,7 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
       xAxis: { type: "category", data: dates, axisLabel: { fontSize: 9, rotate: 30 } },
       yAxis: {
         type: "value", scale: true, axisLabel: { fontSize: 9 },
-        splitLine: { lineStyle: { color: "#e5e5e0", type: "dashed" } },
+        splitLine: { lineStyle: { color: "#292929", type: "dashed" } },
       },
       series: [
         { name: "你", type: "line", data: player, smooth: true, symbol: "circle", symbolSize: 5, lineStyle: { color: "#c8102e", width: 2 }, itemStyle: { color: "#c8102e" } },
@@ -831,7 +831,7 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
       xAxis: { type: "category", data: dates, axisLabel: { fontSize: 9, rotate: 30 } },
       yAxis: {
         type: "value", scale: true,
-        splitLine: { lineStyle: { color: "#e5e5e0", type: "dashed" } },
+        splitLine: { lineStyle: { color: "#292929", type: "dashed" } },
       },
       series: [
         {
@@ -1314,7 +1314,7 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
                         <span className="text-[10px] font-semibold" style={{ color: s.color }}>{s.label} {s.pct}</span>
                         <span className="text-[10px] text-muted">恐慌</span>
                       </div>
-                      <div className="relative h-1.5 rounded-full" style={{ background: "linear-gradient(to right, #c8102e, #e5e5e0 50%, #dc2626)" }}>
+                      <div className="relative h-1.5 rounded-full" style={{ background: "linear-gradient(to right, #c8102e, #292929 50%, #dc2626)" }}>
                         <span
                           className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full border-2 border-white shadow-sm transition-all duration-300"
                           style={{ left: `${s.pct}%`, background: s.color, transform: "translate(-50%, -50%)" }}

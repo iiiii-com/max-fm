@@ -1,8 +1,8 @@
 /**
- * 编辑风图表色板（Design Tokens）
+ * 终端风图表色板（Design Tokens）
  *
- * 全站图表统一的「人文编辑风」配色：以站点主红 #c8102e 为轴，
- * 辅以纸质刊物质感的中低饱和色系，避免 Tailwind 默认蓝等 AI 模板色。
+ * 全站图表统一「终端」配色：黑底可读的中高亮度色系，
+ * 以站点主琥珀 #F28C00 为轴，避免荧光刺眼与 AI 模板默认蓝。
  *
  * 用法：
  *  - 单指标图：MACRO_METRIC_COLORS[type] ?? CHART_COLORS[0]
@@ -11,69 +11,69 @@
  */
 
 export const EDITORIAL = {
-  /** 主红（站点品牌色，兼涨色） */
-  primary: "#c8102e",
-  /** 墨黑（正文/主序列） */
-  ink: "#171717",
-  /** 墨灰（次级文字/坐标轴） */
-  muted: "#6b6b64",
-  /** 浅灰（网格线，浅色主题） */
-  gridLine: "#e5e5e0",
+  /** 琥珀（站点主色，兼强调） */
+  primary: "#f28c00",
+  /** 亮灰白（正文/主序列） */
+  ink: "#d7d7d7",
+  /** 中灰（次级文字/坐标轴） */
+  muted: "#8a8a8a",
+  /** 深灰（网格线，深色主题） */
+  gridLine: "#292929",
   /** 虚线灰（均值线等） */
-  faint: "#a3a3a3",
-  /** 涨 / 跌（中国习惯红涨绿跌） */
-  up: "#c8102e",
-  down: "#0f8a5f",
+  faint: "#6e6e6e",
+  /** 涨 / 跌（中国习惯红涨绿跌，终端亮度） */
+  up: "#ff4d4f",
+  down: "#00c176",
 } as const;
 
-/** 多序列图（对比 / 多指标）用色——克制、区分度清晰 */
+/** 多序列图（对比 / 多指标）用色——黑底可读、区分度清晰、克制不荧光 */
 export const CHART_COLORS = [
-  "#c8102e", // 主红
-  "#1f3a5f", // 普鲁士蓝
-  "#2f7d6b", // 松绿
-  "#b45309", // 金褐
-  "#7c3aed", // 绛紫
-  "#0e7490", // 灰青
-  "#c2410c", // 陶土
-  "#4d7c0f", // 灰绿
-  "#9d174d", // 玫红
-  "#52525b", // 墨灰
+  "#f28c00", // 琥珀（主）
+  "#4dd0e1", // 青
+  "#ff8a8c", // 亮红
+  "#4ade80", // 绿
+  "#b39ddb", // 紫
+  "#fbbf24", // 金
+  "#67d8e8", // 天青
+  "#f48fb1", // 粉
+  "#a3e635", // 黄绿
+  "#8a8a8a", // 中灰
 ] as const;
 
 /**
  * 宏观指标语义色：各指标在仪表盘中固定的标识色。
- * 跟随编辑色系轮换，并保留语义直觉（物价偏红、金融偏蓝、外贸偏紫…）。
+ * 跟随终端色系轮换，并保留语义直觉（物价偏红、金融偏蓝青、外贸偏紫…）。
  */
 export const MACRO_METRIC_COLORS: Record<string, string> = {
-  gdp: "#1f3a5f",
-  cpi: "#c8102e",
-  ppi: "#c2410c",
-  pmi: "#0e7490",
-  m2: "#1f3a5f",
-  tsf: "#2f7d6b",
-  lpr: "#7c3aed",
-  fx: "#0e7490",
-  ind: "#4d7c0f",
-  retail: "#c2410c",
-  invest: "#7c3aed",
-  realestate: "#c8102e",
-  fin: "#2f7d6b",
-  export: "#7c3aed",
-  import: "#9d174d",
-  unemp: "#b45309",
-  houseprice: "#c8102e",
-  yield10y: "#52525b",
-  usdcny: "#c2410c",
-  m1: "#1f3a5f",
-  tsfstock: "#2f7d6b",
-  loans: "#1f3a5f",
-  gold: "#b45309",
-  carsales: "#4d7c0f",
+  gdp: "#4dd0e1",
+  cpi: "#ff8a8c",
+  ppi: "#f48fb1",
+  pmi: "#67d8e8",
+  m2: "#4dd0e1",
+  tsf: "#4ade80",
+  lpr: "#b39ddb",
+  fx: "#67d8e8",
+  ind: "#a3e635",
+  retail: "#f48fb1",
+  invest: "#b39ddb",
+  realestate: "#ff8a8c",
+  fin: "#4ade80",
+  export: "#b39ddb",
+  import: "#f48fb1",
+  unemp: "#fbbf24",
+  houseprice: "#ff8a8c",
+  yield10y: "#8a8a8a",
+  usdcny: "#f48fb1",
+  m1: "#4dd0e1",
+  tsfstock: "#4ade80",
+  loans: "#4dd0e1",
+  gold: "#fbbf24",
+  carsales: "#a3e635",
 };
 
-/** 产业链层级色（上游 / 中游 / 下游） */
+/** 产业链层级色（上游 / 中游 / 下游）——终端亮度版 */
 export const CHAIN_LEVEL_COLORS: Record<string, string> = {
-  上游: "#2f7d6b",
-  中游: "#c8102e",
-  下游: "#1f3a5f",
+  上游: "#4ade80",
+  中游: "#ff8a8c",
+  下游: "#4dd0e1",
 };

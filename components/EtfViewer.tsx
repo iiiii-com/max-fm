@@ -163,7 +163,7 @@ export default function EtfViewer() {
         { ...mkSubAxis(dates.length, 1), data: dates },
       ],
       yAxis: [
-        { type: "value", scale: true, gridIndex: 0, axisLabel: { fontSize: 10 }, splitLine: { lineStyle: { color: "#e5e5e0", type: "dashed" } } },
+        { type: "value", scale: true, gridIndex: 0, axisLabel: { fontSize: 10 }, splitLine: { lineStyle: { color: "#292929", type: "dashed" } } },
         { type: "value", gridIndex: 1, axisLabel: { fontSize: 9 }, splitLine: { show: false } },
       ],
       dataZoom: [

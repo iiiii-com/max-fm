@@ -33,27 +33,29 @@ export default function IndicatorLine({
           const prev = idx > 0 ? vals[idx - 1] : null;
           const dt = sliced[idx]?.date ?? "";
           const mom = prev != null ? r1(cur - prev) : null;
-          return `<b>${dt}</b><br/>${cur} ${unit}${mom != null ? `<br/><span style="color:#999">环比 ${mom >= 0 ? "+" : ""}${mom} ${unit}</span>` : ""}`;
+          return `<b>${dt}</b><br/>${cur} ${unit}${mom != null ? `<br/><span style="color:#8a8a8a">环比 ${mom >= 0 ? "+" : ""}${mom} ${unit}</span>` : ""}`;
         },
       },
       grid: { left: 48, right: 16, top: 48, bottom: 28 },
       xAxis: { type: "category", data: sliced.map((d) => d.date), axisLabel: { fontSize: 10 } },
       yAxis: {
         type: log && canLog ? "log" : "value", scale: true,
-        splitLine: { lineStyle: { color: "#e5e5e0", type: "dashed" } },
+        splitLine: { lineStyle: { color: "#292929", type: "dashed" } },
       },
       series: [{
         name: title || "指标", type: seriesType, data: vals, smooth: true, showSymbol: false,
         barMaxWidth: 14,
         lineStyle: { color, width: 2 },
         itemStyle: { color, borderRadius: type === "bar" ? [3, 3, 0, 0] : 0 },
-        areaStyle: type === "area" || type === "line"
-          ? { color: { type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color }, { offset: 1, color: "rgba(0,0,0,0)" }] } }
+        /* 仅「面积」模式带渐变填充；纯折线不加面积（修复折线误带面积的问题）。
+           渐变尾部用主色 8 位 hex 透明（原 rgba(0,0,0,0) 黑色渐隐在深色下发黑） */
+        areaStyle: type === "area"
+          ? { color: { type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color }, { offset: 1, color: `${color}00` }] } }
           : undefined,
         markLine: type === "bar" ? undefined : {
           symbol: "none", silent: true,
-          lineStyle: { color: "#a3a3a3", type: "dashed", width: 1 },
-          label: { formatter: `均值 ${r1(avg)}`, fontSize: 10, color: "#a3a3a3" },
+          lineStyle: { color: "#6e6e6e", type: "dashed", width: 1 },
+          label: { formatter: `均值 ${r1(avg)}`, fontSize: 10, color: "#6e6e6e" },
           data: [{ yAxis: r1(avg) }],
         },
         markPoint: lastIdx >= 0 ? {

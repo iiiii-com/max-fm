@@ -61,7 +61,7 @@ export default function BullBearCompare() {
           name: "涨跌幅 %",
           nameTextStyle: { fontSize: 10 },
           axisLabel: { fontSize: 9 },
-          splitLine: { lineStyle: { color: "#e5e5e0", type: "dashed" } },
+          splitLine: { lineStyle: { color: "#292929", type: "dashed" } },
         },
         {
           type: "value",

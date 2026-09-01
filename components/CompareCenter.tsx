@@ -183,7 +183,7 @@ export default function CompareCenter() {
         name: "归一化（起点 = 100）",
         nameTextStyle: { fontSize: 10 },
         axisLabel: { fontSize: 10, formatter: "{value}" },
-        splitLine: { lineStyle: { color: "#e5e5e0", type: "dashed" } },
+        splitLine: { lineStyle: { color: "#292929", type: "dashed" } },
       },
       dataZoom: [
         { type: "inside", start: 0, end: 100 },

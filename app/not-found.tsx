@@ -4,7 +4,7 @@ const HOT_LINKS = [
   { href: "/market", title: "市场洞察", desc: "大盘指数 · 个股 · ETF · 资金流" },
   { href: "/sector", title: "板块中心", desc: "板块行情 · 资金流向 · 热点" },
   { href: "/analysis/bullbear", title: "牛熊深度", desc: "历史重演 · 中美对比" },
-  { href: "/history", title: "历史时间线", desc: "全球事件 · 康波 · 朝代对照" },
+  { href: "/history", title: "历史时间线", desc: "全球事件 · 牛熊周期 · 康波全景" },
   { href: "/map", title: "经济分布图", desc: "31 省 GDP · 人口 · 财政" },
   { href: "/industry", title: "产业链", desc: "22 条主线 · 上下游全景" },
 ];

@@ -54,7 +54,7 @@ export function TempTrendChart({ data }: { data: Array<{ date: string; macro: nu
     legend: { data: ["宏观温度", "大众体感"], top: 4, right: 8 },
     grid: { left: 44, right: 16, top: 40, bottom: 28 },
     xAxis: { type: "category", data: data.map((d) => d.date), axisLabel: { fontSize: 10 } },
-    yAxis: { type: "value", min: 0, max: 100, splitLine: { lineStyle: { color: "#e5e5e0", type: "dashed" } } },
+    yAxis: { type: "value", min: 0, max: 100, splitLine: { lineStyle: { color: "#292929", type: "dashed" } } },
     series: [
       { name: "宏观温度", type: "line", smooth: true, showSymbol: false, data: data.map((d) => d.macro), lineStyle: { color: "#2563eb", width: 2 } },
       { name: "大众体感", type: "line", smooth: true, showSymbol: false, data: data.map((d) => d.feeling), lineStyle: { color: "#c8102e", width: 2 } },
@@ -68,7 +68,7 @@ export function FeelingBar({ data, color = "#c8102e" }: { data: Array<{ name: st
     tooltip: { trigger: "axis", valueFormatter: (v) => `${v}°` },
     grid: { left: 8, right: 60, top: 8, bottom: 24, containLabel: true },
     xAxis: { type: "category", data: data.map((d) => d.name), axisLabel: { fontSize: 11 } },
-    yAxis: { type: "value", min: 0, max: 100, splitLine: { lineStyle: { color: "#e5e5e0", type: "dashed" } } },
+    yAxis: { type: "value", min: 0, max: 100, splitLine: { lineStyle: { color: "#292929", type: "dashed" } } },
     series: [{
       type: "bar", data: data.map((d) => ({ value: d.value, name: d.name })),
       itemStyle: { color, borderRadius: [4, 4, 0, 0] }, barWidth: "45%",

@@ -41,7 +41,7 @@ export default function FundTrendChart({ secid }: { secid: string }) {
     tooltip: { trigger: "axis", backgroundColor: "rgba(255,255,255,0.96)", borderColor: "#cbd5e1", textStyle: { color: "#1e293b", fontSize: 11 }, formatter: (p: any) => { const i = Array.isArray(p) ? p[0]?.dataIndex ?? 0 : 0; const pt = d.trend[i]; return pt ? `<b>${pt.t}</b><br/>主力累计净流入 ${(pt.main ?? 0) >= 0 ? "+" : ""}${((pt.main ?? 0) / 1e8).toFixed(2)}亿` : ""; } },
     grid: { left: 52, right: 14, top: 14, bottom: 20 },
     xAxis: { type: "category", data: times, axisLabel: { fontSize: 8, interval: Math.floor(times.length / 4) }, boundaryGap: false },
-    yAxis: { type: "value", axisLabel: { fontSize: 9, formatter: (v: number) => `${(v / 1e8).toFixed(0)}亿` }, splitLine: { lineStyle: { color: "#e5e5e0", type: "dashed" } } },
+    yAxis: { type: "value", axisLabel: { fontSize: 9, formatter: (v: number) => `${(v / 1e8).toFixed(0)}亿` }, splitLine: { lineStyle: { color: "#292929", type: "dashed" } } },
     series: [
       {
         name: "主力净流入(累计)", type: "line", data: mains, showSymbol: false,

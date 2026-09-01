@@ -86,35 +86,31 @@ export const NAV: NavGroup[] = [
     desc: "产业链全景 · 景气度 · 资金热度",
     icon: Network,
     children: [
-      { href: "/industry", label: "产业链全景", desc: "32 条产业链上中下游泳道", icon: Waypoints },
-      { href: "/industry?tab=chains", label: "产业链列表", desc: "按链索引 · 点击进入详情", icon: Boxes },
+      { href: "/industry", label: "产业链全景", desc: "32 条产业链上中下游泳道 · 按链索引", icon: Waypoints },
     ],
   },
   {
     href: "/history",
     label: "历史演进",
-    desc: "时间线 · 康波周期 · 危机重演",
+    desc: "牛熊周期 · 康波全景 · 历史时间线",
     icon: History,
     children: [
-      { href: "/history", label: "历史时间线", desc: "事件时间轴 · 朝代对照", icon: Clock },
-      { href: "/history?tab=crisis", label: "危机重演", desc: "20 场历史危机 · 决策测验", icon: ShieldAlert },
-      { href: "/history?tab=waves", label: "康波全景", desc: "五轮康波周期洞察", icon: Waves },
+      { href: "/history", label: "牛熊周期", desc: "A 股 21 轮牛熊 · 危机重演 · 深度对比", icon: ShieldAlert },
+      { href: "/history?tab=waves", label: "康波全景", desc: "六波技术革命 · 波浪可视化 · 当前位置", icon: Waves },
+      { href: "/history?tab=timeline", label: "历史时间线", desc: "全球 3000+ 事件 · 筛选与搜索", icon: Clock },
     ],
   },
   {
     href: "/gmrds",
     label: "研究体系",
-    desc: "GMRDS · 十二学院 · 决策流程 · 工具箱",
+    desc: "GMRDS · 决策流程 · 真实案例 · 工具箱",
     icon: Compass,
     children: [
       { href: "/lab", label: "K线实验室", desc: "任意标的 · 八大实操模块联动教学", icon: TestTubes },
       { href: "/gmrds", label: "体系总览", desc: "四大阶段 · 十一环节决策链", icon: Library },
-      { href: "/gmrds/governance", label: "治理架构", desc: "十二学院 + 决策委员会 · 职责边界", icon: Landmark },
-      { href: "/gmrds/flow", label: "环节实操", desc: "操作步骤 · 判断标准 · 执行工具", icon: Workflow },
-      { href: "/gmrds/depth", label: "环节深度", desc: "目标 · 工具 · 案例解剖 · 可视化", icon: BookOpen },
-      { href: "/gmrds/toolkit", label: "实操工具箱", desc: "K线买卖点 · 雷达图 · 估值 · 回撤", icon: Wrench },
+      { href: "/gmrds/flow", label: "环节实操", desc: "操作步骤 · 判断标准 · 执行工具 · 治理", icon: Workflow },
       { href: "/gmrds/cases", label: "真实案例", desc: "安然·雷曼·可口可乐·特斯拉·瑞幸·微软", icon: BookOpenCheck },
-      { href: "/gmrds/roadmap", label: "发展路线", desc: "V1 基础 → V2 专业 → V3 平台 · 实施", icon: History },
+      { href: "/gmrds/toolkit", label: "经典工具箱", desc: "固定样本教学演示（K线/雷达/估值/回撤）", icon: Wrench },
     ],
   },
 ];
@@ -146,7 +142,7 @@ export function isGroupActive(href: string, pathname: string): boolean {
 function groupDefaultLabel(group: NavGroup): string {
   if (group.href === "/market") return "大盘指数";
   if (group.href === "/industry") return "产业链全景";
-  if (group.href === "/history") return "历史时间线";
+  if (group.href === "/history") return "牛熊周期";
   return "概览";
 }
 

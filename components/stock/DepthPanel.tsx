@@ -87,7 +87,7 @@ export default function DepthPanel({ secid, flow }: { secid: string; flow?: { ma
       { type: "category", gridIndex: 1, data: times, axisLabel: { show: false } },
     ],
     yAxis: [
-      { type: "value", scale: true, axisLabel: { fontSize: 9 }, splitLine: { lineStyle: { color: "#e5e5e0", type: "dashed" } } },
+      { type: "value", scale: true, axisLabel: { fontSize: 9 }, splitLine: { lineStyle: { color: "#292929", type: "dashed" } } },
       { type: "value", gridIndex: 1, axisLabel: { fontSize: 8 }, splitLine: { show: false } },
     ],
     series: [

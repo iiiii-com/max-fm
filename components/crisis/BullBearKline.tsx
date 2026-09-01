@@ -290,7 +290,7 @@ function buildOption(
   ];
   if (hasMacd) xAxes.push({ ...mkSubAxis(dates.length, 2), data: dates });
   const yAxes: any[] = [
-    { type: "value", scale: true, gridIndex: 0, axisLabel: { fontSize: 10 }, splitLine: { lineStyle: { color: "#e5e5e0", type: "dashed" } } },
+    { type: "value", scale: true, gridIndex: 0, axisLabel: { fontSize: 10 }, splitLine: { lineStyle: { color: "#292929", type: "dashed" } } },
     { type: "value", gridIndex: 1, axisLabel: { fontSize: 9 }, splitLine: { show: false } },
   ];
   if (hasMacd) yAxes.push({ type: "value", gridIndex: 2, axisLabel: { fontSize: 9 }, splitLine: { show: false }, scale: true });

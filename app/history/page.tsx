@@ -2,7 +2,8 @@ import Link from "next/link";
 import BoardTabs from "@/components/BoardTabs";
 import HistoryAxis from "@/components/HistoryAxis";
 import BullBearCompare from "@/components/BullBearCompare";
-import { KonratiefWaves, DynastyTable, MerrillClock, CrisisTab } from "./tabs-lazy";
+import { KonratiefWaves, MerrillClock, CrisisTab } from "./tabs-lazy";
+import KonratiefWaveChart from "@/components/history/KonratiefWaveChart";
 import TimelineSearch from "@/components/history/TimelineSearch";
 import { Card, SectionTitle, Badge } from "@/components/ui";
 import {
@@ -22,18 +23,18 @@ const TYPE_TONE: Record<string, string> = {
   债务危机: "amber", 政策冲击: "blue", 黑天鹅: "gray",
 };
 
+/* 重点突出：牛熊周期（默认）与康波周期；时间线轻量保留；朝代对照已精简下架 */
 const TABS = [
-  { key: "timeline", label: "时间线" },
-  { key: "crisis", label: "牛熊重演" },
+  { key: "bullbear", label: "牛熊周期" },
   { key: "waves", label: "康波全景" },
-  { key: "dynasties", label: "朝代对照" },
+  { key: "timeline", label: "历史时间线" },
 ];
 
 export default async function HistoryPage({ searchParams }: { searchParams: Promise<{ tab?: string; region?: string; cat?: string; era?: string }> }) {
   const { tab, region = "all", cat = "全部", era = "all" } = await searchParams;
   await bootstrap();
   const agg = await getRecentAggregated();
-  const active = TABS.some((t) => t.key === tab) ? (tab as string) : "timeline";
+  const active = TABS.some((t) => t.key === tab) ? (tab as string) : "bullbear";
   const events = filterHistory({ region, cat, era });
   const regionLabel = region === "all" ? "全部地区" : (REGION_LABEL[region] ?? region);
   const eraLabel = era === "all" ? "全部时代" : (ERAS.find((x) => x.key === era)?.label ?? era);
@@ -111,26 +112,37 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
             <HistoryAxis events={axisEvents} />
           </Card>
           {!axisEvents.length && <p className="text-sm text-muted">该筛选条件下暂无事件</p>}
+        </section>
+      )}
 
-          {/* A 股历轮牛熊深度对比 */}
-          <section className="mt-8">
+      {/* 牛熊周期（默认）：深度对比 + 牛熊重演 */}
+      {active === "bullbear" && (
+        <div className="space-y-10">
+          <section>
             <SectionTitle
               title="A 股历轮牛熊 · 深度对比"
               sub="基于上证综指 1990-2026 真实历史行情 · 21 轮牛熊的涨跌幅 / 回撤 / 天量地量 / 估值 / 情绪全维度量化对比"
             />
             <BullBearCompare />
           </section>
-        </section>
-      )}
-
-      {active === "crisis" && (
-        <section>
-          <CrisisTab />
-        </section>
+          <section>
+            <SectionTitle title="牛熊重演 · 历史危机回放" sub="以真实历史行情重现历次危机与牛熊转折的完整过程" />
+            <CrisisTab />
+          </section>
+        </div>
       )}
 
       {active === "waves" && (
         <div className="space-y-10">
+          <section>
+            <SectionTitle
+              title="康波长波 · 形象可视化"
+              sub="1782—2040 六波技术革命的生命周期曲线：回升 → 繁荣 → 衰退 → 萧条；红色标记经典危机坐标；点击波次查看详情"
+            />
+            <Card className="p-4">
+              <KonratiefWaveChart waves={konratief.waves} />
+            </Card>
+          </section>
           <section>
             <SectionTitle title="四大周期框架" sub="周期嵌套：康波含库兹涅茨，库兹涅茨含朱格拉，朱格拉含基钦" />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -225,14 +237,6 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
           </section>
 
           <section>
-            <SectionTitle
-              title="A 股历轮牛熊 · 深度对比"
-              sub="基于上证综指 1990-2026 真实历史行情 · 21 轮牛熊的涨跌幅 / 回撤 / 天量地量 / 估值 / 情绪全维度量化对比"
-            />
-            <BullBearCompare />
-          </section>
-
-          <section>
             <SectionTitle title="我们站在哪里？" sub="周期叠加视角的当前位置判断（仅供参考，不构成投资建议）" />
             <Card className="p-6">
               <p className="text-base leading-relaxed">{CURRENT_POSITION.summary}</p>
@@ -255,15 +259,6 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
             </div>
           </section>
         </div>
-      )}
-
-      {active === "dynasties" && (
-        <section>
-          <SectionTitle title="康波 × 王朝周期 · 千年尺度对照" sub="中国历代王朝兴衰与康波长波的嵌套关系：王朝 ≈ 300 年，康波 ≈ 50—60 年" />
-          <Card className="p-4">
-            <DynastyTable dynasties={konratief.dynasties} />
-          </Card>
-        </section>
       )}
     </div>
   );

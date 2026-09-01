@@ -114,7 +114,7 @@ export default function UsMarketKline() {
     ];
     if (hasMacd) xAxes.push({ ...mkSubAxis(years.length, 2), data: years });
     const yAxes: any[] = [
-      { type: "value", scale: true, gridIndex: 0, axisLabel: { fontSize: 9 }, splitLine: { lineStyle: { color: "#e5e5e0", type: "dashed" } } },
+      { type: "value", scale: true, gridIndex: 0, axisLabel: { fontSize: 9 }, splitLine: { lineStyle: { color: "#292929", type: "dashed" } } },
       { type: "value", gridIndex: 1, axisLabel: { fontSize: 8 }, splitLine: { show: false } },
     ];
     if (hasMacd) yAxes.push({ type: "value", gridIndex: 2, axisLabel: { fontSize: 8 }, splitLine: { show: false }, scale: true });

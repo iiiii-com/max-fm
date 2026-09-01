@@ -49,7 +49,7 @@ export default function MarketCompareChart({ cn, us, title = "近 5 年年度涨
       yAxis: {
         type: "value",
         axisLabel: { fontSize: 10, formatter: "{value}%" },
-        splitLine: { lineStyle: { color: "#e5e5e0", type: "dashed" } },
+        splitLine: { lineStyle: { color: "#292929", type: "dashed" } },
       },
       series: [
         {

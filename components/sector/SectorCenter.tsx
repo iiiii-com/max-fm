@@ -299,7 +299,18 @@ export default function SectorCenter({ initialBk }: { initialBk?: string }) {
                           {open && (
                             <tr className="border-b border-border/50">
                               <td colSpan={6} className="py-2 pl-8 pr-2">
-                                <p className="text-[10px] text-muted mb-1.5">板块个股主力净流入 Top10（点击进入个股深度页）</p>
+                                <p className="text-[10px] text-muted mb-1.5 flex items-center gap-3 flex-wrap">
+                                  <span>板块个股主力净流入 Top10（点击进入个股深度页）</span>
+                                  {details[0] && (
+                                    <Link
+                                      href={`/lab?secid=${encodeURIComponent(details[0].secid)}&name=${encodeURIComponent(details[0].name)}`}
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="text-primary hover:underline"
+                                    >
+                                      到 K线实验室分析「{details[0].name}」 →
+                                    </Link>
+                                  )}
+                                </p>
                                 {detailLoading === s.code ? (
                                   <p className="text-xs text-muted">加载中…</p>
                                 ) : details && details.length ? (

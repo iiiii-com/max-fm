@@ -77,7 +77,7 @@ export default function StockCompare() {
       legend: { top: 4, textStyle: { fontSize: 11 } },
       grid: { left: 48, right: 16, top: 36, bottom: 28 },
       xAxis: { type: "category", data: dates, axisLabel: { fontSize: 10 } },
-      yAxis: { type: "value", axisLabel: { fontSize: 10, formatter: "{value}%" }, splitLine: { lineStyle: { color: "#e5e5e0", type: "dashed" } } },
+      yAxis: { type: "value", axisLabel: { fontSize: 10, formatter: "{value}%" }, splitLine: { lineStyle: { color: "#292929", type: "dashed" } } },
       dataZoom: [
         { type: "inside", start: 30, end: 100 },
         { type: "slider", height: 16, bottom: 2, start: 30, end: 100 },
