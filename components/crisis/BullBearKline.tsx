@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { EChartsOption } from "@/components/charts/echarts";
+import { echarts } from "@/components/charts/echarts";
 import EChart from "@/components/charts/EChart";
 import { Card } from "@/components/ui";
 import { BULL_BEAR_CYCLES } from "@/lib/data/bullbear";

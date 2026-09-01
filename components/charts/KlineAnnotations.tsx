@@ -635,6 +635,27 @@ export default function KlineAnnotations({ chart, activeTool, annotations, onCha
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
+      // 画线层覆盖主图区（pointer-events:auto）会拦截 ECharts 的滚轮缩放——
+      // 在此转发 wheel 并手动缩放 dataZoom（中心锚定，minSpan 由当前 dataZoom 配置决定），
+      // 底部 26px 滑块区不在本层，滚轮仍走 ECharts 原生路径
+      onWheel={(e) => {
+        if (!chart || chart.isDisposed?.()) return;
+        const dz = (chart.getOption() as any)?.dataZoom?.[0];
+        if (!dz || typeof dz.start !== "number") return;
+        e.preventDefault();
+        const span = dz.end - dz.start;
+        const factor = e.deltaY > 0 ? 1.18 : 0.82;
+        const newSpan = Math.max(0.05, Math.min(100, span * factor));
+        const center = (dz.start + dz.end) / 2;
+        let ns = center - newSpan / 2;
+        if (ns < 0) ns = 0;
+        let ne = ns + newSpan;
+        if (ne > 100) {
+          ne = 100;
+          ns = 100 - newSpan;
+        }
+        chart.dispatchAction({ type: "dataZoom", start: ns, end: ne });
+      }}
       onPointerLeave={() => {
         setHoverId(null);
         if (chart && !chart.isDisposed?.()) {
