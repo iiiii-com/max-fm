@@ -327,3 +327,15 @@ a:active,
 .prose-max :where(code) { background: var(--border); padding: 0.1rem 0.35rem; border-radius: 4px; font-size: 0.85em; }
 .prose-max :where(a) { color: var(--primary); text-decoration: underline; }
 .prose-max :where(strong) { font-weight: 700; }
+
+/* K 线缩放边界提示：淡入上浮后淡出，用于替代「静默失效」 */
+@keyframes kline-zoom-hint-in {
+  0%   { opacity: 0; transform: translate(-50%, -6px); }
+  12%  { opacity: 1; transform: translate(-50%, 0); }
+  78%  { opacity: 1; transform: translate(-50%, 0); }
+  100% { opacity: 0; transform: translate(-50%, -4px); }
+}
+.kline-zoom-hint {
+  animation: kline-zoom-hint-in 1.8s ease-out forwards;
+  pointer-events: none;
+}

@@ -57,6 +57,16 @@ let _uid = 0;
 const uid = () => `ann-${++_uid}`;
 
 /**
+ * 最小可见 K 线根数 —— 缩放硬下限由「数据粒度」决定，而非硬编码百分比。
+ * 本站点 K 线源为日线（如 data/sh-index.json，8536 根，无分钟级数据），
+ * 因此理论最小粒度 = 1 根日 K；取 2 根作为可读最小单元
+ * （单根 candle 在 category 轴边界易出现宽度/居中异常）。
+ * 关键：下限必须按「根数 / 总根数」换算成百分比，
+ * 否则硬编码百分比（如旧的 6）会随数据量变化而漂移，导致过早卡死。
+ */
+export const MIN_VISIBLE_BARS = 2;
+
+/**
  * K 线画线标注覆盖层（SVG）
  * - 创建：选择工具后拖拽绘制
  * - 编辑：选中标注后拖动端点
@@ -111,7 +121,84 @@ export default function KlineAnnotations({ chart, activeTool, annotations, onCha
     }
   }, [chart]);
 
-  /** 滚轮缩放（锚点跟随鼠标位置）——原生事件（React onWheel 为 passive，preventDefault 无效导致页面滚动冲突） */
+  /** K 线总根数（从 candlestick 系列读取，用于把「根数下限」换算成百分比） */
+  const getBarCount = useCallback((): number => {
+    if (!chart) return 0;
+    try {
+      const series = (chart.getOption() as any)?.series || [];
+      for (const s of series) {
+        if (s?.type === "candlestick" && Array.isArray(s.data)) return s.data.length;
+      }
+      const first = series.find((s: any) => Array.isArray(s?.data));
+      return first ? first.data.length : 0;
+    } catch {
+      return 0;
+    }
+  }, [chart]);
+
+  /** 最小缩放跨度（百分比）—— 由数据量动态推导，杜绝硬编码百分比造成的过早卡死 */
+  const getMinSpanPct = useCallback(() => {
+    const n = getBarCount();
+    if (!n) return 0.05; // 兜底（拿不到数据时沿用旧下限）
+    return (MIN_VISIBLE_BARS / n) * 100;
+  }, [getBarCount]);
+
+  /**
+   * 应用 dataZoom 窗口：同步所有「X 轴」dataZoom（inside + slider）。
+   * 此前只派发 dataZoomIndex:0，滑块（index 1）不与主图同步，视觉上会出现滑块停在旧位置。
+   */
+  const applyDataZoom = useCallback(
+    (start: number, end: number) => {
+      if (!chart || (chart as any).isDisposed?.()) return;
+      let dzs: any[] = [];
+      try {
+        dzs = (chart.getOption() as any)?.dataZoom ?? [];
+      } catch {
+        dzs = [];
+      }
+      const xIdx: number[] = [];
+      dzs.forEach((d: any, i: number) => {
+        if (d?.xAxisIndex !== undefined && d?.yAxisIndex === undefined) xIdx.push(i);
+      });
+      chart.dispatchAction({
+        type: "dataZoom",
+        ...(xIdx.length ? { dataZoomIndex: xIdx } : {}),
+        start,
+        end,
+      });
+      try {
+        (chart as any).getZr()?.refresh();
+      } catch {
+        /* ignore */
+      }
+      setVersion((v) => v + 1);
+    },
+    [chart]
+  );
+
+  /** 边界提示（到达最细/最粗粒度时的明确反馈，替代静默失效） */
+  const [hint, setHint] = useState<string | null>(null);
+  const hintTimer = useRef<number | null>(null);
+  /** 回弹动画进行中标记（避免连续滚轮叠加回弹） */
+  const bouncingRef = useRef(false);
+  const flashHint = useCallback((msg: string) => {
+    setHint(msg);
+    if (hintTimer.current) window.clearTimeout(hintTimer.current);
+    hintTimer.current = window.setTimeout(() => setHint(null), 1800);
+  }, []);
+  useEffect(
+    () => () => {
+      if (hintTimer.current) window.clearTimeout(hintTimer.current);
+    },
+    []
+  );
+
+  /**
+   * 滚轮缩放（锚点跟随鼠标位置）
+   * 必须用原生事件：React 的 onWheel 是 passive 监听，preventDefault 无效会导致页面跟着滚动。
+   * 同时本组件此前存在「原生 listener + React onWheel」两套处理器叠加，
+   * 一次滚轮触发两次缩放且下限不一致（6 vs 0.05）→ 在 5~6% 处来回震荡卡死，已删除 React onWheel。
+   */
   const zoomByWheel = useCallback(
     (e: WheelEvent) => {
       if (!chart || !svgRef.current) return;
@@ -120,25 +207,49 @@ export default function KlineAnnotations({ chart, activeTool, annotations, onCha
       const { px } = pointerPos(e);
       const { start, end } = getZoomRange();
       const span = end - start;
-      const factor = e.deltaY < 0 ? 0.82 : 1.2; // 上滚放大 / 下滚缩小
-      const newSpan = Math.min(100, Math.max(6, span * factor));
+      const minSpan = getMinSpanPct();
       const plotW = getPlotWidth();
       const plotLeft = getPlotLeft();
       // 鼠标位置对应可视区间内的偏移比例保持（锚点不动）
       const ratio = Math.min(1, Math.max(0, (px - plotLeft) / plotW));
-      const anchorOffset = span * ratio;
-      let newStart = start + anchorOffset - newSpan * ratio;
-      newStart = Math.min(100 - newSpan, Math.max(0, newStart));
-      chart.dispatchAction({ type: "dataZoom", dataZoomIndex: 0, start: newStart, end: newStart + newSpan });
-      // ECharts 6 的 dispatchAction 只更新内部状态不强制重绘（canvas 不刷新），手动刷新渲染层
-      try {
-        (chart as any).getZr()?.refresh();
-      } catch {
-        /* ignore */
+
+      /** 按给定跨度应用窗口（锚点固定，右/左越界自动贴边） */
+      const applySpan = (newSpan: number) => {
+        const s = Math.min(100, Math.max(minSpan, newSpan));
+        const anchorOffset = span * ratio;
+        let newStart = start + anchorOffset - s * ratio;
+        newStart = Math.min(100 - s, Math.max(0, newStart));
+        applyDataZoom(newStart, newStart + s);
+      };
+
+      const zoomIn = e.deltaY < 0;
+      const next = span * (zoomIn ? 0.82 : 1.2); // 上滚放大 / 下滚缩小
+
+      if (zoomIn && next <= minSpan) {
+        // 触达数据最细粒度：明确提示 + 回弹反馈（而非静默失效）；此时拖拽平移仍完全可用
+        const n = getBarCount();
+        flashHint(n ? `已到最细粒度 · ${MIN_VISIBLE_BARS} 根日 K（数据源为日线，无分钟级数据）` : "已到最细粒度");
+        // 回弹：先弹到 1.8 倍最小窗口，隔帧回到最小窗口，形成弹性触感
+        // bouncingRef 防止连续滚轮时多次回弹叠加导致窗口抖动
+        if (!bouncingRef.current) {
+          bouncingRef.current = true;
+          applySpan(minSpan * 1.8);
+          requestAnimationFrame(() =>
+            requestAnimationFrame(() => {
+              applySpan(minSpan);
+              bouncingRef.current = false;
+            })
+          );
+        }
+        return;
       }
-      setVersion((v) => v + 1);
+      if (!zoomIn && span >= 100) {
+        flashHint("已到最粗粒度 · 全区间");
+        return;
+      }
+      applySpan(next);
     },
-    [chart, getZoomRange, getPlotWidth, getPlotLeft]
+    [chart, getZoomRange, getPlotWidth, getPlotLeft, getMinSpanPct, getBarCount, flashHint, applyDataZoom]
   );
 
   // 原生 wheel 监听（passive:false → preventDefault 生效，滚轮缩放时页面不滚动）
@@ -283,13 +394,8 @@ export default function KlineAnnotations({ chart, activeTool, annotations, onCha
       const span = p.end - p.start;
       const shift = ((p.px - px) / Math.max(50, plotW)) * span;
       const newStart = Math.min(100 - span, Math.max(0, p.start + shift));
-      chart.dispatchAction({ type: "dataZoom", dataZoomIndex: 0, start: newStart, end: newStart + span });
-      try {
-        (chart as any).getZr()?.refresh();
-      } catch {
-        /* ignore */
-      }
-      setVersion((v) => v + 1);
+      // 平移保持跨度不变：即使已到最细粒度（如 2 根日 K），拖拽浏览依然完全可用
+      applyDataZoom(newStart, newStart + span);
       return;
     }
 
@@ -619,8 +725,9 @@ export default function KlineAnnotations({ chart, activeTool, annotations, onCha
   const all = [...(draft ? [draft] : []), ...annotations];
 
   return (
-    // 关键：svg 直接覆盖在图表容器上（AnnotatableChart 提供 relative 容器），
-    // 必须 absolute + w-full h-full 撑满，否则包装 div 高度塌陷为 0 → 画线层点不到
+    <>
+    {/* 关键：svg 直接覆盖在图表容器上（AnnotatableChart 提供 relative 容器），
+        必须 absolute + w-full h-full 撑满，否则包装 div 高度塌陷为 0 → 画线层点不到 */}
     <svg
       ref={svgRef}
       className="absolute left-0 top-0 w-full kline-ann-svg"
@@ -635,27 +742,9 @@ export default function KlineAnnotations({ chart, activeTool, annotations, onCha
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
-      // 画线层覆盖主图区（pointer-events:auto）会拦截 ECharts 的滚轮缩放——
-      // 在此转发 wheel 并手动缩放 dataZoom（中心锚定，minSpan 由当前 dataZoom 配置决定），
-      // 底部 26px 滑块区不在本层，滚轮仍走 ECharts 原生路径
-      onWheel={(e) => {
-        if (!chart || chart.isDisposed?.()) return;
-        const dz = (chart.getOption() as any)?.dataZoom?.[0];
-        if (!dz || typeof dz.start !== "number") return;
-        e.preventDefault();
-        const span = dz.end - dz.start;
-        const factor = e.deltaY > 0 ? 1.18 : 0.82;
-        const newSpan = Math.max(0.05, Math.min(100, span * factor));
-        const center = (dz.start + dz.end) / 2;
-        let ns = center - newSpan / 2;
-        if (ns < 0) ns = 0;
-        let ne = ns + newSpan;
-        if (ne > 100) {
-          ne = 100;
-          ns = 100 - newSpan;
-        }
-        chart.dispatchAction({ type: "dataZoom", start: ns, end: ne });
-      }}
+      // 注意：此处【不再】挂 React onWheel —— 之前与下面的原生 wheel listener 叠加，
+      // 一次滚轮触发两次缩放且下限不一致（6 vs 0.05），导致在 5~6% 跨度处来回震荡、卡死且无反馈。
+      // 缩放统一由 zoomByWheel（原生 listener，passive:false）处理。
       onPointerLeave={() => {
         setHoverId(null);
         if (chart && !chart.isDisposed?.()) {
@@ -675,5 +764,12 @@ export default function KlineAnnotations({ chart, activeTool, annotations, onCha
         </g>
       ))}
     </svg>
+      {/* 缩放边界提示：到达最细/最粗粒度时给出明确反馈（父层 pointer-events-none，仅展示不拦截手势） */}
+      {hint && (
+        <div className="kline-zoom-hint absolute left-1/2 top-2 z-20 -translate-x-1/2 whitespace-nowrap rounded-full border border-primary/40 bg-background/90 px-3 py-1 text-[11px] text-foreground shadow-lg backdrop-blur">
+          {hint}
+        </div>
+      )}
+    </>
   );
 }

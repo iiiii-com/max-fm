@@ -13,6 +13,7 @@ import { mkPctSeries } from "@/lib/data/kline-tooltip";
 import DailyMoveBadge from "@/components/charts/DailyMoveBadge";
 import { mkKlineTooltip } from "@/lib/data/kline-tooltip";
 import AnnotatableChart from "@/components/charts/AnnotatableChart";
+import { MIN_VISIBLE_BARS } from "@/components/charts/KlineAnnotations";
 import rawKline from "@/data/sh-index.json";
 
 interface Bar {
@@ -113,6 +114,8 @@ function buildOption(
 ): EChartsOption {
   const dates = bars.map((b) => b.date);
   const ohlc = bars.map((b) => [b.open, b.close, b.low, b.high]);
+  /** 最小缩放跨度（百分比）：与画线层 KlineAnnotations 共用同一「最小可见根数」口径，保证两侧 clamp 一致 */
+  const minSpanPct = (MIN_VISIBLE_BARS / Math.max(1, bars.length)) * 100;
   const volumes = bars.map((b) => ({
     value: b.volume,
     itemStyle: { color: b.close >= b.open ? "rgba(220,38,38,0.55)" : "rgba(22,163,74,0.55)" },
@@ -355,10 +358,13 @@ function buildOption(
     xAxis: xAxes,
     yAxis: yAxes,
     dataZoom: [
-      /* category 轴下用 minSpan（百分比）而非 minValueSpan（对 category 无效）：
-         0.05% ≈ 4-5 根日K，保证放大上限足够小；maxSpan 100 允许全览 */
-      { type: "inside", xAxisIndex: hasMacd ? [0, 1, 2] : [0, 1], start: vRange?.[0] ?? rangeStart, end: vRange?.[1] ?? 100, zoomOnMouseWheel: true, minSpan: 0.05, maxSpan: 100 },
-      { type: "slider", xAxisIndex: hasMacd ? [0, 1, 2] : [0, 1], height: 16, bottom: 4, start: vRange?.[0] ?? rangeStart, end: vRange?.[1] ?? 100, minSpan: 0.05, maxSpan: 100 },
+      /* category 轴下用 minSpan（百分比）而非 minValueSpan（对 category 无效）。
+         下限按「根数 / 总根数」动态换算（MIN_VISIBLE_BARS 根），而非硬编码百分比：
+         - 硬编码 0.05 在 8536 根日线下 ≈ 4.3 根（尚可），但换月线（约 400 根）时 ≈ 0.2 根，行为不一致
+         - 历史 bug：JS 侧缩放实现里硬编码过 6（≈512 根），与此处 0.05 不一致 → 两套下限互相拉扯卡死
+         maxSpan 100 允许全览 */
+      { type: "inside", xAxisIndex: hasMacd ? [0, 1, 2] : [0, 1], start: vRange?.[0] ?? rangeStart, end: vRange?.[1] ?? 100, zoomOnMouseWheel: true, minSpan: minSpanPct, maxSpan: 100 },
+      { type: "slider", xAxisIndex: hasMacd ? [0, 1, 2] : [0, 1], height: 16, bottom: 4, start: vRange?.[0] ?? rangeStart, end: vRange?.[1] ?? 100, minSpan: minSpanPct, maxSpan: 100 },
     ],
     series: [
       {

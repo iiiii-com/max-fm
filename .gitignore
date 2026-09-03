@@ -45,6 +45,8 @@ yarn-error.log*
 
 # 本地缓存与内部数据（不提交）
 .next-locked-*/
+.next.old-*/
+.next.stale*/
 .workbuddy/
 dev*.log
 build*.log
