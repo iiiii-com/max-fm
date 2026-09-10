@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { LayoutGrid, Map as MapIcon, RefreshCw } from "lucide-react";
+import { EmptyState, ErrorState, LoadingRegion } from "@/components/ui-state";
 
 interface HeatItem {
   code: string;
@@ -120,9 +121,11 @@ export default function GlobalHeatmap() {
       </div>
 
       {err ? (
-        <p className="text-sm text-destructive py-6 text-center">{err}（请刷新重试）</p>
+        <ErrorState message={err} hint="全球行情接口偶发限流，稍后重试通常即可恢复" onRetry={load} />
       ) : !data ? (
-        <p className="text-sm text-muted py-6 text-center">全球行情加载中…</p>
+        <LoadingRegion rows={5} label="全球行情加载中…" />
+      ) : data.length === 0 ? (
+        <EmptyState title="暂无全球行情数据" hint="接口返回为空，可点击上方「刷新」重试" />
       ) : mode === "matrix" ? (
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-2.5">
           {data.map((g) => (

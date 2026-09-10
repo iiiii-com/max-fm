@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
+import { EmptyState, ErrorState, LoadingRegion } from "@/components/ui-state";
 import type { EChartsOption } from "@/components/charts/echarts";
 import { useWatchlist, type WatchItem } from "@/lib/hooks/useWatchlist";
 import { useRefresh } from "@/lib/hooks/refresh";
@@ -234,13 +235,13 @@ export default function MarketDashboard() {
             </button>
           </div>
         </div>
-        {err && <p className="text-xs text-red-600 mb-2">{err}</p>}
+        {err && <ErrorState message={err} onRetry={load} compact />}
 
         {view === "bar" ? (
           sectors.length ? (
             <EChart option={barOption} height={Math.max(480, sectors.length * 20 + 60)} />
           ) : (
-            <p className="text-xs text-muted">暂无数据</p>
+            <EmptyState title="暂无板块资金数据" hint="可点击上方「刷新」重新拉取" />
           )
         ) : (
           <div className="overflow-x-auto">
@@ -433,7 +434,7 @@ function SectorRowComp({
           <td colSpan={7} className="py-2 pl-8 pr-2">
             <p className="text-[10px] text-muted mb-1.5">板块个股主力净流入 Top10（点击个股进入分析页）</p>
             {detailLoading ? (
-              <p className="text-xs text-muted">加载中…</p>
+              <LoadingRegion rows={3} />
             ) : details && details.length ? (
               <div className="divide-y divide-border/50">
                 {details.map((st, i) => (
@@ -451,7 +452,7 @@ function SectorRowComp({
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-muted">暂无数据</p>
+              <EmptyState title="该板块暂无个股明细" className="py-4" />
             )}
           </td>
         </tr>

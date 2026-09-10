@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { EChartsOption } from "@/components/charts/echarts";
 import EChart from "@/components/charts/EChart";
 import { Card, Badge } from "@/components/ui";
+import { ErrorState, LoadingRegion } from "@/components/ui-state";
 import { mkMainAxis } from "@/lib/data/axis";
 import { mkKlineTooltip } from "@/lib/data/kline-tooltip";
 
@@ -43,6 +44,8 @@ function fmtPct(v: number) {
 function MiniSpark({ code, expanded, onExpand }: { code: string; expanded: boolean; onExpand: (c: string) => void }) {
   const [bars, setBars] = useState<any[] | null>(null);
   const [err, setErr] = useState("");
+  // 重试计数：作为 effect 依赖触发重新拉取
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -62,7 +65,7 @@ function MiniSpark({ code, expanded, onExpand }: { code: string; expanded: boole
     return () => {
       cancelled = true;
     };
-  }, [code, expanded]);
+  }, [code, expanded, reloadKey]);
 
   const option = useMemo<EChartsOption>(() => {
     if (!bars?.length) return {};
@@ -106,9 +109,9 @@ function MiniSpark({ code, expanded, onExpand }: { code: string; expanded: boole
   return (
     <div className="space-y-2">
       {err ? (
-        <p className="text-[10px] text-muted py-4 text-center">{err}（该指数历史 K 线数据源受限）</p>
+        <ErrorState message={err} hint="该指数历史 K 线数据源受限，可稍后重试" onRetry={() => setReloadKey((k) => k + 1)} compact />
       ) : !bars ? (
-        <p className="text-[10px] text-muted py-4 text-center">走势加载中…</p>
+        <LoadingRegion rows={2} label="走势加载中…" />
       ) : (
         <>
           <EChart option={option} height={expanded ? 240 : 72} />

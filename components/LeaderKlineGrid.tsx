@@ -29,9 +29,12 @@ function fmtVol(n: number) {
 function MiniKline({ secid, name, onPick }: { secid: string; name: string; onPick?: () => void }) {
   const [bars, setBars] = useState<MiniBar[] | null>(null);
   const [err, setErr] = useState("");
+  // 重试计数：作为 effect 依赖触发重新拉取（错误态的「重试」按钮用）
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
+    setErr("");
     (async () => {
       try {
         const res = await fetch(`/api/stock/kline?secid=${secid}&period=day`, { cache: "no-store" });
@@ -41,13 +44,16 @@ function MiniKline({ secid, name, onPick }: { secid: string; name: string; onPic
             date: b.date, open: b.open, close: b.close, high: b.high, low: b.low,
           }));
           if (!cancelled) setBars(k);
-        } else if (!cancelled) setErr("—");
+        } else if (!cancelled) {
+          // 原先仅显示「—」，用户无法判断是「无数据」还是「加载失败」，也没有重试入口
+          setErr("行情不可用");
+        }
       } catch {
-        if (!cancelled) setErr("—");
+        if (!cancelled) setErr("行情不可用");
       }
     })();
     return () => { cancelled = true; };
-  }, [secid]);
+  }, [secid, reloadKey]);
 
   const option = useMemo<EChartsOption>(() => {
     if (!bars?.length) return {};
@@ -87,8 +93,30 @@ function MiniKline({ secid, name, onPick }: { secid: string; name: string; onPic
     };
   }, [bars]);
 
-  if (err) return <div className="h-16 flex items-center justify-center text-[10px] text-muted">{err}</div>;
-  if (!bars?.length) return <div className="h-16 flex items-center justify-center text-[10px] text-muted">加载中…</div>;
+  if (err)
+    return (
+      <div className="flex h-16 flex-col items-center justify-center gap-1" role="alert">
+        <p className="text-[10px] text-up">{err}</p>
+        <button
+          type="button"
+          onClick={() => {
+            setBars(null);
+            setReloadKey((k) => k + 1);
+          }}
+          className="rounded border border-border px-1.5 py-0.5 text-[10px] text-muted transition-colors hover:border-primary/50 hover:text-primary"
+        >
+          重试
+        </button>
+      </div>
+    );
+  if (!bars?.length)
+    return (
+      <div className="flex h-16 flex-col justify-center gap-1" aria-busy="true" aria-label={`${name} 行情加载中`}>
+        <span className="sr-only">加载中…</span>
+        <div className="h-2 w-2/3 animate-pulse rounded bg-surface" />
+        <div className="h-6 w-full animate-pulse rounded bg-surface" />
+      </div>
+    );
   const chg = ((bars[bars.length - 1].close - bars[0].close) / bars[0].close) * 100;
   // 用 div + role=button 而非裸 div onClick：补全键盘可达性（Tab 聚焦 / Enter·Space 触发）
   return (
