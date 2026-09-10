@@ -47,6 +47,8 @@ yarn-error.log*
 .next-locked-*/
 .next.old-*/
 .next.stale*/
+.next.st-*/
+.next.bak*/
 .workbuddy/
 dev*.log
 build*.log
