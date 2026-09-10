@@ -2,11 +2,26 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
-import EChart from "@/components/charts/EChart";
+import dynamic from "next/dynamic";
 import type { EChartsOption } from "@/components/charts/echarts";
-import StockDrawer, { type DrawerStock } from "@/components/StockDrawer";
 import { useWatchlist, type WatchItem } from "@/lib/hooks/useWatchlist";
 import { useRefresh } from "@/lib/hooks/refresh";
+
+/**
+ * 图表与抽屉按需加载
+ *
+ * 板块卡片默认是「表格」视图，条形图需用户手动切换；个股抽屉也只在点击后打开。
+ * 但 EChart 是 ECharts（约 796KB 原始 / 263KB 传输）的唯一入口，静态 import 会让
+ * ECharts 无条件进入首页首屏包 —— 实测首页加载了 263KB 的 ECharts chunk 却渲染 0 个 canvas。
+ * 改为 dynamic import 后，ECharts 只在真正切到「条形图」或打开抽屉时才下载。
+ */
+const EChart = dynamic(() => import("@/components/charts/EChart"), {
+  ssr: false,
+  loading: () => <div className="flex h-[480px] items-center justify-center text-xs text-muted">图表加载中…</div>,
+});
+const StockDrawer = dynamic(() => import("@/components/StockDrawer"), { ssr: false });
+// 仅类型引用（编译期擦除，不产生运行时依赖，故不会把 StockDrawer 拉回首屏包）
+import type { DrawerStock } from "@/components/StockDrawer";
 
 interface SectorLeader {
   name: string;
@@ -321,7 +336,9 @@ export default function MarketDashboard() {
         </div>
       </div>
 
-      <StockDrawer stock={drawer} onClose={() => setDrawer(null)} />
+      {/* 仅在真正打开抽屉时才挂载：StockDrawer 无条件挂载会立刻触发其动态导入，
+          连带把 EChart → ECharts（263KB）拉进首屏，使按需加载形同虚设 */}
+      {drawer && <StockDrawer stock={drawer} onClose={() => setDrawer(null)} />}
     </div>
   );
 }

@@ -5,7 +5,7 @@
 import { chromium } from "playwright-core";
 
 const EXE = "C:/Users/lenovo/AppData/Local/ms-playwright/chromium-1234/chrome-win64/chrome.exe";
-const BASE = "http://localhost:3121";
+const BASE = "http://localhost:3123";
 
 const browser = await chromium.launch({ executablePath: EXE, headless: true });
 

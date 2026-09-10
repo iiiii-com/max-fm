@@ -16,7 +16,7 @@ for (const p of PATHS) {
     if (m.type() === "error") errs.push(m.text().slice(0, 140));
   });
   try {
-    const res = await page.goto("http://localhost:3121" + p, { waitUntil: "domcontentloaded", timeout: 40000 });
+    const res = await page.goto("http://localhost:3123" + p, { waitUntil: "domcontentloaded", timeout: 40000 });
     await page.waitForTimeout(2500);
     const real = errs.filter((e) => !/favicon|DevTools|HMR|Failed to load resource|418/i.test(e));
     const hasContent = await page.evaluate(() => document.body.innerText.length > 300);
