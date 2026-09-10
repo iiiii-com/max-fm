@@ -5,28 +5,39 @@ import EChart from "@/components/charts/EChart";
 import type { EChartsOption } from "@/components/charts/echarts";
 import { Flame } from "lucide-react";
 
-interface Macro { ok: boolean; stage?: string; score?: number; summary?: string; idx?: { yearChg?: number | null; annVol?: number | null } }
+interface MacroCtx { stage?: string; score?: number; summary?: string }
+interface MacroIndex { yearChg?: number | null; annVol?: number | null }
 
 /** 宏观经济热力图：增长(近1年涨跌)×通胀(宏观评分代理) 四象限 + 当前宏观定位（真实数据） */
 export default function MacroHeatmap() {
-  const [m, setM] = useState<Macro | null>(null);
+  // 注意：接口返回嵌套结构 { ok, index: {...}, macro: {...} }。
+  // 曾按扁平结构读 m.idx.yearChg / m.score，导致增长恒为 0、评分恒为 50（象限定位失真）。
+  const [macro, setMacro] = useState<MacroCtx | null>(null);
+  const [idx, setIdx] = useState<MacroIndex | null>(null);
   const [err, setErr] = useState("");
 
   useEffect(() => {
     fetch("/api/macro/context", { cache: "no-store" })
       .then((r) => r.json())
-      .then((j) => (j?.ok ? setM(j) : setErr(j?.error ?? "加载失败")))
+      .then((j) => {
+        if (j?.ok) {
+          setMacro(j.macro ?? null);
+          setIdx(j.index ?? null);
+        } else {
+          setErr(j?.error ?? "加载失败");
+        }
+      })
       .catch((e) => setErr(e?.message ?? "加载失败"));
   }, []);
 
-  if (err) return <p className="text-sm text-muted py-6 text-center">{err}</p>;
-  if (!m) return <div className="h-64 animate-pulse bg-muted/10 rounded-lg" />;
+  if (err) return <p className="text-sm text-muted py-6 text-center" role="alert">{err}</p>;
+  if (!macro) return <div className="h-64 animate-pulse bg-muted/10 rounded-lg" aria-busy="true" />;
 
-  const growth = m.idx?.yearChg ?? 0; // 近1年涨跌（%）
-  const heat = m.score ?? 50; // 宏观评分（0-100）
+  const growth = idx?.yearChg ?? 0; // 近1年涨跌（%）
+  const heat = macro.score ?? 50; // 宏观评分（0-100）
   const isOverheat = heat >= 65 && growth >= 0;
   const isStag = heat < 45 && growth <= 0;
-  const stage = m.stage ?? "—";
+  const stage = macro.stage ?? "—";
 
   // 象限定位：x = 增长（近1年涨跌），y = 通胀/政策温度（评分）
   const x = Math.max(-15, Math.min(15, growth)) / 15; // -1 ~ 1

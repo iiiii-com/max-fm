@@ -5,33 +5,49 @@ import EChart from "@/components/charts/EChart";
 import type { EChartsOption } from "@/components/charts/echarts";
 import { Gauge } from "lucide-react";
 
-interface Macro {
-  ok: boolean;
+interface MacroCtx {
   stage?: string;
   score?: number;
   equityPref?: string;
   summary?: string;
-  idx?: { yearChg?: number | null; vsMa250?: number | null; annVol?: number | null };
+}
+
+interface MacroIndex {
+  name?: string;
+  yearChg?: number | null;
+  vsMa250?: number | null;
+  annVol?: number | null;
 }
 
 /** 宏观表盘：宏观评分 / 年化波动 / 近 1 年涨跌（/api/macro/context 真实自算） */
 export default function MacroGauges() {
-  const [m, setM] = useState<Macro | null>(null);
+  // 注意：接口返回的是嵌套结构 { ok, updated, index: {...}, macro: {...} }，
+  // 必须分别取 j.macro / j.index。曾按扁平结构读 m.score / m.idx.annVol，
+  // 导致三个表盘全部显示 0（真实数据其实正常返回）。
+  const [macro, setMacro] = useState<MacroCtx | null>(null);
+  const [idx, setIdx] = useState<MacroIndex | null>(null);
   const [err, setErr] = useState("");
 
   useEffect(() => {
     fetch("/api/macro/context", { cache: "no-store" })
       .then((r) => r.json())
-      .then((j) => (j?.ok ? setM(j) : setErr(j?.error ?? "加载失败")))
+      .then((j) => {
+        if (j?.ok) {
+          setMacro(j.macro ?? null);
+          setIdx(j.index ?? null);
+        } else {
+          setErr(j?.error ?? "加载失败");
+        }
+      })
       .catch((e) => setErr(e?.message ?? "加载失败"));
   }, []);
 
-  if (err) return <p className="text-sm text-muted py-6 text-center">{err}</p>;
-  if (!m) return <div className="h-56 animate-pulse bg-muted/10 rounded-lg" />;
+  if (err) return <p className="text-sm text-muted py-6 text-center" role="alert">{err}</p>;
+  if (!macro) return <div className="h-56 animate-pulse bg-muted/10 rounded-lg" aria-busy="true" />;
 
-  const score = m.score ?? 0;
-  const vol = m.idx?.annVol ?? 0;
-  const yr = m.idx?.yearChg ?? 0;
+  const score = macro.score ?? 0;
+  const vol = idx?.annVol ?? 0;
+  const yr = idx?.yearChg ?? 0;
   const scoreColor = score >= 65 ? "#d7000b" : score >= 45 ? "#3b82f6" : "#0aa06e";
 
   const option: EChartsOption = {
@@ -67,9 +83,12 @@ export default function MacroGauges() {
   return (
     <div className="rounded-xl border border-border bg-card p-4">
       <p className="flex items-center gap-1.5 text-sm font-bold mb-1 text-primary">
-        <Gauge className="w-4 h-4" /> 宏观表盘 · {m.stage}
+        <Gauge className="w-4 h-4" /> 宏观表盘 · {macro.stage ?? "—"}
       </p>
-      <p className="text-[11px] text-muted mb-2">{m.summary} · 资产偏好：{m.equityPref}</p>
+      <p className="text-[11px] text-muted mb-2">
+        {macro.summary ?? ""}
+        {macro.equityPref ? ` · 资产偏好：${macro.equityPref}` : ""}
+      </p>
       <EChart option={option} height={240} />
       <p className="text-[10px] text-muted mt-1">
         数据源：/api/macro/context（上证真实数据自算：近1年涨跌/距250日线/年化波动）· GMRDS 环节 1+3 口径
