@@ -13,7 +13,7 @@
 import { chromium } from "playwright-core";
 
 const EXE = "C:/Users/lenovo/AppData/Local/ms-playwright/chromium-1234/chrome-win64/chrome.exe";
-const BASE = process.argv[2] || "http://localhost:3111";
+const BASE = process.argv[2] || process.env.BASE_URL || "http://localhost:3000";
 
 const PAGES = [
   { path: "/analysis/bullbear", name: "牛熊全景 K 线" },

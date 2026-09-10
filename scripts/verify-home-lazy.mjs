@@ -7,6 +7,8 @@
  */
 import { chromium } from "playwright-core";
 
+const BASE = process.argv[2] || process.env.BASE_URL || "http://localhost:3000";
+
 const browser = await chromium.launch({
   executablePath: "C:/Users/lenovo/AppData/Local/ms-playwright/chromium-1234/chrome-win64/chrome.exe",
   headless: true,
@@ -18,7 +20,7 @@ page.on("console", (m) => {
   if (m.type() === "error") errs.push(m.text().slice(0, 180));
 });
 
-await page.goto("http://localhost:3123/", { waitUntil: "domcontentloaded", timeout: 40000 });
+await page.goto(BASE + "/", { waitUntil: "domcontentloaded", timeout: 40000 });
 await page.waitForTimeout(8000);
 
 console.log("1) 首屏 canvas（应为 0，ECharts 未加载）:", await page.evaluate(() => document.querySelectorAll("canvas").length));

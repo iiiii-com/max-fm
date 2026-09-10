@@ -1,6 +1,8 @@
 /** 动态详情页冒烟（industry / history） */
 import { chromium } from "playwright-core";
 
+const BASE = process.argv[2] || process.env.BASE_URL || "http://localhost:3000";
+
 const browser = await chromium.launch({
   executablePath: "C:/Users/lenovo/AppData/Local/ms-playwright/chromium-1234/chrome-win64/chrome.exe",
   headless: true,
@@ -16,7 +18,7 @@ for (const p of PATHS) {
     if (m.type() === "error") errs.push(m.text().slice(0, 140));
   });
   try {
-    const res = await page.goto("http://localhost:3123" + p, { waitUntil: "domcontentloaded", timeout: 40000 });
+    const res = await page.goto(BASE + p, { waitUntil: "domcontentloaded", timeout: 40000 });
     await page.waitForTimeout(2500);
     const real = errs.filter((e) => !/favicon|DevTools|HMR|Failed to load resource|418/i.test(e));
     const hasContent = await page.evaluate(() => document.body.innerText.length > 300);

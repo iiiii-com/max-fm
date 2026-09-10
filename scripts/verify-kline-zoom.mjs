@@ -15,7 +15,7 @@ import crypto from "node:crypto";
 
 const EXE =
   "C:/Users/lenovo/AppData/Local/ms-playwright/chromium-1234/chrome-win64/chrome.exe";
-const URL = process.argv[2] || "http://localhost:3111/analysis/bullbear";
+const URL = process.argv[2] || (process.env.BASE_URL || "http://localhost:3000") + "/analysis/bullbear";
 const STEPS = 70; // 连续上滚次数
 
 const hash = (buf) => crypto.createHash("md5").update(buf).digest("hex").slice(0, 10);
