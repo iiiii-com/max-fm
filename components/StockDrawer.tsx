@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import EChart from "@/components/charts/EChart";
-import type { EChartsOption } from "@/components/charts/echarts";
+import { KlineDetailPanel, useKlineClickDetail } from "@/components/charts/KlineDetail";
+import { echarts, type EChartsOption } from "@/components/charts/echarts";
 import type { KlineBar } from "@/app/api/stock/kline/route";
 import { mkKlineTooltip, mkPctLabel } from "@/lib/data/kline-tooltip";
 
@@ -32,6 +33,7 @@ export default function StockDrawer({ stock, onClose }: { stock: DrawerStock | n
   const [flow, setFlow] = useState<any>(null);
   const [score, setScore] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [selected, clearSelected, attachChart] = useKlineClickDetail(bars);
 
   useEffect(() => {
     if (!stock) return;
@@ -188,7 +190,22 @@ export default function StockDrawer({ stock, onClose }: { stock: DrawerStock | n
             {loading ? (
               <div className="flex items-center justify-center h-[260px] rounded-md border border-border text-xs text-muted">加载中…</div>
             ) : bars.length ? (
-              <EChart option={klineOption} height={260} />
+              <div className="relative">
+            <EChart option={klineOption} height={260} onReady={attachChart} />
+            {selected && (
+              <div className="absolute left-2 top-2 z-10">
+                <KlineDetailPanel
+                  bar={selected}
+                  prev={(() => {
+                    const i = bars.findIndex((b) => b.date === selected.date);
+                    return i > 0 ? bars[i - 1] : null;
+                  })()}
+                  onClose={clearSelected}
+                  title={stock?.name}
+                />
+              </div>
+            )}
+          </div>
             ) : (
               <div className="flex items-center justify-center h-[260px] rounded-md border border-border text-xs text-muted">暂无数据</div>
             )}

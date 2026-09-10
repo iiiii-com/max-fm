@@ -3,13 +3,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import type { EChartsOption } from "@/components/charts/echarts";
+import { echarts, type EChartsOption } from "@/components/charts/echarts";
 import type { StockHit } from "@/app/api/stock/search/route";
 import type { KlineBar } from "@/app/api/stock/kline/route";
 import { mkMainAxis, mkSubAxis } from "@/lib/data/axis";
 import ScorePanel, { FlowPanel } from "@/components/ScorePanel";
 import LeaderKlineGrid from "@/components/LeaderKlineGrid";
 import AnnotatableChart from "@/components/charts/AnnotatableChart";
+import { KlineDetailPanel } from "@/components/charts/KlineDetail";
 import DailyMoveBadge from "@/components/charts/DailyMoveBadge";
 import ContextStrip from "@/components/ContextStrip";
 import { mkKlineTooltip, mkPctLabel } from "@/lib/data/kline-tooltip";
@@ -47,6 +48,8 @@ export default function StockSearch() {
   const [showPct, setShowPct] = useState(true);
   const [pctPos, setPctPos] = useState<"top" | "bottom">("top");
   const [pctFont, setPctFont] = useState(9);
+  const chartRef = useRef<echarts.ECharts | null>(null);
+  const [selectedBar, setSelectedBar] = useState<KlineBar | null>(null);
   // 缩放可视范围联动：涨跌幅标注随缩放全标可视区，不遗漏任何一根
   const [vRange, setVRange] = useState<[number, number] | null>(null);
   const onZoom = useCallback((e?: unknown) => {
@@ -403,14 +406,31 @@ export default function StockSearch() {
             <span className="text-[10px] text-muted ml-auto">画线标注：趋势线/水平线/垂直线/射线/通道/矩形 · Ctrl+Z 撤销 · 标注自动持久化</span>
           </div>
           <DailyMoveBadge bars={bars} name={selected?.name ?? "标的"} />
-          <AnnotatableChart
-            option={option}
-            height={420}
-            storageKey={`stock-ann-${selected?.secid ?? ""}`}
-            snapBars={bars}
-            onDataZoom={onZoom}
-            hint="画线标注：选择工具后在图上拖拽创建；选择模式拖动端点编辑，Del/Backspace 或双击删除；样式面板可调颜色/线型/线宽；开启吸附后端点贴近 K 线最高/最低价；标注自动保存，刷新后恢复，可导出/导入 JSON。"
-          />
+          <div className="relative">
+            <AnnotatableChart
+              option={option}
+              height={420}
+              storageKey={`stock-ann-${selected?.secid ?? ""}`}
+              snapBars={bars}
+              onDataZoom={onZoom}
+              chartRef={chartRef}
+              onBarClick={(i) => setSelectedBar(bars[i] ?? null)}
+              hint="画线标注：选择工具后在图上拖拽创建；选择模式拖动端点编辑，Del/Backspace 或双击删除；样式面板可调颜色/线型/线宽；开启吸附后端点贴近 K 线最高/最低价；标注自动保存，刷新后恢复，可导出/导入 JSON。"
+            />
+            {selectedBar && (
+              <div className="absolute left-2 top-2 z-10">
+                <KlineDetailPanel
+                  bar={selectedBar}
+                  prev={(() => {
+                    const i = bars.findIndex((b) => b.date === selectedBar.date);
+                    return i > 0 ? bars[i - 1] : null;
+                  })()}
+                  onClose={() => setSelectedBar(null)}
+                  title={selected?.name}
+                />
+              </div>
+            )}
+          </div>
           <p className="text-xs text-muted mt-2">日 K · 前复权 · 数据来自东方财富公开接口，约 2 分钟延迟，仅供研究参考</p>
         </div>
       )}

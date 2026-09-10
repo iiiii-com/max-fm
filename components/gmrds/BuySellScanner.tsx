@@ -1,9 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import EChart from "@/components/charts/EChart";
-import type { EChartsOption } from "@/components/charts/echarts";
+import { KlineDetailPanel, useKlineClickDetail } from "@/components/charts/KlineDetail";
+import { echarts, type EChartsOption } from "@/components/charts/echarts";
 import { sma } from "@/lib/data/indicators";
+import { mkPctSeries } from "@/lib/data/kline-tooltip";
 import { scanSignals, type ScanBar } from "@/lib/data/rule-engine";
 
 /**
@@ -12,6 +14,7 @@ import { scanSignals, type ScanBar } from "@/lib/data/rule-engine";
  */
 export default function BuySellScanner({ bars, height = 360 }: { bars: ScanBar[]; height?: number }) {
   const [hoverSignal, setHoverSignal] = useState<string | null>(null);
+  const [selected, clearSelected, attachChart] = useKlineClickDetail(bars);
 
   const signals = useMemo(() => scanSignals(bars), [bars]);
 
@@ -46,6 +49,7 @@ export default function BuySellScanner({ bars, height = 360 }: { bars: ScanBar[]
           data: bars.map((b) => [b.open, b.close, b.low, b.high]),
           itemStyle: { color: "#d7000b", color0: "#0aa06e", borderColor: "#d7000b", borderColor0: "#0aa06e" },
         },
+        mkPctSeries({ bars, show: true, position: "top", fontSize: 9, maxVisible: 60, keep: 60 }),
         { name: "MA20", type: "line", data: ma20, smooth: true, showSymbol: false, lineStyle: { width: 1, color: "#3b82f6" } },
         {
           name: "买卖信号", type: "scatter",
@@ -76,7 +80,21 @@ export default function BuySellScanner({ bars, height = 360 }: { bars: ScanBar[]
         <span className="text-[11px] text-muted">命中 {signals.length} 个信号 · 悬停 K 线看信号依据</span>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_240px] gap-3">
-        <EChart option={option} height={height} />
+        <div className="relative">
+          <EChart option={option} height={height} onReady={attachChart} />
+          {selected && (
+            <div className="absolute left-2 top-2 z-10">
+              <KlineDetailPanel
+                bar={selected}
+                prev={(() => {
+                  const i = bars.findIndex((b) => b.date === selected.date);
+                  return i > 0 ? bars[i - 1] : null;
+                })()}
+                onClose={clearSelected}
+              />
+            </div>
+          )}
+        </div>
         {/* 信号列表 */}
         <div className="border border-border rounded-lg overflow-y-auto max-h-[360px]">
           {signals.length === 0 ? (

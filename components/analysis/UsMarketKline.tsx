@@ -1,13 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import type { EChartsOption } from "@/components/charts/echarts";
+import { echarts } from "@/components/charts/echarts";
 import EChart from "@/components/charts/EChart";
 import { Card } from "@/components/ui";
 import { sma, macd, boll, kdj, rsi, detectSwings, buildSwingMarkPoints, type IndicatorKey } from "@/lib/data/indicators";
 import { mkMainAxis, mkSubAxis } from "@/lib/data/axis";
 import { mkKlineTooltip, mkPctLabel } from "@/lib/data/kline-tooltip";
 import AnnotatableChart from "@/components/charts/AnnotatableChart";
+import { KlineDetailPanel } from "@/components/charts/KlineDetail";
 import usMarket from "@/data/us-market.json";
 
 interface YearBar {
@@ -68,6 +70,8 @@ export default function UsMarketKline() {
   const [showPct, setShowPct] = useState(true);
   const [pctPos, setPctPos] = useState<"top" | "bottom">("top");
   const [pctFont, setPctFont] = useState(9);
+  const chartRef = useRef<echarts.ECharts | null>(null);
+  const [selectedBar, setSelectedBar] = useState<{ date: string; open: number; close: number; high: number; low: number } | null>(null);
 
   const toggleIndicator = (k: IndicatorKey) => {
     setIndicators((cur) => (cur.includes(k) ? cur.filter((x) => x !== k) : [...cur, k]));
@@ -314,13 +318,30 @@ export default function UsMarketKline() {
         <span className="text-muted/70">年度 OHLC · 事件标注判定：事件发生年份</span>
       </div>
 
-      <AnnotatableChart
-        option={option}
-        height={420}
-        storageKey="usmarket-ann"
-        snapBars={bars}
-        hint="画线标注：趋势线/水平线/垂直线/射线/通道线/矩形；选择模式拖动端点编辑，Del/Backspace 或双击删除；样式面板可调颜色/线型/线宽；开启吸附后端点贴近 K 线最高/最低价；标注自动保存，刷新后恢复，可导出/导入 JSON。"
-      />
+      <div className="relative">
+        <AnnotatableChart
+          option={option}
+          height={420}
+          storageKey="usmarket-ann"
+          snapBars={bars}
+          chartRef={chartRef}
+          onBarClick={(i) => setSelectedBar(bars[i] ?? null)}
+          hint="画线标注：趋势线/水平线/垂直线/射线/通道线/矩形；选择模式拖动端点编辑，Del/Backspace 或双击删除；样式面板可调颜色/线型/线宽；开启吸附后端点贴近 K 线最高/最低价；标注自动保存，刷新后恢复，可导出/导入 JSON。"
+        />
+        {selectedBar && (
+          <div className="absolute left-2 top-2 z-10">
+            <KlineDetailPanel
+              bar={selectedBar}
+              prev={(() => {
+                const i = bars.findIndex((b) => b.date === selectedBar.date);
+                return i > 0 ? bars[i - 1] : null;
+              })()}
+              onClose={() => setSelectedBar(null)}
+              title={`${INDEX_META[index].name} ${selectedBar.date}`}
+            />
+          </div>
+        )}
+      </div>
 
       <p className="text-[10px] text-muted mt-2 leading-relaxed border-t border-border/60 pt-2">
         数据来源：标普500/纳指年度 OHLC 为公开历史行情（雅虎财经/标准普尔官方口径）；2025 年标普收盘为 2026-08-21 腾讯接口实测值，纳指 2025 未确证故不展示。

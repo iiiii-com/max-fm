@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Play, Pause, RotateCcw } from "lucide-react";
 import EChart from "@/components/charts/EChart";
-import type { EChartsOption } from "@/components/charts/echarts";
+import { KlineDetailPanel, useKlineClickDetail } from "@/components/charts/KlineDetail";
+import { echarts, type EChartsOption } from "@/components/charts/echarts";
 import { sma, boll, macd, kdj, rsi, type OHLC } from "@/lib/data/indicators";
+import { mkPctSeries } from "@/lib/data/kline-tooltip";
 
 export interface LabBar extends OHLC {
   date: string;
@@ -78,6 +80,8 @@ export default function KlineLab({
   const visible = useMemo(() => bars.slice(0, replayIdx), [bars, replayIdx]);
   const closes = useMemo(() => visible.map((b) => b.close), [visible]);
   const dates = useMemo(() => visible.map((b) => b.date.slice(5)), [visible]);
+
+  const [selected, clearSelected, attachChart] = useKlineClickDetail(visible);
 
   // ---- 指标（在可见序列上计算：回放时 = 只用当时已知数据）----
   const ma5 = useMemo(() => (showMA ? sma(closes, 5) : null), [closes, showMA]);
@@ -160,6 +164,7 @@ export default function KlineLab({
           yAxisIndex: 1,
           data: visible.map((b) => ({ value: b.volume, itemStyle: { color: b.close >= b.open ? "rgba(215,0,11,0.55)" : "rgba(10,160,110,0.55)" } })),
         },
+        mkPctSeries({ bars: visible, show: true, position: "top", fontSize: 9, maxVisible: 60, keep: 60 }),
         ...(showMA
           ? ([
               { name: "MA5", type: "line", data: ma5, symbol: "none", lineStyle: { width: 1, color: "#f59e0b" } },
@@ -267,7 +272,26 @@ export default function KlineLab({
         </div>
       </div>
 
-      <EChart option={option} height={sub === "none" ? 380 : 480} />
+      <div className="relative">
+        <EChart
+          option={option}
+          height={sub === "none" ? 380 : 480}
+          onReady={attachChart}
+        />
+        {selected && (
+          <div className="absolute left-2 top-2 z-10">
+            <KlineDetailPanel
+              bar={selected}
+              prev={(() => {
+                const i = visible.findIndex((b) => b.date === selected.date);
+                return i > 0 ? visible[i - 1] : null;
+              })()}
+              onClose={clearSelected}
+              title={symbol}
+            />
+          </div>
+        )}
+      </div>
 
       {/* 回放进度条 */}
       {replay && (

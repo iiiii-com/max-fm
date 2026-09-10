@@ -40,6 +40,9 @@ interface Props {
   snapToHighLow?: boolean;
   /** 选中标注变化回调（供样式面板"应用到选中"等使用） */
   onSelectChange?: (id: string | null) => void;
+  /** 选中 K 线（点击空白处）回调：用于「点击 K 线查看当日详情」等场景。
+   *  注意：仅 select 工具模式下、且未命中已有标注时触发；拖拽平移/创建标注时不会触发。 */
+  onBarClick?: (dataIndex: number) => void;
 }
 
 const TOOL_COLORS: Record<Exclude<AnnotationTool, "select">, string> = {
@@ -73,7 +76,7 @@ export const MIN_VISIBLE_BARS = 2;
  * - 删除：选中后按 Delete/Backspace 或双击
  * - 坐标映射：chart.convertFromPixel/convertToPixel，dataZoom 缩放平移后由父组件触发重绘
  */
-export default function KlineAnnotations({ chart, activeTool, annotations, onChange, defaultStyle, bars, snapToHighLow, onSelectChange }: Props) {
+export default function KlineAnnotations({ chart, activeTool, annotations, onChange, defaultStyle, bars, snapToHighLow, onSelectChange, onBarClick }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [draft, setDraft] = useState<Annotation | null>(null); // 正在绘制的标注
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -84,6 +87,8 @@ export default function KlineAnnotations({ chart, activeTool, annotations, onCha
   const [version, setVersion] = useState(0); // 强制重绘
   // 图表平移（select 模式空白拖拽 → dispatchAction dataZoom；svg 与 ECharts 为兄弟节点，事件不再依赖冒泡）
   const panRef = useRef<{ px: number; start: number; end: number } | null>(null);
+  // 区分点击 vs 拖拽（移动距离 ≤ 4px 视为点击，触发 onBarClick；用于「点击 K 线查看当日详情」）
+  const downInfoRef = useRef<{ x: number; y: number } | null>(null);
 
   /** 当前 dataZoom 可视区间（百分比） */
   const getZoomRange = useCallback((): { start: number; end: number } => {
@@ -345,6 +350,7 @@ export default function KlineAnnotations({ chart, activeTool, annotations, onCha
       /* ignore */
     }
     const { px, py } = pointerPos(e);
+    downInfoRef.current = { x: px, y: py };
     const d = toData(px, py);
     if (!d) return;
 
@@ -463,11 +469,31 @@ export default function KlineAnnotations({ chart, activeTool, annotations, onCha
     }
   };
 
-  const onPointerUp = () => {
-    if (panRef.current) {
-      panRef.current = null;
-      return;
+  const onPointerUp = (e: React.PointerEvent<SVGSVGElement>) => {
+    const panned = panRef.current;
+    panRef.current = null;
+    // select 模式空白处的「点击」（非拖拽） → 转发给图表，触发 onBarClick
+    // 仅 select 工具 + 未命中标注 + 没有真正平移（< 4px） 时才视作点击
+    if (
+      activeTool === "select" &&
+      onBarClick &&
+      downInfoRef.current &&
+      chart &&
+      !(moving || dragging || draft)
+    ) {
+      const { px, py } = pointerPos(e);
+      const dx = px - downInfoRef.current.x;
+      const dy = py - downInfoRef.current.y;
+      if (Math.hypot(dx, dy) <= 4) {
+        const d = toData(px, py);
+        if (d && isFinite(d.x)) {
+          const idx = Math.round(d.x);
+          if (idx >= 0) onBarClick(idx);
+        }
+      }
     }
+    downInfoRef.current = null;
+    if (panned) return;
     if (moving) {
       setMoving(null);
       return;
@@ -482,6 +508,7 @@ export default function KlineAnnotations({ chart, activeTool, annotations, onCha
       if (d.points.length >= 2 && isValid(d)) {
         onChange([...annotations, d]);
       }
+      return;
     }
   };
 

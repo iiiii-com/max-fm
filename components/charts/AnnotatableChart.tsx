@@ -43,6 +43,9 @@ interface Props {
   chartRef?: React.MutableRefObject<echarts.ECharts | null>;
   /** 遮罩说明文案 */
   hint?: string;
+  /** 选中 K 线（点击空白处）回调：用于「点击 K 线查看当日详情」等场景。
+   *  SVG 覆盖层会拦截原生点击，需要 KlineAnnotations 在 select 模式下转发 dataIndex。 */
+  onBarClick?: (dataIndex: number) => void;
 }
 
 /**
@@ -65,6 +68,7 @@ export default function AnnotatableChart({
   onDataZoom,
   chartRef: externalChartRef,
   hint,
+  onBarClick,
 }: Props) {
   const innerRef = useRef<echarts.ECharts | null>(null);
   const chartRef = externalChartRef ?? innerRef;
@@ -414,6 +418,7 @@ export default function AnnotatableChart({
               bars={snapBars}
               snapToHighLow={snapEnabled}
               onSelectChange={setSelectedId}
+              onBarClick={onBarClick}
             />
           </div>
         )}

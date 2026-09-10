@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, BookOpen, Check, Pause, Play, RotateCcw, StepBack, StepForward } from "lucide-react";
 import type { EChartsOption } from "echarts";
 import EChart from "@/components/charts/EChart";
+import { KlineDetailPanel } from "@/components/charts/KlineDetail";
+import { echarts as echartsNS } from "@/components/charts/echarts";
 import { Badge, Card } from "@/components/ui";
 import VirtualAccount, { type VirtualAccountHandle } from "./VirtualAccount";
 import DecisionQuiz from "./DecisionQuiz";
@@ -250,6 +252,8 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
   const [revealed, setRevealed] = useState<Set<number>>(new Set());
   const [autoplay, setAutoplay] = useState(false);
   const accountRef = useRef<VirtualAccountHandle>(null);
+  const klineChartRef = useRef<echartsNS.ECharts | null>(null);
+  const [selectedKlineBar, setSelectedKlineBar] = useState<Bar | null>(null);
 
   const hasStages = !!crisis.stages?.length;
   const stage = hasStages ? crisis.stages![Math.min(stageIndex, crisis.stages!.length - 1)] : null;
@@ -1561,10 +1565,47 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
               ) : (
                 <div
                   key={pulseKey ?? "chart-static"}
-                  className="rounded-lg"
+                  className="rounded-lg relative"
                   style={pulseKey ? { animation: `crisisPulse${pulseKey > 0 ? "Green" : "Red"} 1.2s ease` } : undefined}
                 >
-                  <EChart option={hasStages && phase === "playing" ? stageOption : option} height={244} />
+                  <EChart
+                    option={hasStages && phase === "playing" ? stageOption : option}
+                    height={244}
+                    chartRef={klineChartRef}
+                    onClick={(e: any) => {
+                      if (e?.seriesType === "candlestick" && typeof e.dataIndex === "number" && activeBars?.[e.dataIndex]) {
+                        setSelectedKlineBar(activeBars[e.dataIndex]);
+                      }
+                    }}
+                  />
+                  {selectedKlineBar && activeBars && (
+                    <div className="absolute left-2 top-2 z-10">
+                      <KlineDetailPanel
+                        bar={{
+                          date: selectedKlineBar.date,
+                          open: selectedKlineBar.open ?? selectedKlineBar.close ?? 0,
+                          close: selectedKlineBar.close,
+                          high: selectedKlineBar.high ?? selectedKlineBar.close,
+                          low: selectedKlineBar.low ?? selectedKlineBar.close,
+                          volume: selectedKlineBar.volume,
+                        }}
+                        prev={(() => {
+                          const i = activeBars.findIndex((b) => b.date === selectedKlineBar.date);
+                          const p = i > 0 ? activeBars[i - 1] : null;
+                          if (!p) return null;
+                          return {
+                            date: p.date,
+                            open: p.open ?? p.close ?? 0,
+                            close: p.close,
+                            high: p.high ?? p.close,
+                            low: p.low ?? p.close,
+                          };
+                        })()}
+                        onClose={() => setSelectedKlineBar(null)}
+                        title={`${viewKey}（点击 K 线查看当日详情）`}
+                      />
+                    </div>
+                  )}
                 </div>
               )}
               {viewKey === mainMarket.name && vixFiltered.length > 0 && (

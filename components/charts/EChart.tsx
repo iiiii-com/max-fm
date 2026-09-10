@@ -10,6 +10,7 @@ export default function EChart({
   className = "",
   chartRef,
   onDataZoom,
+  onClick,
   onReady,
   children,
 }: {
@@ -20,6 +21,8 @@ export default function EChart({
   chartRef?: React.MutableRefObject<echarts.ECharts | null>;
   /** dataZoom 缩放/平移回调（画线标注随图重绘） */
   onDataZoom?: (e?: unknown) => void;
+  /** click 事件回调（K 线点击查看当日详情等场景） */
+  onClick?: (e: unknown) => void;
   /** chart 初始化完成后回调 */
   onReady?: (chart: echarts.ECharts) => void;
   /** 渲染进图表容器内部（如 SVG 画线覆盖层）——子元素事件冒泡经过容器，ECharts 可同时收到滚轮/拖拽 */
@@ -42,10 +45,14 @@ export default function EChart({
     const onResize = () => chart.resize();
     window.addEventListener("resize", onResize);
     if (onDataZoom) chart.on("datazoom", onDataZoom);
+    if (onClick) chart.on("click", onClick);
     onReady?.(chart);
     return () => {
       window.removeEventListener("resize", onResize);
       if (onDataZoom) chart.off("datazoom", onDataZoom);
+      if (onClick) {
+        try { chart.off("click", onClick); } catch { /* ignore */ }
+      }
       try {
         chart.dispose();
       } catch {

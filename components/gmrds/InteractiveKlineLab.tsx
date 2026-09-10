@@ -2,8 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import EChart from "@/components/charts/EChart";
-import type { EChartsOption } from "@/components/charts/echarts";
+import { KlineDetailPanel, useKlineClickDetail } from "@/components/charts/KlineDetail";
+import { echarts, type EChartsOption } from "@/components/charts/echarts";
 import { sma, boll, macd, rsi, kdj, aggregateBars } from "@/lib/data/indicators";
+import { mkPctSeries } from "@/lib/data/kline-tooltip";
 
 export interface LabBar {
   date: string;
@@ -72,12 +74,15 @@ export default function InteractiveKlineLab({
     return bars.slice(Math.max(0, bars.length - playCount));
   }, [bars, playCount]);
 
+  const [selected, clearSelected, attachChart] = useKlineClickDetail(visible);
+
   const option = useMemo<EChartsOption>(() => {
     const dates = visible.map((b) => b.date);
     const closes = visible.map((b) => b.close);
     const ohlc = visible.map((b) => [b.open, b.close, b.low, b.high]);
     const hasMacd = showMacd && period === "day";
     const series: any[] = [
+      mkPctSeries({ bars: visible, show: true, position: "top", fontSize: 9, maxVisible: 60, keep: 60 }),
       {
         name: "K线", type: "candlestick", data: ohlc,
         itemStyle: { color: "#d7000b", color0: "#0aa06e", borderColor: "#d7000b", borderColor0: "#0aa06e" },
@@ -220,7 +225,21 @@ export default function InteractiveKlineLab({
           {playCount != null ? `回放中：显示最近 ${Math.min(playCount, bars.length)} / ${bars.length} 根` : `共 ${bars.length} 根 · ${period === "day" ? "2020 起真实日线" : "周/月聚合"}`}
         </span>
       </div>
-      <EChart option={option} height={height} />
+      <div className="relative">
+        <EChart option={option} height={height} onReady={attachChart} />
+        {selected && (
+          <div className="absolute left-2 top-2 z-10">
+            <KlineDetailPanel
+              bar={selected}
+              prev={(() => {
+                const i = visible.findIndex((b) => b.date === selected.date);
+                return i > 0 ? visible[i - 1] : null;
+              })()}
+              onClose={clearSelected}
+            />
+          </div>
+        )}
+      </div>
       <p className="text-[10px] text-muted mt-2 leading-relaxed">
         数据源：腾讯财经日线（2020-01-02 起，周/月由日线聚合）；指标自算（MA/BOLL/MACD）；买卖点为 2024-09-24 政策反转 / 2024-10-08 高点真实锚点。行情回放可观察「低点反转 → 主升 → 回调」的周期演化。
       </p>

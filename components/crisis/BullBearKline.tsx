@@ -13,6 +13,7 @@ import { mkPctSeries } from "@/lib/data/kline-tooltip";
 import DailyMoveBadge from "@/components/charts/DailyMoveBadge";
 import { mkKlineTooltip } from "@/lib/data/kline-tooltip";
 import AnnotatableChart from "@/components/charts/AnnotatableChart";
+import { KlineDetailPanel } from "@/components/charts/KlineDetail";
 import { MIN_VISIBLE_BARS } from "@/components/charts/KlineAnnotations";
 import rawKline from "@/data/sh-index.json";
 
@@ -402,6 +403,7 @@ export default function BullBearKline() {
   // 不进入 option 重建 —— dataZoom 完全由 ECharts 内部管理，消除「缩放被 React 重置」的反馈回路
   const chartRef = useRef<echarts.ECharts | null>(null);
   const viewRef = useRef<[number, number] | null>(null);
+  const [selectedBar, setSelectedBar] = useState<Bar | null>(null);
 
   /** 用当前窗口局部更新「涨跌幅」标注系列（不重建 option，不动 dataZoom，缩放无上限） */
   const syncPctSeries = useCallback(() => {
@@ -594,15 +596,31 @@ export default function BullBearKline() {
       <DailyMoveBadge bars={bars} name="上证综指" />
 
       {/* 高度随周期变化：月K 点少可更高，日K 固定 */}
-      <AnnotatableChart
-        option={option}
-        height={period === "month" ? 440 : 480}
-        storageKey="bullbear-kline-ann"
-        snapBars={bars}
-        onDataZoom={onZoom}
-        chartRef={chartRef}
-        hint="画线标注：选择工具后在图上拖拽创建；选择模式拖动端点编辑，Del/Backspace 或双击删除；样式面板可调颜色/线型/线宽；开启吸附后端点贴近 K 线最高/最低价；标注自动保存，刷新后恢复，可导出/导入 JSON。"
-      />
+      <div className="relative">
+        <AnnotatableChart
+          option={option}
+          height={period === "month" ? 440 : 480}
+          storageKey="bullbear-kline-ann"
+          snapBars={bars}
+          onDataZoom={onZoom}
+          chartRef={chartRef}
+          onBarClick={(i) => setSelectedBar(bars[i] ?? null)}
+          hint="画线标注：选择工具后在图上拖拽创建；选择模式拖动端点编辑，Del/Backspace 或双击删除；样式面板可调颜色/线型/线宽；开启吸附后端点贴近 K 线最高/最低价；标注自动保存，刷新后恢复，可导出/导入 JSON。"
+        />
+        {selectedBar && (
+          <div className="absolute left-2 top-2 z-10">
+            <KlineDetailPanel
+              bar={selectedBar}
+              prev={(() => {
+                const i = bars.findIndex((b) => b.date === selectedBar.date);
+                return i > 0 ? bars[i - 1] : null;
+              })()}
+              onClose={() => setSelectedBar(null)}
+              title="上证综指"
+            />
+          </div>
+        )}
+      </div>
 
       <p className="text-[10px] text-muted mt-2 leading-relaxed border-t border-border/60 pt-2">
         {EARLY_NOTE}；数据源：腾讯财经 fqkline 历史日线（8536 个交易日）；涨跌与区间标注基于各轮牛熊起止点收盘价计算。
