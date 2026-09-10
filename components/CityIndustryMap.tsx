@@ -275,27 +275,30 @@ export default function CityIndustryMap() {
                 <Badge tone="blue">{selected.province}</Badge>
               </div>
               <p className="text-xs text-muted mb-3">
-                GDP {selected.gdp} · 经纬度 {selected.coords[0].toFixed(2)}E, {selected.coords[1].toFixed(2)}N
-                <span className="ml-2">· {selected.pillar.length} 项产业 · {selected.companies.length} 家代表企业</span>
+                GDP {selected.gdp}
+                {selected.coords?.length >= 2 && isFinite(selected.coords[0]) && isFinite(selected.coords[1]) && (
+                  <> · 经纬度 {selected.coords[0].toFixed(2)}E, {selected.coords[1].toFixed(2)}N</>
+                )}
+                <span className="ml-2">· {selected.pillar?.length ?? 0} 项产业 · {selected.companies?.length ?? 0} 家代表企业</span>
               </p>
               <div className="space-y-3 text-sm">
                 <div>
                   <p className="text-xs font-semibold text-muted mb-1.5">🏭 支柱产业</p>
                   <div className="flex flex-wrap gap-1.5">
-                    {selected.pillar.map((p) => <Badge key={p} tone="red">{p}</Badge>)}
+                    {(selected.pillar ?? []).map((p) => <Badge key={p} tone="red">{p}</Badge>)}
                   </div>
                 </div>
                 <div>
                   <p className="text-xs font-semibold text-muted mb-1.5">🚀 产业优势</p>
                   <div className="flex flex-wrap gap-1.5">
-                    {selected.advantage.map((a) => <Badge key={a} tone="blue">{a}</Badge>)}
+                    {(selected.advantage ?? []).map((a) => <Badge key={a} tone="blue">{a}</Badge>)}
                   </div>
                 </div>
-                {selected.companies.length > 0 && (
+                {(selected.companies?.length ?? 0) > 0 && (
                   <div>
                     <p className="text-xs font-semibold text-muted mb-1.5">🏢 代表企业</p>
                     <div className="flex flex-wrap gap-1.5">
-                      {selected.companies.map((co) => <Badge key={co} tone="gray">{co}</Badge>)}
+                      {(selected.companies ?? []).map((co) => <Badge key={co} tone="gray">{co}</Badge>)}
                     </div>
                   </div>
                 )}

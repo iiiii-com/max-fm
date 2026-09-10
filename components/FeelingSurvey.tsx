@@ -63,13 +63,13 @@ export default function FeelingSurvey() {
         </div>
       ))}
       <div className="grid grid-cols-3 gap-2 text-xs">
-        <select value={meta.ageGroup} onChange={(e) => setMeta({ ...meta, ageGroup: e.target.value })} className="input">
+        <select value={meta.ageGroup} onChange={(e) => setMeta({ ...meta, ageGroup: e.target.value })} className="input" aria-label="年龄段">
           {AGE_GROUPS.map((g) => <option key={g}>{g}</option>)}
         </select>
-        <select value={meta.occupation} onChange={(e) => setMeta({ ...meta, occupation: e.target.value })} className="input">
+        <select value={meta.occupation} onChange={(e) => setMeta({ ...meta, occupation: e.target.value })} className="input" aria-label="职业">
           {OCCUPATIONS.map((g) => <option key={g}>{g}</option>)}
         </select>
-        <select value={meta.region} onChange={(e) => setMeta({ ...meta, region: e.target.value })} className="input">
+        <select value={meta.region} onChange={(e) => setMeta({ ...meta, region: e.target.value })} className="input" aria-label="所在地区">
           {REGIONS.map((g) => <option key={g}>{g}</option>)}
         </select>
       </div>

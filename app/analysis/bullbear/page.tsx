@@ -202,7 +202,7 @@ export default function BullBearReport() {
                     <p className="text-[13px] leading-relaxed text-muted">{ev.impact}</p>
                   </div>
                 </div>
-                <div className="mt-3 pt-3 border-t border-border grid grid-cols-4 gap-2">
+                <div className="mt-3 pt-3 border-t border-border grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {Object.entries(ev.stats).map(([k, v]) => (
                     <div key={k} className="text-center">
                       <p className="text-[10px] text-muted">{k}</p>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { TrendingUp, TrendingDown, Loader2 } from "lucide-react";
+import { toNum } from "@/lib/utils";
 
 interface QuoteRow {
   name: string;
@@ -35,8 +36,10 @@ export default function ChainQuotes({ companies }: { companies: string[] }) {
             out.push({
               name,
               secid: hit.secid,
-              price: f?.data?.price ?? null,
-              changePct: null,
+              // 上游 price 可能是字符串（"12.34"/"-"/null），先归一化为 number|null，
+              // 否则渲染期 r.price?.toFixed(2) 会因「字符串无 toFixed」抛 TypeError 崩掉整块 UI
+              price: toNum(f?.data?.price),
+              changePct: toNum(f?.data?.changePct),
               status: "ok",
             });
           } catch {

@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { getPolicyWithAnalysis, getPolicies } from "@/lib/data/queries";
 import { Card, Badge, AIFlag } from "@/components/ui";
 import Markdown from "@/components/markdown";
-import { fmtDate } from "@/lib/utils";
+import { fmtDate, safeJsonArray } from "@/lib/utils";
 import { bootstrap } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -108,7 +108,7 @@ export default async function PolicyDetailPage({ params }: { params: Promise<{ i
             <>
               <p className="text-sm text-muted mb-2">政策解读涉及的关联指标：</p>
               <div className="flex flex-wrap gap-2">
-                {(JSON.parse(analysis.dataLinks) as string[]).map((d: any) => (
+                {safeJsonArray<string>(analysis.dataLinks).map((d) => (
                   <Badge key={d} tone="gray">{d}</Badge>
                 ))}
               </div>

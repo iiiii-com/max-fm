@@ -124,6 +124,7 @@ export default function CompareTool() {
           value={a}
           onChange={(e) => setA(e.target.value)}
           className="px-3 py-1.5 rounded-lg border border-border bg-background text-sm"
+          aria-label="对比指标 A"
         >
           {METRICS.map((m) => <option key={m.type} value={m.type}>{m.name}</option>)}
         </select>
@@ -132,6 +133,7 @@ export default function CompareTool() {
           value={b}
           onChange={(e) => setB(e.target.value)}
           className="px-3 py-1.5 rounded-lg border border-border bg-background text-sm"
+          aria-label="对比指标 B"
         >
           {METRICS.map((m) => <option key={m.type} value={m.type}>{m.name}</option>)}
         </select>

@@ -398,6 +398,7 @@ export default function StockSearch() {
                   value={pctFont}
                   onChange={(e) => setPctFont(Number(e.target.value))}
                   className="px-1 py-0.5 rounded text-[11px] border border-border bg-transparent text-muted"
+                  aria-label="涨跌幅标注字号"
                 >
                   {[8, 9, 10, 11, 12].map((s) => <option key={s} value={s}>{s}px</option>)}
                 </select>

@@ -57,6 +57,7 @@ export default function CityRankTable() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="搜索城市（如 深圳 / 苏州 / 成都）"
+          aria-label="搜索城市"
           className="w-full max-w-xs rounded-md border border-border bg-background px-3 py-1.5 text-sm outline-none focus:border-primary/60"
         />
         <span className="text-xs text-muted ml-auto whitespace-nowrap">匹配 {sorted.length} 城</span>

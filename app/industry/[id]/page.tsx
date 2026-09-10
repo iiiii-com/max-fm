@@ -5,6 +5,7 @@ import { Card, Badge, SectionTitle } from "@/components/ui";
 import ChainGraph from "@/components/charts/ChainGraph";
 import ChainQuotes from "@/components/industry/ChainQuotes";
 import { CHAIN_LEVEL_COLORS } from "@/components/charts/palette";
+import { safeJsonArray } from "@/lib/utils";
 import { bootstrap } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -20,7 +21,7 @@ function roleSummary(nodes: any[], role: string): string {
   if (!list.length) return "";
   const points = list.slice(0, 3).map((n: any) => {
     const d = (n.description || "").split("，")[0].split("。")[0].trim();
-    return d && d.length > 4 ? `${n.name}：${d}` : `${n.name}：${(n.companies ? JSON.parse(n.companies ?? "[]") : []).slice(0, 2).join("、") || "关键环节"}`;
+    return d && d.length > 4 ? `${n.name}：${d}` : `${n.name}：${safeJsonArray<string>(n.companies).slice(0, 2).join("、") || "关键环节"}`;
   });
   const more = list.length > 3 ? `。另有 ${list.length - 3} 个环节详见下方` : "";
   return points.join("；") + more;
@@ -48,7 +49,7 @@ export default async function ChainDetailPage({ params }: { params: Promise<{ id
 
   const realNodes = nodes.filter((n: any) => !String(n.name).startsWith("关联："));
   const companyCount = new Set(
-    realNodes.flatMap((n: any) => JSON.parse(n.companies ?? "[]") as string[])
+    realNodes.flatMap((n: any) => safeJsonArray<string>(n.companies))
   ).size;
   const roleCount: Record<string, number> = { 上游: 0, 中游: 0, 下游: 0 };
   realNodes.forEach((n: any) => { roleCount[n.level ?? ""] = (roleCount[n.level ?? ""] ?? 0) + 1; });
@@ -121,7 +122,7 @@ export default async function ChainDetailPage({ params }: { params: Promise<{ id
               <p className="text-xs text-muted mb-3 leading-relaxed">{roleSummary(nodes, g.role)}</p>
               <div className="space-y-2">
                 {g.nodes.map((n: any) => {
-                  const companies = JSON.parse(n.companies ?? "[]") as string[];
+                  const companies = safeJsonArray<string>(n.companies);
                   return (
                     <details key={n.id} className="group border border-border rounded-lg px-3 py-2 open:bg-border/20 transition-colors">
                       <summary className="cursor-pointer text-sm font-medium flex items-center gap-2">

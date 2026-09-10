@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getHistoryEvent, getHistoryEvents } from "@/lib/data/queries";
 import { Card, Badge, SectionTitle } from "@/components/ui";
 import Markdown from "@/components/markdown";
+import { safeJsonArray } from "@/lib/utils";
 import { bootstrap } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -18,8 +19,8 @@ export default async function HistoryDetailPage({ params }: { params: Promise<{ 
   await bootstrap();
   const [e, events] = await Promise.all([getHistoryEvent(slug), getHistoryEvents()]);
   if (!e) notFound();
-  const keyData = JSON.parse(e.dataLinks ?? "[]") as Array<{ label: string; value: string }>;
-  const tags = JSON.parse(e.tags ?? "[]") as string[];
+  const keyData = safeJsonArray<{ label: string; value: string }>(e.dataLinks);
+  const tags = safeJsonArray<string>(e.tags);
   const idx = events.findIndex((x: any) => x.id === e.id);
   const prev = idx > 0 ? events[idx - 1] : null;
   const next = idx >= 0 && idx < events.length - 1 ? events[idx + 1] : null;

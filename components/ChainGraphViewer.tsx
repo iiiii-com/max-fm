@@ -33,6 +33,7 @@ export default function ChainGraphViewer({
           value={focus}
           onChange={(e) => setFocus(e.target.value)}
           className="px-2.5 py-1.5 rounded-md border border-border bg-background text-sm focus:outline-none focus:border-primary/60"
+          aria-label="聚焦产业链"
         >
           <option value="all">全部（{chains.length} 条链）</option>
           {chains.map((c) => (

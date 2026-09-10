@@ -90,8 +90,21 @@ function MiniKline({ secid, name, onPick }: { secid: string; name: string; onPic
   if (err) return <div className="h-16 flex items-center justify-center text-[10px] text-muted">{err}</div>;
   if (!bars?.length) return <div className="h-16 flex items-center justify-center text-[10px] text-muted">加载中…</div>;
   const chg = ((bars[bars.length - 1].close - bars[0].close) / bars[0].close) * 100;
+  // 用 div + role=button 而非裸 div onClick：补全键盘可达性（Tab 聚焦 / Enter·Space 触发）
   return (
-    <div onClick={onPick} className="cursor-pointer">
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onPick}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onPick?.();
+        }
+      }}
+      aria-label={`${name} 近 60 日走势，涨跌 ${chg >= 0 ? "+" : ""}${chg.toFixed(1)}%`}
+      className="cursor-pointer rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+    >
       <div className="flex items-center justify-between mb-0.5">
         <span className="text-xs font-medium truncate">{name}</span>
         <span className={`text-[10px] font-mono shrink-0 ${chg >= 0 ? "up" : "down"}`}>{chg >= 0 ? "+" : ""}{chg.toFixed(1)}%</span>

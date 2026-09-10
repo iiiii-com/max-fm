@@ -66,7 +66,13 @@ export async function GET(req: Request) {
       };
     });
 
-    const div = (v: number | undefined) => (v == null ? null : v / 100);
+    // 东财字段为「价格×100」的整数；异常值（"-"/""/null）统一归一化为 null，
+    // 避免下游拿到 NaN 渲染出 "NaN" 字样
+    const div = (v: unknown) => {
+      if (v === null || v === undefined || v === "") return null;
+      const n = typeof v === "number" ? v : Number(v);
+      return Number.isFinite(n) ? n / 100 : null;
+    };
     return NextResponse.json(
       {
         ok: true,

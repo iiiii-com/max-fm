@@ -51,6 +51,7 @@ export default function ChartToolbar({
         value={range}
         onChange={(e) => setRange(Number(e.target.value) as ChartRange)}
         className="px-1.5 py-0.5 rounded-lg border border-border bg-background text-[11px]"
+        aria-label="时间范围"
       >
         {RANGE_OPTIONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
       </select>

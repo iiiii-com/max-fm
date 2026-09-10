@@ -15,7 +15,6 @@ import { mkKlineTooltip } from "@/lib/data/kline-tooltip";
 import AnnotatableChart from "@/components/charts/AnnotatableChart";
 import { KlineDetailPanel } from "@/components/charts/KlineDetail";
 import { MIN_VISIBLE_BARS } from "@/components/charts/KlineAnnotations";
-import rawKline from "@/data/sh-index.json";
 
 interface Bar {
   date: string;
@@ -26,14 +25,42 @@ interface Bar {
   volume: number;
 }
 
-const BARS: Bar[] = (rawKline as [string, string, string, string, string, string][]).map((r) => ({
-  date: r[0],
-  open: Number(r[1]),
-  close: Number(r[2]),
-  high: Number(r[3]),
-  low: Number(r[4]),
-  volume: Number(r[5]),
-}));
+/** 把接口返回的紧凑数组行解析为 Bar（口径与 data/sh-index.json 一致：日期/开/收/高/低/量） */
+function parseBars(rows: [string, string, string, string, string, string][]): Bar[] {
+  return rows.map((r) => ({
+    date: r[0],
+    open: Number(r[1]),
+    close: Number(r[2]),
+    high: Number(r[3]),
+    low: Number(r[4]),
+    volume: Number(r[5]),
+  }));
+}
+
+/**
+ * 上证日线数据按需加载
+ *
+ * 原先在此客户端组件顶层 `import rawKline from "@/data/sh-index.json"`，
+ * 会把约 677KB JSON 打进客户端 JS 包（实测占单个 chunk 637KB，是全站最大的客户端 chunk）。
+ * 改为运行时 fetch 后：JS 包减少 637KB，数据以 JSON 解析（远快于 JS），并可被 CDN/浏览器缓存。
+ * 模块级 Promise 复用：同一会话内多个实例（如牛熊 Tab 与独立页）只下载一次。
+ */
+let barsPromise: Promise<Bar[]> | null = null;
+function loadShIndexBars(): Promise<Bar[]> {
+  if (!barsPromise) {
+    barsPromise = fetch("/api/data/sh-index")
+      .then((r) => {
+        if (!r.ok) throw new Error(`sh-index ${r.status}`);
+        return r.json();
+      })
+      .then((rows: [string, string, string, string, string, string][]) => parseBars(rows))
+      .catch((e) => {
+        barsPromise = null; // 允许失败后重试
+        throw e;
+      });
+  }
+  return barsPromise;
+}
 
 /** 早期 3 段（1990-1993 腾讯源点位失真，用上交所公开点位） */
 const EARLY_NOTE =
@@ -405,6 +432,25 @@ export default function BullBearKline() {
   const viewRef = useRef<[number, number] | null>(null);
   const [selectedBar, setSelectedBar] = useState<Bar | null>(null);
 
+  // 日线数据按需加载（不阻塞首屏 JS，见 loadShIndexBars 注释）
+  const [allBars, setAllBars] = useState<Bar[]>([]);
+  const [loadState, setLoadState] = useState<"loading" | "ready" | "error">("loading");
+  useEffect(() => {
+    let alive = true;
+    loadShIndexBars()
+      .then((rows) => {
+        if (!alive) return;
+        setAllBars(rows);
+        setLoadState("ready");
+      })
+      .catch(() => {
+        if (alive) setLoadState("error");
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   /** 用当前窗口局部更新「涨跌幅」标注系列（不重建 option，不动 dataZoom，缩放无上限） */
   const syncPctSeries = useCallback(() => {
     const chart = chartRef.current;
@@ -431,9 +477,9 @@ export default function BullBearKline() {
 
   // 数据自 1993-01-04 起（腾讯源可靠区间，避免早期失真干扰）
   const bars = useMemo(() => {
-    const reliable = BARS.filter((b) => b.date >= "1993-01-04");
+    const reliable = allBars.filter((b) => b.date >= "1993-01-04");
     return period === "month" ? aggregateMonthly(reliable) : reliable;
-  }, [period]);
+  }, [period, allBars]);
   // bars 的 ref 副本：缩放回调里局部更新标注需要最新 bars
   const viewBarsRef = useRef(bars);
   viewBarsRef.current = bars;
@@ -461,6 +507,36 @@ export default function BullBearKline() {
 
   return (
     <Card className="p-4">
+      {loadState === "loading" && (
+        <div className="flex items-center justify-center h-[420px] text-sm text-muted" aria-busy="true">
+          上证综指日线数据加载中…
+        </div>
+      )}
+
+      {loadState === "error" && (
+        <div role="alert" className="flex flex-col items-center justify-center h-[420px] gap-2 text-sm text-muted">
+          <p className="text-red-500">历史日线数据加载失败</p>
+          <p className="text-xs">请检查网络连接后重试</p>
+          <button
+            type="button"
+            onClick={() => {
+              setLoadState("loading");
+              loadShIndexBars()
+                .then((rows) => {
+                  setAllBars(rows);
+                  setLoadState("ready");
+                })
+                .catch(() => setLoadState("error"));
+            }}
+            className="mt-1 rounded-md border border-border px-3 py-1 text-xs hover:border-primary/50 hover:text-primary transition-colors"
+          >
+            重新加载
+          </button>
+        </div>
+      )}
+
+      {loadState === "ready" && (
+      <>
       <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
         <div className="flex items-center gap-2">
           <h3 className="font-bold text-sm">上证综指 · 牛熊全景 K 线（真实历史）</h3>
@@ -573,6 +649,7 @@ export default function BullBearKline() {
               onChange={(e) => setPctFont(Number(e.target.value))}
               className="px-1 py-0.5 rounded text-[11px] border border-border bg-transparent text-muted"
               title="标注字号"
+              aria-label="涨跌幅标注字号"
             >
               {[8, 9, 10, 11, 12].map((s) => <option key={s} value={s}>{s}px</option>)}
             </select>
@@ -625,6 +702,8 @@ export default function BullBearKline() {
       <p className="text-[10px] text-muted mt-2 leading-relaxed border-t border-border/60 pt-2">
         {EARLY_NOTE}；数据源：腾讯财经 fqkline 历史日线（8536 个交易日）；涨跌与区间标注基于各轮牛熊起止点收盘价计算。
       </p>
+      </>
+      )}
     </Card>
   );
 }

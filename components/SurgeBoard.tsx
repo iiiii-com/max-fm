@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { TrendingUp, Flame, RefreshCw, Zap } from "lucide-react";
+import { toNum } from "@/lib/utils";
 
 interface SurgeItem {
   code: string;
@@ -42,8 +43,21 @@ export default function SurgeBoard() {
       .then((r) => r.json())
       .then((j) => {
         if (j?.ok) {
-          setSurges(j.surges ?? []);
-          setSectors(j.sectors ?? []);
+          // 东财接口数值字段类型不稳定（可能是字符串），统一归一化后再渲染，
+          // 否则 s.pct?.toFixed() 会因「字符串无 toFixed」抛错崩掉整块面板
+          setSurges(
+            (j.surges ?? []).map((s: any) => ({
+              ...s,
+              pct: toNum(s.pct),
+              price: toNum(s.price),
+            }))
+          );
+          setSectors(
+            (j.sectors ?? []).map((s: any) => ({
+              ...s,
+              pct: toNum(s.pct),
+            }))
+          );
           setUpdated(j.updated ?? "");
         } else setErr(j?.error ?? "速报加载失败");
       })

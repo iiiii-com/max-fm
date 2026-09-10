@@ -40,8 +40,10 @@ export default function ContextStrip({
   }, []);
 
   // 行业景气（简化口径）：PE 相对通用中枢判断 —— 白酒/消费类高 PE 常态，标注为参考
+  // 注意：用 typeof + isFinite 双重校验，避免上游漏字段（undefined）或 NaN 时 .toFixed 抛错
+  const hasPe = typeof pe === "number" && isFinite(pe);
   let industry: { label: string; detail: string; tone: string; href: string } = { label: "行业景气观察", detail: "PE 相对历史中枢定位", tone: "text-muted", href: "/industry" };
-  if (pe !== null) {
+  if (hasPe) {
     if (pe < 15) { industry = { label: "行业景气 · 价值区", detail: `PE ${pe.toFixed(1)} 低于 15 倍中枢，行业估值偏冷（关注拐点）`, tone: "text-emerald-600", href: "/industry" }; }
     else if (pe <= 30) { industry = { label: "行业景气 · 均衡", detail: `PE ${pe.toFixed(1)} 处于 15-30 倍中枢区间，行业热度中性`, tone: "text-foreground", href: "/industry" }; }
     else { industry = { label: "行业景气 · 高热度", detail: `PE ${pe.toFixed(1)} 高于 30 倍中枢，行业受资金追捧（警惕拥挤）`, tone: "text-red-600", href: "/industry" }; }
@@ -49,7 +51,7 @@ export default function ContextStrip({
 
   // 估值定位（环节 6）
   let valuation: { label: string; detail: string; tone: string } = { label: "估值定位", detail: "通用 PE 中枢 15-30 倍", tone: "text-muted" };
-  if (pe !== null) {
+  if (hasPe) {
     if (pe < 15) valuation = { label: "低估区", detail: `PE ${pe.toFixed(1)} < 15 倍下限，安全边际充足`, tone: "text-emerald-600" };
     else if (pe <= 30) valuation = { label: "合理区", detail: `PE ${pe.toFixed(1)} 位于 15-30 倍合理区间`, tone: "text-foreground" };
     else valuation = { label: "高估区", detail: `PE ${pe.toFixed(1)} > 30 倍上限，估值偏贵`, tone: "text-red-600" };

@@ -152,10 +152,17 @@ export default function GlobalIndexBoard({ quotes }: { quotes: Quote[] }) {
               <p className="text-[10px] text-muted mt-1 mb-2 line-clamp-2">{ix.desc}</p>
 
               {ix.sina ? (
-                <div onClick={() => setExpanded(isOpen ? null : ix.code)} className="cursor-pointer">
+                // 用 button 而非 div onClick：保证键盘（Tab/Enter/Space）与屏幕阅读器可达
+                <button
+                  type="button"
+                  onClick={() => setExpanded(isOpen ? null : ix.code)}
+                  aria-expanded={isOpen}
+                  aria-label={`${isOpen ? "收起" : "查看"}${ix.name}近一年走势`}
+                  className="block w-full text-left cursor-pointer rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                >
                   <MiniSpark code={ix.code} expanded={isOpen} onExpand={setExpanded} />
                   <p className="text-[10px] text-primary mt-1">{isOpen ? "收起走势 ▲" : "查看近一年走势 ▼"}</p>
-                </div>
+                </button>
               ) : (
                 <p className="text-[10px] text-muted">历史 K 线数据源暂未覆盖，实时行情有效</p>
               )}

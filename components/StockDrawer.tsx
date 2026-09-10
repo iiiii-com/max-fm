@@ -33,6 +33,7 @@ export default function StockDrawer({ stock, onClose }: { stock: DrawerStock | n
   const [flow, setFlow] = useState<any>(null);
   const [score, setScore] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
   const [selected, clearSelected, attachChart] = useKlineClickDetail(bars);
 
   useEffect(() => {
@@ -41,6 +42,7 @@ export default function StockDrawer({ stock, onClose }: { stock: DrawerStock | n
     setBars([]);
     setFlow(null);
     setScore(null);
+    setErr("");
     setLoading(true);
     Promise.all([
       fetch(`/api/stock/kline?secid=${stock.secid}`, { cache: "no-store" }).then((r) => r.json()),
@@ -54,7 +56,10 @@ export default function StockDrawer({ stock, onClose }: { stock: DrawerStock | n
           setScore(f.score);
         }
       })
-      .catch(() => {})
+      // 不再静默吞错：请求失败时给出可读提示，避免界面「假死」无反馈
+      .catch(() => {
+        if (alive) setErr("行情数据加载失败，请稍后重试或检查网络连接");
+      })
       .finally(() => {
         if (alive) setLoading(false);
       });
@@ -185,6 +190,11 @@ export default function StockDrawer({ stock, onClose }: { stock: DrawerStock | n
         </div>
 
         <div className="p-5 space-y-5">
+          {err && (
+            <div role="alert" className="rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-500">
+              {err}
+            </div>
+          )}
           <div>
             <p className="text-sm font-medium mb-2">K 线（日线）</p>
             {loading ? (
