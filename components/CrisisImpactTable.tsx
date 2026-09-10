@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CRISES } from "@/lib/data/crisis/crises";
 import { Card, SectionTitle, Badge } from "@/components/ui";
+import { CollapsibleOnMobile } from "@/components/ui-disclosure";
 
 const LEVEL_META: Record<string, { label: string; tone: "red" | "blue" | "gray" }> = {
   major: { label: "特大危机", tone: "red" },
@@ -23,8 +24,10 @@ export default function CrisisImpactTable() {
   return (
     <section>
       <SectionTitle title="历史危机对指数的实际影响" sub="点击任意一行进入危机重演引擎" />
-      <Card className="overflow-x-auto">
-        <table className="w-full text-sm">
+      {/* 移动端该表约 3205px 高，占页面近 1/5；窄屏默认折叠，桌面端完整展示 */}
+      <CollapsibleOnMobile collapsedHeight={430} moreLabel={`展开全部 ${CRISES.length} 条危机`}>
+        <Card className="overflow-x-auto">
+          <table className="w-full text-sm">
           <thead>
             <tr className="text-left border-b border-border">
               <th className="py-3 pl-4 pr-4 font-medium">危机</th>
@@ -54,8 +57,9 @@ export default function CrisisImpactTable() {
               </tr>
             ))}
           </tbody>
-        </table>
-      </Card>
+          </table>
+        </Card>
+      </CollapsibleOnMobile>
     </section>
   );
 }

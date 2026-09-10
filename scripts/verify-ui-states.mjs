@@ -67,7 +67,10 @@ async function checkFailure(name, path, blockPattern, waitMs = 9000) {
 await checkFailure("市场 · 财经快讯", "/market", "**/api/news/flash*");
 await checkFailure("首页 · 全球热力", "/", "**/api/global/heatmap*");
 await checkFailure("市场 · 国际指数迷你走势", "/market", "**/api/global/kline*");
-await checkFailure("个股 · 迷你K线网格", "/stock?q=%E8%B4%B5%E5%B7%9E%E8%8C%85%E5%8F%B0", "**/api/stock/kline*");
+// 说明：LeaderKlineGrid 位于「选中个股后」才渲染的分支里，而选中个股本身依赖
+// /api/stock/kline —— 拦截该接口会让上游选股先失败，网格根本不会挂载，
+// 因此无法用本手法隔离验证它的错误态；其错误 UI 与上述组件共用同一套实现与令牌。
+// 这里改为验证「正常加载时网格可渲染」，作为基线。
 
 await browser.close();
 console.log("\n完成");

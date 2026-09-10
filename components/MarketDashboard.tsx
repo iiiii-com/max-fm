@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { EmptyState, ErrorState, LoadingRegion } from "@/components/ui-state";
+import { CollapsibleOnMobile } from "@/components/ui-disclosure";
 import type { EChartsOption } from "@/components/charts/echarts";
 import { useWatchlist, type WatchItem } from "@/lib/hooks/useWatchlist";
 import { useRefresh } from "@/lib/hooks/refresh";
@@ -244,6 +245,7 @@ export default function MarketDashboard() {
             <EmptyState title="暂无板块资金数据" hint="可点击上方「刷新」重新拉取" />
           )
         ) : (
+          <CollapsibleOnMobile collapsedHeight={520} moreLabel="展开全部板块">
           <div className="overflow-x-auto">
             <table className="w-full text-sm table-stripe">
               <thead>
@@ -275,6 +277,7 @@ export default function MarketDashboard() {
               </tbody>
             </table>
           </div>
+          </CollapsibleOnMobile>
         )}
       </div>
 
