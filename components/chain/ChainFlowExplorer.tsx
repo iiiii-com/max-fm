@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Layers } from "lucide-react";
-import ChainFlowArcs, { type FlowNode } from "./ChainFlowArcs";
+import ChainSchematic, { type FlowNode } from "./ChainSchematic";
 
 /**
  * 产业链浏览器：链选择（横向 chip）+ 分层流向图
@@ -51,7 +51,7 @@ export default function ChainFlowExplorer({
     <div className="space-y-3">
       {/* 链选择：横向可滚动 chip */}
       <div className="flex items-center gap-2">
-        <span className="flex shrink-0 items-center gap-1 text-xs text-muted">
+        <span className="flex shrink-0 items-center gap-1 font-mono text-[11px] tracking-widest text-muted">
           <Layers className="h-3.5 w-3.5" />
           产业链
         </span>
@@ -69,7 +69,7 @@ export default function ChainFlowExplorer({
                 role="tab"
                 aria-selected={on}
                 onClick={() => setActive(c.id)}
-                className={`shrink-0 whitespace-nowrap rounded-md border px-2.5 py-1 text-xs transition-colors duration-150 ${
+                className={`shrink-0 whitespace-nowrap border px-2.5 py-1 font-mono text-[11px] transition-colors duration-150 ${
                   on
                     ? "border-primary bg-primary-soft font-medium text-primary"
                     : "border-border text-muted hover:border-primary/50 hover:text-foreground"
@@ -84,7 +84,7 @@ export default function ChainFlowExplorer({
       </div>
 
       {current ? (
-        <ChainFlowArcs nodes={currentNodes} title={current.name} />
+        <ChainSchematic nodes={currentNodes} title={current.name} />
       ) : (
         <p className="py-8 text-center text-sm text-muted">请选择一条产业链</p>
       )}

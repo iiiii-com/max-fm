@@ -19,7 +19,7 @@ const browser = await chromium.launch({
   await page.waitForTimeout(7000);
 
   const info = await page.evaluate(() => {
-    const svg = document.querySelector('svg[aria-label="产业链弧形流线图"]');
+    const svg = document.querySelector('svg[aria-label="产业链布线图"]');
     const paths = svg ? svg.querySelectorAll("path").length : 0;
     const pills = svg ? svg.querySelectorAll("g[role=button]").length : 0;
     const chips = document.querySelectorAll('[role="tab"]').length;
@@ -33,10 +33,10 @@ const browser = await chromium.launch({
   // 注意：必须用真实鼠标移动 —— React 的 onMouseEnter 由 mouseover 委托合成，
   // 直接 dispatchEvent(new MouseEvent("mouseenter")) 不会触发。
   const beforeOp = await page.evaluate(() =>
-    [...document.querySelectorAll('svg[aria-label="产业链弧形流线图"] path')].map((p) => p.getAttribute("opacity"))
+    [...document.querySelectorAll('svg[aria-label="产业链布线图"] path')].map((p) => p.getAttribute("opacity"))
   );
   const box = await page.evaluate(() => {
-    const g = document.querySelector('svg[aria-label="产业链弧形流线图"] g[role=button]');
+    const g = document.querySelector('svg[aria-label="产业链布线图"] g[role=button]');
     if (!g) return null;
     const r = g.getBoundingClientRect();
     return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
@@ -46,7 +46,7 @@ const browser = await chromium.launch({
     await page.waitForTimeout(500);
   }
   const afterOp = await page.evaluate(() =>
-    [...document.querySelectorAll('svg[aria-label="产业链弧形流线图"] path')].map((p) => p.getAttribute("opacity"))
+    [...document.querySelectorAll('svg[aria-label="产业链布线图"] path')].map((p) => p.getAttribute("opacity"))
   );
   const changed = beforeOp.filter((v, i) => v !== afterOp[i]).length;
   console.log(`  悬停高亮: ${changed}/${beforeOp.length} 条弧线透明度发生变化`);
@@ -71,7 +71,7 @@ const browser = await chromium.launch({
   const r = await page.evaluate(() => ({
     overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
     svgHidden: (() => {
-      const svg = document.querySelector('svg[aria-label="产业链弧形流线图"]');
+      const svg = document.querySelector('svg[aria-label="产业链布线图"]');
       const wrap = svg?.parentElement;
       return wrap ? getComputedStyle(wrap).display === "none" : null;
     })(),
