@@ -2,7 +2,7 @@
 import { getArticles, getRecentAggregated, getFeelingAggregates, getTemperatures, getChains } from "@/lib/data/queries";
 import { Card, StatCard, SectionTitle, Badge, AIFlag } from "@/components/ui";
 import { fmt, fmtDate } from "@/lib/utils";
-import { Network, Landmark, TrendingUp, History } from "lucide-react";
+import { Network, Landmark, TrendingUp, History, Compass } from "lucide-react";
 import { HISTORY_EVENTS } from "@/lib/data/history";
 import BoardCard from "@/components/BoardCard";
 import DashboardTerminal from "@/components/DashboardTerminal";
@@ -104,9 +104,9 @@ export default async function Home() {
         </section>
       )}
 
-      {/* 四大板块 */}
+      {/* 板块导航：与 Header 导航的 5 个板块保持一致 */}
       <section>
-        <SectionTitle title="四大板块" sub="宏观 · 市场 · 产业 · 历史，一站式经济洞察" />
+        <SectionTitle title="五大板块" sub="宏观 · 市场 · 产业 · 历史 · 研究，一站式经济洞察" />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <BoardCard href="/macro" title="宏观总览" desc="经济指标 · 政策解读 · 周期洞察 · 经济地图 · 个人建议" accent="bg-blue-600" icon={<Landmark className="w-4.5 h-4.5" />}>
             <p className="mb-2.5 text-xs text-muted">最新温度：{temp}°C · 情绪指数：{fmt(feeling.overall)}</p>
@@ -127,7 +127,7 @@ export default async function Home() {
               { href: "/compare", label: "对比中心" },
             ]} />
           </BoardCard>
-          <BoardCard href="/industry" title="产业地图" desc="22 条产业链 · 景气度 · 资金热度 · 危机冲击案例" accent="bg-purple-600" icon={<Network className="w-4.5 h-4.5" />}>
+          <BoardCard href="/industry" title="产业地图" desc="产业链全景 · 景气度 · 资金热度 · 危机冲击案例" accent="bg-purple-600" icon={<Network className="w-4.5 h-4.5" />}>
             <p className="mb-2.5 text-xs text-muted">{chains.length} 条主线产业链</p>
             <QuickLinks links={[
               { href: "/industry", label: "产业链全景" },
@@ -140,6 +140,23 @@ export default async function Home() {
               { href: "/history", label: "历史时间线" },
               { href: "/history?tab=crisis", label: "危机重演" },
               { href: "/history?tab=waves", label: "康波全景" },
+              { href: "/analysis/cycle-anatomy", label: "周期解剖" },
+            ]} />
+          </BoardCard>
+          {/* 第五个板块：此前导航有「研究体系」但首页没有入口，属于组织缺口，补齐以与导航一致 */}
+          <BoardCard
+            href="/gmrds"
+            title="研究体系"
+            desc="决策流程 · 真实案例 · 工具箱 · K线实验室"
+            accent="bg-amber-600"
+            icon={<Compass className="w-4.5 h-4.5" />}
+          >
+            <p className="mb-2.5 text-xs text-muted">四大阶段 · 十一环节决策链</p>
+            <QuickLinks links={[
+              { href: "/lab", label: "K线实验室" },
+              { href: "/gmrds", label: "体系总览" },
+              { href: "/gmrds/cases", label: "真实案例" },
+              { href: "/gmrds/toolkit", label: "经典工具箱" },
             ]} />
           </BoardCard>
         </div>

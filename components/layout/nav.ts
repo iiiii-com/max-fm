@@ -50,6 +50,11 @@ export interface NavGroup {
   label: string;
   desc: string;
   icon: LucideIcon;
+  /**
+   * 子模块列表。**为空数组表示该板块没有下级**，Header 会渲染成直接链接
+   * （不显示展开箭头、不弹出下拉面板）。
+   * 不要再为「只有 1 个子项」的板块保留下拉 —— 那等于让用户白点一次。
+   */
   children: NavChild[];
 }
 
@@ -57,12 +62,12 @@ export const NAV: NavGroup[] = [
   {
     href: "/macro",
     label: "宏观总览",
-    desc: "经济指标 · 政策解读 · 经济地图 · 个人建议",
+    desc: "经济指标 · 政策 · 地图 · 个人建议",
     icon: Landmark,
     children: [
-      { href: "/macro", label: "宏观仪表盘", desc: "GDP / CPI / PMI / M2 等核心指标", icon: LayoutDashboard },
+      { href: "/macro", label: "宏观仪表盘", desc: "GDP / CPI / PMI / M2 核心指标", icon: LayoutDashboard },
       { href: "/macro/feeling", label: "温度 vs 体感", desc: "宏观温度与个人体感温差", icon: Thermometer },
-      { href: "/policy", label: "政策解读", desc: "政策库 + 三层 AI 视角解读", icon: ScrollText },
+      { href: "/policy", label: "政策解读", desc: "政策库 + 三层 AI 视角", icon: ScrollText },
       { href: "/map", label: "经济分布图", desc: "31 省经济数据地图", icon: MapPinned },
       { href: "/advice", label: "个人建议", desc: "问卷生成资产配置建议", icon: ClipboardList },
     ],
@@ -70,47 +75,47 @@ export const NAV: NavGroup[] = [
   {
     href: "/market",
     label: "市场洞察",
-    desc: "指数行情 · 资金流向 · 个股 · ETF",
+    desc: "指数 · 板块 · 个股 · ETF · 对比",
     icon: TrendingUp,
     children: [
       { href: "/market", label: "大盘指数", desc: "指数行情 · 板块资金流", icon: Gauge },
-      { href: "/sector", label: "板块中心", desc: "板块行情 · 资金 · K线 · 成分股", icon: LayoutGrid },
-      { href: "/market?tab=stocks", label: "个股行情", desc: "K 线 + 资金双图联动 · 评分", icon: CandlestickChart },
+      { href: "/sector", label: "板块中心", desc: "板块行情 · 资金 · 成分股", icon: LayoutGrid },
+      { href: "/market?tab=stocks", label: "个股行情", desc: "K 线 + 资金双图联动", icon: CandlestickChart },
       { href: "/etf", label: "ETF 专区", desc: "ETF 行情与持仓透视", icon: LineChart },
-      { href: "/compare", label: "对比中心", desc: "股票 · 指数 · ETF 跨类型对比", icon: GitCompareArrows },
+      { href: "/compare", label: "对比中心", desc: "股票 · 指数 · ETF 跨类对比", icon: GitCompareArrows },
     ],
   },
   {
     href: "/industry",
     label: "产业地图",
-    desc: "产业链全景 · 景气度 · 资金热度",
+    desc: "产业链上中下游泳道 · 景气度 · 资金热度",
     icon: Network,
-    children: [
-      { href: "/industry", label: "产业链全景", desc: "32 条产业链上中下游泳道 · 按链索引", icon: Waypoints },
-    ],
+    // 该板块目前只有 1 个页面，因此不再做下拉（原先下拉里只有一项，属于多余交互层级）
+    children: [],
   },
   {
     href: "/history",
     label: "历史演进",
-    desc: "牛熊周期 · 康波全景 · 历史时间线",
+    desc: "牛熊 · 康波 · 时间线 · 周期机制",
     icon: History,
     children: [
-      { href: "/history", label: "牛熊周期", desc: "A 股 21 轮牛熊 · 危机重演 · 深度对比", icon: ShieldAlert },
-      { href: "/history?tab=waves", label: "康波全景", desc: "六波技术革命 · 波浪可视化 · 当前位置", icon: Waves },
-      { href: "/history?tab=timeline", label: "历史时间线", desc: "全球 3000+ 事件 · 筛选与搜索", icon: Clock },
+      { href: "/history", label: "牛熊周期", desc: "A 股 21 轮牛熊 · 危机重演", icon: ShieldAlert },
+      { href: "/history?tab=waves", label: "康波全景", desc: "六波技术革命 · 当前位置", icon: Waves },
+      { href: "/history?tab=timeline", label: "历史时间线", desc: "全球 3000+ 事件 · 筛选搜索", icon: Clock },
+      { href: "/analysis/cycle-anatomy", label: "周期解剖", desc: "熊市深度 · 修复时长 · 驱动机制", icon: Waypoints },
     ],
   },
   {
     href: "/gmrds",
     label: "研究体系",
-    desc: "GMRDS · 决策流程 · 真实案例 · 工具箱",
+    desc: "决策流程 · 真实案例 · 工具箱",
     icon: Compass,
     children: [
-      { href: "/lab", label: "K线实验室", desc: "任意标的 · 八大实操模块联动教学", icon: TestTubes },
+      { href: "/lab", label: "K线实验室", desc: "任意标的 · 八大实操模块", icon: TestTubes },
       { href: "/gmrds", label: "体系总览", desc: "四大阶段 · 十一环节决策链", icon: Library },
-      { href: "/gmrds/flow", label: "环节实操", desc: "操作步骤 · 判断标准 · 执行工具 · 治理", icon: Workflow },
-      { href: "/gmrds/cases", label: "真实案例", desc: "安然·雷曼·可口可乐·特斯拉·瑞幸·微软", icon: BookOpenCheck },
-      { href: "/gmrds/toolkit", label: "经典工具箱", desc: "固定样本教学演示（K线/雷达/估值/回撤）", icon: Wrench },
+      { href: "/gmrds/flow", label: "环节实操", desc: "步骤 · 标准 · 工具 · 治理", icon: Workflow },
+      { href: "/gmrds/cases", label: "真实案例", desc: "安然 · 雷曼 · 特斯拉 · 瑞幸", icon: BookOpenCheck },
+      { href: "/gmrds/toolkit", label: "经典工具箱", desc: "K线 / 雷达 / 估值 / 回撤", icon: Wrench },
     ],
   },
 ];
@@ -143,6 +148,8 @@ function groupDefaultLabel(group: NavGroup): string {
   if (group.href === "/market") return "大盘指数";
   if (group.href === "/industry") return "产业链全景";
   if (group.href === "/history") return "牛熊周期";
+  // 无下级的板块直接用板块名，避免出现「首页 / 产业地图 / 概览」这种冗余层级
+  if (group.children.length === 0) return group.label;
   return "概览";
 }
 
@@ -198,6 +205,7 @@ export function breadcrumbsFor(pathname: string, searchParams?: URLSearchParams 
     "/privacy": [...base, { label: "隐私政策" }],
     "/account": [...base, { label: "个人账户" }],
     "/analysis/bullbear": [...base, { href: "/market", label: "市场洞察" }, { label: "牛熊深度分析" }],
+    "/analysis/cycle-anatomy": [...base, { href: "/history", label: "历史演进" }, { label: "周期解剖" }],
     "/cycle": [...base, { label: "牛熊周期" }],
   };
   if (standalone[pathname]) return standalone[pathname];

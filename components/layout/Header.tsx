@@ -25,30 +25,37 @@ export default function Header({ user }: { user?: { name: string } | null }) {
             <span className="font-bold text-lg sm:text-xl tracking-tight hidden sm:inline">Max 财经</span>
           </Link>
 
-          {/* 桌面端：四大板块 + 二级下拉 */}
+          {/* 桌面端：板块 + 二级下拉（无下级的板块渲染为直接链接） */}
           <nav className="hidden lg:flex items-center gap-0.5 flex-1" aria-label="主导航">
             {NAV.map((g) => {
               const active = isGroupActive(g.href, pathname);
+              const hasChildren = g.children.length > 0;
+              // 子项较多时用双列排布，面板更矮、扫读更快
+              const twoCol = g.children.length >= 5;
               return (
                 <div key={g.href} className="relative group">
                   <Link
                     href={g.href}
+                    aria-haspopup={hasChildren ? "menu" : undefined}
                     className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-sm transition-colors duration-150 ${
                       active ? "bg-primary-soft text-primary font-semibold" : "text-foreground/80 hover:bg-border/60"
                     }`}
                   >
                     {g.label}
-                    <ChevronDown className="w-3.5 h-3.5 opacity-50 transition-transform duration-200 group-hover:rotate-180" />
+                    {hasChildren && (
+                      <ChevronDown className="w-3.5 h-3.5 opacity-50 transition-transform duration-200 group-hover:rotate-180" />
+                    )}
                   </Link>
-                  {/* 下拉面板 */}
+                  {/* 下拉面板：仅在有下级时渲染 */}
+                  {hasChildren && (
                   <div className="absolute left-0 top-full pt-2 invisible opacity-0 -translate-y-1 group-hover:visible group-hover:opacity-100 group-hover:translate-y-0 group-focus-within:visible group-focus-within:opacity-100 transition-all duration-150">
-                    <div className="w-72 rounded-lg border border-border bg-card shadow-lg overflow-hidden">
+                    <div className={`${twoCol ? "w-[34rem]" : "w-72"} rounded-lg border border-border bg-card shadow-lg overflow-hidden`}>
                       <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border bg-background/70">
                         <g.icon className="w-4 h-4 text-primary shrink-0" />
                         <span className="text-xs font-semibold tracking-wide">{g.label}</span>
                         <span className="text-[11px] text-muted truncate">{g.desc}</span>
                       </div>
-                      <ul className="p-1.5">
+                      <ul className={`p-1.5 ${twoCol ? "grid grid-cols-2 gap-x-1" : ""}`}>
                         {g.children.map((c) => {
                           const cActive = pathname === c.href.split("?")[0] && !pathname.includes(c.href.split("?")[0] + "/");
                           return (
@@ -71,6 +78,7 @@ export default function Header({ user }: { user?: { name: string } | null }) {
                       </ul>
                     </div>
                   </div>
+                  )}
                 </div>
               );
             })}
@@ -110,6 +118,7 @@ export default function Header({ user }: { user?: { name: string } | null }) {
           <nav className="lg:hidden border-t border-border py-2 pb-[calc(0.5rem+var(--safe-bottom))]" aria-label="移动端导航">
             {NAV.map((g) => {
               const active = isGroupActive(g.href, pathname);
+              const hasChildren = g.children.length > 0;
               const expanded = mobileOpen === g.href;
               return (
                 <div key={g.href} className="border-b border-border/70 last:border-0">
@@ -124,16 +133,19 @@ export default function Header({ user }: { user?: { name: string } | null }) {
                       <g.icon className="w-4 h-4" />
                       {g.label}
                     </Link>
-                    <button
-                      onClick={() => setMobileOpen(expanded ? null : g.href)}
-                      className="p-2.5 text-muted"
-                      aria-label={expanded ? `收起${g.label}` : `展开${g.label}`}
-                      aria-expanded={expanded}
-                    >
-                      <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${expanded ? "rotate-180" : ""}`} />
-                    </button>
+                    {/* 无下级的板块不显示展开按钮，避免点开是空的 */}
+                    {hasChildren && (
+                      <button
+                        onClick={() => setMobileOpen(expanded ? null : g.href)}
+                        className="p-2.5 text-muted"
+                        aria-label={expanded ? `收起${g.label}` : `展开${g.label}`}
+                        aria-expanded={expanded}
+                      >
+                        <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${expanded ? "rotate-180" : ""}`} />
+                      </button>
+                    )}
                   </div>
-                  {expanded && (
+                  {hasChildren && expanded && (
                     <div className="pb-2 pl-4 pr-2 grid gap-0.5">
                       {g.children.map((c) => {
                         const cActive = pathname === c.href.split("?")[0] && !pathname.includes(c.href.split("?")[0] + "/");

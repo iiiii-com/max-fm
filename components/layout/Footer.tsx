@@ -14,7 +14,8 @@ export default function Footer() {
                 {g.label}
               </Link>
               <ul className="space-y-1.5">
-                {g.children.map((c) => (
+                {/* 无下级的板块（如产业地图）回退为指向板块自身的链接，避免出现空列 */}
+                {(g.children.length ? g.children : [{ href: g.href, label: g.label }]).map((c) => (
                   <li key={c.href}>
                     <Link href={c.href} className="hover:text-foreground hover:underline transition-colors duration-150">
                       {c.label}
