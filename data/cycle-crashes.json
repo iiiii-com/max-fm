@@ -1,0 +1,375 @@
+{
+  "meta": {
+    "source": "data/sh-index.json（上证综指日线，腾讯财经 fqkline 历史日线）",
+    "generatedFrom": "scripts/build-cycle-data.ts",
+    "bars": 8536,
+    "rangeFrom": "1990-12-19",
+    "rangeTo": "2026-08-21",
+    "basis": "收盘价",
+    "detectThresholdPct": 20,
+    "troughConfirmThresholdPct": 30,
+    "majorThresholdPct": 30,
+    "definition": "熊市 = 自峰值的收盘回撤 ≥20%；谷底在自低点反弹 ≥40% 时确认（不要求收复前高）。峰值取滚动最高收盘价，谷底确认后自谷底重新追踪峰值。",
+    "note": "本文件由脚本复算生成，任何数值均可通过 npx tsx scripts/build-cycle-data.ts 复现"
+  },
+  "crashes": [
+    {
+      "peakDate": "1992-07-28",
+      "peakClose": 139.8,
+      "troughDate": "1992-08-12",
+      "troughClose": 105.5,
+      "drawdownPct": -24.54,
+      "declineDays": 15,
+      "declineBars": 1,
+      "recoveryDays": 145,
+      "recoveryBars": 1,
+      "recovered": true,
+      "major": false
+    },
+    {
+      "peakDate": "1993-02-15",
+      "peakClose": 1536.82,
+      "troughDate": "1993-03-31",
+      "troughClose": 925.91,
+      "drawdownPct": -39.75,
+      "declineDays": 44,
+      "declineBars": 32,
+      "recoveryDays": 2273,
+      "recoveryBars": 1542,
+      "recovered": true,
+      "major": true
+    },
+    {
+      "peakDate": "1993-04-28",
+      "peakClose": 1372.5,
+      "troughDate": "1993-10-27",
+      "troughClose": 778.38,
+      "drawdownPct": -43.29,
+      "declineDays": 182,
+      "declineBars": 129,
+      "recoveryDays": 1274,
+      "recoveryBars": 867,
+      "recovered": true,
+      "major": true
+    },
+    {
+      "peakDate": "1993-12-08",
+      "peakClose": 1009.67,
+      "troughDate": "1994-07-29",
+      "troughClose": 333.92,
+      "drawdownPct": -66.93,
+      "declineDays": 233,
+      "declineBars": 161,
+      "recoveryDays": 45,
+      "recoveryBars": 31,
+      "recovered": true,
+      "major": true
+    },
+    {
+      "peakDate": "1994-09-13",
+      "peakClose": 1033.47,
+      "troughDate": "1995-02-07",
+      "troughClose": 532.49,
+      "drawdownPct": -48.48,
+      "declineDays": 147,
+      "declineBars": 97,
+      "recoveryDays": 664,
+      "recoveryBars": 456,
+      "recovered": true,
+      "major": true
+    },
+    {
+      "peakDate": "1995-05-22",
+      "peakClose": 897.42,
+      "troughDate": "1996-01-22",
+      "troughClose": 516.46,
+      "drawdownPct": -42.45,
+      "declineDays": 245,
+      "declineBars": 172,
+      "recoveryDays": 262,
+      "recoveryBars": 174,
+      "recovered": true,
+      "major": true
+    },
+    {
+      "peakDate": "1996-12-09",
+      "peakClose": 1247.66,
+      "troughDate": "1996-12-24",
+      "troughClose": 865.58,
+      "drawdownPct": -30.62,
+      "declineDays": 15,
+      "declineBars": 11,
+      "recoveryDays": 101,
+      "recoveryBars": 62,
+      "recovered": true,
+      "major": true
+    },
+    {
+      "peakDate": "1997-05-12",
+      "peakClose": 1500.4,
+      "troughDate": "1997-09-23",
+      "troughClose": 1041.96,
+      "drawdownPct": -30.55,
+      "declineDays": 134,
+      "declineBars": 94,
+      "recoveryDays": 632,
+      "recoveryBars": 419,
+      "recovered": true,
+      "major": true
+    },
+    {
+      "peakDate": "1998-06-03",
+      "peakClose": 1420,
+      "troughDate": "1999-05-18",
+      "troughClose": 1059.87,
+      "drawdownPct": -25.36,
+      "declineDays": 349,
+      "declineBars": 232,
+      "recoveryDays": 27,
+      "recoveryBars": 19,
+      "recovered": true,
+      "major": false
+    },
+    {
+      "peakDate": "1999-06-29",
+      "peakClose": 1739.2,
+      "troughDate": "1999-12-27",
+      "troughClose": 1345.35,
+      "drawdownPct": -22.65,
+      "declineDays": 181,
+      "declineBars": 123,
+      "recoveryDays": 87,
+      "recoveryBars": 51,
+      "recovered": true,
+      "major": false
+    },
+    {
+      "peakDate": "2001-06-13",
+      "peakClose": 2242.42,
+      "troughDate": "2003-11-18",
+      "troughClose": 1316.56,
+      "drawdownPct": -41.29,
+      "declineDays": 888,
+      "declineBars": 585,
+      "recoveryDays": 1122,
+      "recoveryBars": 746,
+      "recovered": true,
+      "major": true
+    },
+    {
+      "peakDate": "2004-04-06",
+      "peakClose": 1777.52,
+      "troughDate": "2005-07-11",
+      "troughClose": 1011.5,
+      "drawdownPct": -43.09,
+      "declineDays": 461,
+      "declineBars": 306,
+      "recoveryDays": 455,
+      "recoveryBars": 301,
+      "recovered": true,
+      "major": true
+    },
+    {
+      "peakDate": "2007-10-16",
+      "peakClose": 6092.06,
+      "troughDate": "2008-11-04",
+      "troughClose": 1706.7,
+      "drawdownPct": -71.98,
+      "declineDays": 385,
+      "declineBars": 258,
+      "recoveryDays": null,
+      "recoveryBars": null,
+      "recovered": false,
+      "major": true
+    },
+    {
+      "peakDate": "2009-08-04",
+      "peakClose": 3471.44,
+      "troughDate": "2010-07-05",
+      "troughClose": 2363.95,
+      "drawdownPct": -31.9,
+      "declineDays": 335,
+      "declineBars": 222,
+      "recoveryDays": 1716,
+      "recoveryBars": 1138,
+      "recovered": true,
+      "major": true
+    },
+    {
+      "peakDate": "2010-11-08",
+      "peakClose": 3159.51,
+      "troughDate": "2013-06-27",
+      "troughClose": 1950.01,
+      "drawdownPct": -38.28,
+      "declineDays": 962,
+      "declineBars": 638,
+      "recoveryDays": 550,
+      "recoveryBars": 369,
+      "recovered": true,
+      "major": true
+    },
+    {
+      "peakDate": "2015-06-12",
+      "peakClose": 5166.35,
+      "troughDate": "2016-01-28",
+      "troughClose": 2655.66,
+      "drawdownPct": -48.6,
+      "declineDays": 230,
+      "declineBars": 155,
+      "recoveryDays": null,
+      "recoveryBars": null,
+      "recovered": false,
+      "major": true
+    },
+    {
+      "peakDate": "2018-01-24",
+      "peakClose": 3559.47,
+      "troughDate": "2019-01-03",
+      "troughClose": 2464.36,
+      "drawdownPct": -30.77,
+      "declineDays": 344,
+      "declineBars": 228,
+      "recoveryDays": 735,
+      "recoveryBars": 489,
+      "recovered": true,
+      "major": true
+    },
+    {
+      "peakDate": "2021-09-13",
+      "peakClose": 3715.37,
+      "troughDate": "2024-02-05",
+      "troughClose": 2702.19,
+      "drawdownPct": -27.27,
+      "declineDays": 875,
+      "declineBars": 581,
+      "recoveryDays": 560,
+      "recoveryBars": 369,
+      "recovered": true,
+      "major": false
+    }
+  ],
+  "bulls": [
+    {
+      "from": "1994-07-29",
+      "to": "1994-09-13",
+      "days": 33,
+      "changePct": 209.5,
+      "annualizedPct": 26959989.1,
+      "label": "牛3-政策牛"
+    },
+    {
+      "from": "1996-01-19",
+      "to": "1997-05-12",
+      "days": 315,
+      "changePct": 186.6,
+      "annualizedPct": 239,
+      "label": "牛4-绩优牛"
+    },
+    {
+      "from": "1999-05-19",
+      "to": "2001-06-14",
+      "days": 498,
+      "changePct": 98.6,
+      "annualizedPct": 65.4,
+      "label": "牛5-519行情"
+    },
+    {
+      "from": "2005-06-06",
+      "to": "2007-10-16",
+      "days": 575,
+      "changePct": 489,
+      "annualizedPct": 208.5,
+      "label": "牛6-大牛市"
+    },
+    {
+      "from": "2008-10-28",
+      "to": "2009-08-04",
+      "days": 190,
+      "changePct": 95.9,
+      "annualizedPct": 264.2,
+      "label": "牛7-四万亿反弹"
+    },
+    {
+      "from": "2013-06-25",
+      "to": "2015-06-12",
+      "days": 482,
+      "changePct": 163.7,
+      "annualizedPct": 108.5,
+      "label": "牛8-杠杆牛"
+    },
+    {
+      "from": "2016-01-27",
+      "to": "2018-01-29",
+      "days": 491,
+      "changePct": 28.8,
+      "annualizedPct": 20.7,
+      "label": "牛9-白马牛"
+    },
+    {
+      "from": "2019-01-04",
+      "to": "2021-02-18",
+      "days": 514,
+      "changePct": 46.1,
+      "annualizedPct": 30.9,
+      "label": "牛10-结构牛"
+    },
+    {
+      "from": "2024-02-05",
+      "to": "2025-05-30",
+      "days": 315,
+      "changePct": 23.9,
+      "annualizedPct": 28.2,
+      "label": "牛11-924行情"
+    }
+  ],
+  "sensitivity": [
+    {
+      "entryPct": 20,
+      "confirmPct": 20,
+      "count": 26,
+      "majorCount": 15
+    },
+    {
+      "entryPct": 20,
+      "confirmPct": 25,
+      "count": 23,
+      "majorCount": 14
+    },
+    {
+      "entryPct": 20,
+      "confirmPct": 30,
+      "count": 18,
+      "majorCount": 14
+    },
+    {
+      "entryPct": 20,
+      "confirmPct": 35,
+      "count": 15,
+      "majorCount": 11
+    },
+    {
+      "entryPct": 20,
+      "confirmPct": 40,
+      "count": 13,
+      "majorCount": 10
+    },
+    {
+      "entryPct": 20,
+      "confirmPct": 50,
+      "count": 12,
+      "majorCount": 9
+    }
+  ],
+  "summary": {
+    "crashCount": 18,
+    "majorCrashCount": 14,
+    "recoveredCount": 16,
+    "unrecovered": [
+      "2007-10-16",
+      "2015-06-12"
+    ],
+    "worstDrawdownPct": -71.98,
+    "longestRecoveryDays": 2273,
+    "bullCount": 9
+  }
+}

@@ -292,6 +292,14 @@ export default function BullBearReport() {
             <li>事件标注判定标准：事件标注一律采用「实际发布/发生日 → 最近交易日」映射（节假日向前对齐），确保与 K 线时间坐标精确对齐。</li>
             <li>免责声明：本报告为历史数据研究，不构成投资建议；历史规律不代表未来表现。</li>
           </ul>
+          <div className="mt-4 border-t border-border/60 pt-3">
+            <Link
+              href="/analysis/cycle-anatomy"
+              className="inline-flex items-center gap-1.5 rounded-md border border-primary/40 bg-primary-soft px-3 py-1.5 text-xs text-primary transition-colors hover:bg-primary/15"
+            >
+              延伸阅读：全球股市完整周期解剖 —— 熊市深度 / 修复时长复算、驱动引擎与终结信号 →
+            </Link>
+          </div>
         </Card>
       </section>
     </div>
