@@ -8,7 +8,6 @@ import { Badge, Card } from "@/components/ui";
 import {
   BULL_BEAR_CYCLES,
   BULL_BEAR_STATS,
-  BULL_BEAR_SOURCES,
   VOLUME_PATTERNS,
 } from "@/lib/data/bullbear";
 
@@ -232,15 +231,9 @@ export default function BullBearCompare() {
         </div>
       </Card>
 
-      {/* 数据来源 */}
-      <Card className="p-5">
-        <h3 className="font-bold mb-2 text-sm">数据来源与口径说明</h3>
-        <ul className="text-[11px] text-muted space-y-1.5 list-disc pl-4">
-          {BULL_BEAR_SOURCES.map((s, i) => (
-            <li key={i} className="leading-relaxed">{s}</li>
-          ))}
-        </ul>
-      </Card>
+      {/* 数据来源：原先此处另有一份「数据来源与口径说明」，但其内容（行情数据、估值区间）
+          是 /analysis/bullbear 末尾「数据来源与统计口径」的子集，同页出现两遍。
+          已移除，统一由页面末尾那份更完整（含免责声明）的说明承担。 */}
     </div>
   );
 }

@@ -1,7 +1,6 @@
 import Link from "next/link";
 import BoardTabs from "@/components/BoardTabs";
 import HistoryAxis from "@/components/HistoryAxis";
-import BullBearCompare from "@/components/BullBearCompare";
 import { KonratiefWaves, MerrillClock, CrisisTab } from "./tabs-lazy";
 import KonratiefWaveChart from "@/components/history/KonratiefWaveChart";
 import TimelineSearch from "@/components/history/TimelineSearch";
@@ -144,19 +143,43 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
         </section>
       )}
 
-      {/* 牛熊周期（默认）：深度对比 + 牛熊重演 */}
+      {/*
+        牛熊周期（默认 tab）——定位为「概览」。
+        原先此处渲染的是 BullBearCompare，而 /analysis/bullbear 第四节渲染的是同一个组件
+        （完全相同的重复）。现按「概览 / 深度」分工，两页不再重复：
+          · 本 tab：牛熊全景 K 线（一眼看清 21 轮牛熊形态）+ 危机重演
+          · /analysis/bullbear：全维度量化、事件四层拆解、美股对照
+          · /analysis/cycle-anatomy：熊市深度与修复时长复算
+      */}
       {active === "bullbear" && (
         <div className="space-y-10">
+          {/* CrisisTab 自身已包含「牛熊深度对比全景（K线）」与「危机重演」，
+              故此处不再单独重复渲染 K 线 */}
           <section>
-            <SectionTitle
-              title="A 股历轮牛熊 · 深度对比"
-              sub="基于上证综指 1990-2026 真实历史行情 · 21 轮牛熊的涨跌幅 / 回撤 / 天量地量 / 估值 / 情绪全维度量化对比"
-            />
-            <BullBearCompare />
+            <CrisisTab />
           </section>
           <section>
-            <SectionTitle title="牛熊重演 · 历史危机回放" sub="以真实历史行情重现历次危机与牛熊转折的完整过程" />
-            <CrisisTab />
+            <Card className="p-4">
+              <p className="mb-1 text-sm font-bold">想看更深的？</p>
+              <p className="mb-3 text-[11px] leading-relaxed text-muted">
+                本页保留概览与危机重演。21 轮牛熊的全维度量化（涨跌幅 / 回撤 / 天量地量 / 估值 / 情绪）、
+                每轮关键事件的四层拆解、美股同期对照，以及历次熊市的深度与修复时长复算，分别见：
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Link
+                  href="/analysis/bullbear"
+                  className="rounded-md border border-primary/40 bg-primary-soft px-3 py-1.5 text-xs text-primary transition-colors hover:bg-primary/15"
+                >
+                  牛熊深度分析 · 量化与事件拆解 →
+                </Link>
+                <Link
+                  href="/analysis/cycle-anatomy"
+                  className="rounded-md border border-border px-3 py-1.5 text-xs text-muted transition-colors hover:border-primary/50 hover:text-primary"
+                >
+                  周期解剖 · 熊市深度与修复时长 →
+                </Link>
+              </div>
+            </Card>
           </section>
         </div>
       )}

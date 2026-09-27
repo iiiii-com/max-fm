@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Badge, Card, SectionTitle } from "@/components/ui";
-import BullBearKline from "@/components/crisis/BullBearKline";
 import BullBearEvents from "@/components/crisis/BullBearEvents";
 import BullBearCompare from "@/components/BullBearCompare";
 import UsMarketKline from "@/components/analysis/UsMarketKline";
@@ -152,22 +151,10 @@ export default function BullBearReport() {
         </div>
       </header>
 
-      {/* 一、A 股 / 美股 K 线对比 */}
-      <section>
-        <SectionTitle
-          title="一、A 股与美股 K 线对比（技术指标可自由组合）"
-          sub="上证综指日/月K 全量真实数据 · 标普500/纳指年度K线 · MA/MACD/BOLL/KDJ/RSI 可勾选叠加 · 事件标注统一虚线样式"
-        />
-        <div className="space-y-6">
-          <BullBearKline />
-          <UsMarketKline />
-        </div>
-      </section>
-
       {/* 二、A 股牛熊关键事件深度解读 */}
       <section>
         <SectionTitle
-          title="二、A 股牛熊关键事件 · 四层深度拆解"
+          title="一、A 股牛熊关键事件 · 四层深度拆解"
           sub="「发生了什么 → 为何发生 → 如何传导 → 市场影响路径」逐层递进，关键事件与 K 线标注严格对应（判定标准：政策发布/事件发生日映射到最近交易日）"
         />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -219,9 +206,12 @@ export default function BullBearReport() {
       {/* 三、美股同期对比 */}
       <section>
         <SectionTitle
-          title="三、美股同期对比 · 五维深度对照"
-          sub="估值 / 波动率 / 政策工具 / 投资者结构 / 市场有效性——每维对比后给出可借鉴经验与差异根源"
+          title="二、美股同期对照 · K 线与五维对比"
+          sub="上方为标普500 / 纳指 K 线（MA/MACD/BOLL/KDJ/RSI 可勾选叠加）；下方为估值 / 波动率 / 政策工具 / 投资者结构 / 市场有效性五维对照"
         />
+        <div className="mb-6">
+          <UsMarketKline />
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {COMPARE_DIMS.map((c) => (
             <Card key={c.dim} className="p-5 flex flex-col">
@@ -270,7 +260,7 @@ export default function BullBearReport() {
       {/* 四、牛熊全景与事件卡片 */}
       <section>
         <SectionTitle
-          title="四、牛熊全景 · 全维度量化"
+          title="三、牛熊全景 · 全维度量化"
           sub="21 轮牛熊的涨跌幅 / 回撤 / 天量地量 / 估值 / 情绪对比 + 每轮关键事件卡片（点击展开深度解读）"
         />
         <div className="space-y-6">

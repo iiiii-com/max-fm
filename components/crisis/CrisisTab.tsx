@@ -7,8 +7,6 @@ import { CRISES } from "@/lib/data/crisis/crises";
 import type { Crisis } from "@/lib/data/crisis/types";
 import CrisisEngine from "./CrisisEngine";
 import BullBearKline from "./BullBearKline";
-import BullBearEvents from "./BullBearEvents";
-import BullBearCompare from "@/components/BullBearCompare";
 
 const LEVEL_META: Record<Crisis["level"], { label: string; tone: "red" | "blue" | "gray"; order: number }> = {
   major: { label: "特大危机", tone: "red", order: 0 },
@@ -100,17 +98,10 @@ export default function CrisisTab() {
         <BullBearKline />
       </section>
 
-      <section>
-        <SectionTitle
-          title="牛熊关键事件 · 深度解读"
-          sub="每一轮牛熊的转折事件独立成卡，分析政策/制度/宏观/外部事件如何推动上涨、下跌与回调"
-        />
-        <BullBearEvents />
-      </section>
-
-      <section>
-        <BullBearCompare />
-      </section>
+      {/* 说明：此处原还有「牛熊关键事件·深度解读」(BullBearEvents) 与「全维度量化」
+          (BullBearCompare) 两节，但它们与 /analysis/bullbear 第三、四节渲染的是同两个组件，
+          属于跨页直接重复。已按「本 tab 做概览 + 危机重演，分析页做深度」分工移除，
+          入口见上方「深度分析报告」链接。 */}
 
       <section>
         <SectionTitle
