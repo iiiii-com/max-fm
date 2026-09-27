@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getChainBySlug, getChains, getChainNodes } from "@/lib/data/queries";
 import { Card, Badge, SectionTitle } from "@/components/ui";
-import ChainGraph from "@/components/charts/ChainGraph";
+import ChainFlowView from "@/components/chain/ChainFlowView";
 import ChainQuotes from "@/components/industry/ChainQuotes";
 import { CHAIN_LEVEL_COLORS } from "@/components/charts/palette";
 import { safeJsonArray } from "@/lib/utils";
@@ -37,11 +37,6 @@ export default async function ChainDetailPage({ params }: { params: Promise<{ id
   const sorted = [...nodes].sort(
     (a: any, b: any) => (ROLE_ORDER[a.level ?? ""] ?? 3) - (ROLE_ORDER[b.level ?? ""] ?? 3)
   );
-  const links: Array<{ source: string; target: string }> = [];
-  for (let i = 0; i < sorted.length - 1; i++) {
-    links.push({ source: sorted[i].name, target: sorted[i + 1].name });
-  }
-
   const groups = ["上游", "中游", "下游"].map((role) => ({
     role,
     nodes: sorted.filter((n: any) => n.level === role),
@@ -103,9 +98,12 @@ export default async function ChainDetailPage({ params }: { params: Promise<{ id
       </section>
 
       <section>
-        <SectionTitle title="上下游结构图" sub="力导向图：节点为环节，连线为供需传导关系" />
+        <SectionTitle
+          title="上中下游分层结构"
+          sub="按环节所属层级（上游 / 中游 / 下游）分层呈现，点击环节展开说明与相关公司"
+        />
         <Card>
-          <ChainGraph nodes={nodes} links={links} />
+          <ChainFlowView nodes={nodes as any} />
         </Card>
       </section>
 

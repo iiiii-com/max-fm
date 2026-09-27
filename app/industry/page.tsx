@@ -1,7 +1,7 @@
 ﻿import BoardTabs from "@/components/BoardTabs";
 import { getChains, getChainNodes } from "@/lib/data/queries";
 import { Card, SectionTitle } from "@/components/ui";
-import ChainGraphViewer from "@/components/ChainGraphViewer";
+import ChainFlowExplorer from "@/components/chain/ChainFlowExplorer";
 import ChainEcosystem from "@/components/chain/ChainEcosystem";
 import ChainHost from "@/components/chain/ChainHost";
 import { bootstrap } from "@/lib/db";
@@ -9,7 +9,6 @@ import { bootstrap } from "@/lib/db";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "产业链分析" };
 
-const ROLE_ORDER: Record<string, number> = { 上游: 0, 中游: 1, 下游: 2 };
 
 const TABS = [
   { key: "overview", label: "全景图" },
@@ -23,16 +22,6 @@ export default async function IndustryPage({ searchParams }: { searchParams: Pro
   await bootstrap();
   const chains = await getChains();
   const nodes = await getChainNodes();
-
-  const links: Array<{ source: string; target: string }> = [];
-  for (const c of chains) {
-    const inChain = nodes
-      .filter((n: any) => n.chainId === c.id)
-      .sort((a: any, b: any) => (ROLE_ORDER[a.level ?? ""] ?? 3) - (ROLE_ORDER[b.level ?? ""] ?? 3));
-    for (let i = 0; i < inChain.length - 1; i++) {
-      links.push({ source: inChain[i].name, target: inChain[i + 1].name });
-    }
-  }
 
   const nodeCounts: Record<string, number> = {};
   for (const c of chains) {
@@ -51,9 +40,12 @@ export default async function IndustryPage({ searchParams }: { searchParams: Pro
       {active === "overview" && (
         <section className="space-y-8">
           <div>
-            <SectionTitle title="产业链全景图" sub="力导向图：节点为环节，连线为上下游关系；可聚焦单条链查看" />
+            <SectionTitle
+              title="产业链分层流向图"
+              sub="按「上游 → 中游 → 下游」分层呈现每条链的环节构成；点击上方链名切换，点击环节展开说明与相关公司"
+            />
             <Card>
-              <ChainGraphViewer chains={chains} nodes={nodes} links={links} />
+              <ChainFlowExplorer chains={chains} nodes={nodes as any} />
             </Card>
           </div>
           <div>

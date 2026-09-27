@@ -51,12 +51,41 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
   return (
     <div className="mx-auto max-w-7xl px-3 sm:px-4 py-5 sm:py-6 space-y-8">
       <header>
-        <h1 className="text-2xl font-bold">全球历史回顾</h1>
+        <h1 className="text-2xl font-bold">历史演进</h1>
         <p className="text-sm text-muted mt-1">
           从美索不达米亚到 ChatGPT：{HISTORY_EVENTS.length} 条全球历史事件（中/西/亚/非/美/大洋洲）·
-          {featured} 条精选（含 {lessons} 条"对今日启示"）· 按康波波次标注。
-          横向时间轴默认展示精选事件，点击散点展开详情。
+          {featured} 条精选（含 {lessons} 条「对今日启示」）。
         </p>
+        {/*
+          演进脉络导览：本页三个 tab 是「由短周期到长周期」的递进关系，
+          原先没有说明，用户容易把它们当作三块并列内容。这里显式串起因果链。
+        */}
+        <ol className="mt-3 grid grid-cols-1 gap-2 text-xs sm:grid-cols-3">
+          <li className="rounded-lg border border-border bg-card px-3 py-2">
+            <Link href="/history?tab=bullbear" className="font-bold text-primary hover:underline">
+              ① 牛熊周期（数月至数年）
+            </Link>
+            <p className="mt-1 leading-relaxed text-muted">
+              最短的循环。A 股 21 轮牛熊的真实涨跌、估值与情绪量化，以及历次危机的完整回放与修复过程。
+            </p>
+          </li>
+          <li className="rounded-lg border border-border bg-card px-3 py-2">
+            <Link href="/history?tab=waves" className="font-bold text-primary hover:underline">
+              ② 康波周期（约 50–60 年）
+            </Link>
+            <p className="mt-1 leading-relaxed text-muted">
+              牛熊背后的技术革命长波。六波技术周期、周期嵌套结构、各阶段大类资产表现，以及当前位置判断。
+            </p>
+          </li>
+          <li className="rounded-lg border border-border bg-card px-3 py-2">
+            <Link href="/history?tab=timeline" className="font-bold text-primary hover:underline">
+              ③ 历史时间线（数千年）
+            </Link>
+            <p className="mt-1 leading-relaxed text-muted">
+              更长尺度的背景。全球政治、经济、技术、思想事件按康波波次标注，用于观察长波与社会变迁的对应关系。
+            </p>
+          </li>
+        </ol>
       </header>
 
       <BoardTabs tabs={TABS} active={active} />
@@ -134,17 +163,22 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
 
       {active === "waves" && (
         <div className="space-y-10">
+          {/* 原先「康波长波·形象可视化」与「康波六波全景对照」是两节，实为同一主题的
+              「总览曲线」与「逐波细读」，合并为一节，脉络更连贯 */}
           <section>
             <SectionTitle
-              title="康波长波 · 形象可视化"
-              sub="1782—2040 六波技术革命的生命周期曲线：回升 → 繁荣 → 衰退 → 萧条；红色标记经典危机坐标；点击波次查看详情"
+              title="康波六波全景"
+              sub="1782—2040 六波技术革命的生命周期曲线（回升 → 繁荣 → 衰退 → 萧条），红色标记经典危机坐标；下方逐波展开技术革命、主导产业、核心国家与中国同期"
             />
             <Card className="p-4">
               <KonratiefWaveChart waves={konratief.waves} />
             </Card>
+            <div className="mt-4">
+              <KonratiefWaves waves={konratief.waves} />
+            </div>
           </section>
           <section>
-            <SectionTitle title="四大周期框架" sub="周期嵌套：康波含库兹涅茨，库兹涅茨含朱格拉，朱格拉含基钦" />
+            <SectionTitle title="四大周期框架" sub="周期嵌套：康波含库兹涅茨，库兹涅茨含朱格拉，朱格拉含基钦。各自所处阶段的综合判断见下方「当前位置」一节" />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {CYCLE_TYPES.map((c) => (
                 <Card key={c.name} className="p-5">
@@ -156,17 +190,11 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
                     <p><span className="text-muted">周期长度：</span>{c.length}</p>
                     <p><span className="text-muted">驱动力量：</span>{c.driver}</p>
                     <p><span className="text-muted">阶段循环：</span>{c.phase}</p>
-                    <p className="border-t border-border pt-2"><span className="text-muted">当前位置：</span><b>{c.current}</b></p>
                     <p className="text-xs text-muted">观察信号：{c.signal}</p>
                   </div>
                 </Card>
               ))}
             </div>
-          </section>
-
-          <section>
-            <SectionTitle title="康波六波全景对照" sub="每波含技术革命、主导产业、核心国家、关键里程碑与中国同期，点击卡片展开详情" />
-            <KonratiefWaves waves={konratief.waves} />
           </section>
 
           <section>
@@ -237,7 +265,7 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
           </section>
 
           <section>
-            <SectionTitle title="我们站在哪里？" sub="周期叠加视角的当前位置判断（仅供参考，不构成投资建议）" />
+            <SectionTitle title="当前位置与启示" sub="周期叠加视角的当前位置判断与行动建议（仅供参考，不构成投资建议）" />
             <Card className="p-6">
               <p className="text-base leading-relaxed">{CURRENT_POSITION.summary}</p>
               <div className="mt-4 space-y-2">
@@ -246,16 +274,16 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
                 ))}
               </div>
             </Card>
-          </section>
-          <section>
-            <SectionTitle title="启示与建议" sub="以史为鉴：把历史的教训翻译成今天的行动" />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="mt-6 border-t border-border pt-4">
+              <p className="mb-3 text-sm font-bold">启示与建议</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {CURRENT_POSITION.insights.map((ins) => (
                 <Card key={ins.title} className="p-5 border-l-4 border-l-primary">
                   <h3 className="font-bold mb-2">{ins.title}</h3>
                   <p className="text-sm text-muted leading-relaxed">{ins.body}</p>
-                </Card>
-              ))}
+                  </Card>
+                ))}
+              </div>
             </div>
           </section>
         </div>
