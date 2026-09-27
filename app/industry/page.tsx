@@ -41,8 +41,8 @@ export default async function IndustryPage({ searchParams }: { searchParams: Pro
         <section className="space-y-8">
           <div>
             <SectionTitle
-              title="产业链分层流向图"
-              sub="按「上游 → 中游 → 下游」分层呈现每条链的环节构成；点击上方链名切换，点击环节展开说明与相关公司"
+              title="产业链流线图"
+              sub="三列分别为上游 / 中游 / 下游，弧线表示层级流向；悬停环节可高亮其上下游链路，点击查看说明与相关公司"
             />
             <Card>
               <ChainFlowExplorer chains={chains} nodes={nodes as any} />

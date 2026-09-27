@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getChainBySlug, getChains, getChainNodes } from "@/lib/data/queries";
 import { Card, Badge, SectionTitle } from "@/components/ui";
-import ChainFlowView from "@/components/chain/ChainFlowView";
+import ChainFlowArcs from "@/components/chain/ChainFlowArcs";
 import ChainQuotes from "@/components/industry/ChainQuotes";
 import { CHAIN_LEVEL_COLORS } from "@/components/charts/palette";
 import { safeJsonArray } from "@/lib/utils";
@@ -99,11 +99,11 @@ export default async function ChainDetailPage({ params }: { params: Promise<{ id
 
       <section>
         <SectionTitle
-          title="上中下游分层结构"
+          title="上中下游流线图"
           sub="按环节所属层级（上游 / 中游 / 下游）分层呈现，点击环节展开说明与相关公司"
         />
         <Card>
-          <ChainFlowView nodes={nodes as any} />
+          <ChainFlowArcs nodes={nodes as any} />
         </Card>
       </section>
 

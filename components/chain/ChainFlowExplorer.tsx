@@ -2,14 +2,14 @@
 
 import { useMemo, useState } from "react";
 import { Layers } from "lucide-react";
-import ChainFlowView, { type FlowNode } from "./ChainFlowView";
+import ChainFlowArcs, { type FlowNode } from "./ChainFlowArcs";
 
 /**
  * 产业链浏览器：链选择（横向 chip）+ 分层流向图
  *
  * 替换原先「<select> 下拉 + 力导向图」的组合：
  *   - 下拉需两次操作才能切换，chip 一次即可，且当前选中一目了然、可横向扫视；
- *   - 力导向图位置随机漂移，改为分层流向图后位置固定（详见 ChainFlowView 注释）。
+ *   - 力导向图位置随机漂移，改为弧形流线图后位置固定（详见 ChainFlowArcs 注释）。
  */
 export default function ChainFlowExplorer({
   chains,
@@ -84,7 +84,7 @@ export default function ChainFlowExplorer({
       </div>
 
       {current ? (
-        <ChainFlowView nodes={currentNodes} title={current.name} />
+        <ChainFlowArcs nodes={currentNodes} title={current.name} />
       ) : (
         <p className="py-8 text-center text-sm text-muted">请选择一条产业链</p>
       )}
