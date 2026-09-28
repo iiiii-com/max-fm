@@ -1,0 +1,241 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  MEMBER
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+enum Priority {
+  LOW
+  MID
+  HIGH
+}
+
+enum TimeLogSource {
+  MANUAL
+  TIMER
+}
+
+enum AttendanceStatus {
+  NORMAL
+  LATE
+}
+
+enum LeaveType {
+  ANNUAL
+  SICK
+  PERSONAL
+  OTHER
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum RepeatRule {
+  DAILY
+  WEEKDAYS
+  WEEKLY_MON
+  WEEKLY_TUE
+  WEEKLY_WED
+  WEEKLY_THU
+  WEEKLY_FRI
+  WEEKLY_SAT
+  WEEKLY_SUN
+}
+
+enum GoalPeriod {
+  QUARTER
+  MONTH
+}
+
+enum HabitSchedule {
+  DAILY
+  WEEKDAYS
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(MEMBER)
+  createdAt    DateTime @default(now())
+
+  projects     Project[]
+  tasks        Task[]
+  timeLogs     TimeLog[]
+  attendances  Attendance[]
+  leaveRequests LeaveRequest[]
+  goals        Goal[]
+  habits       Habit[]
+  weeklyReports WeeklyReport[]
+}
+
+model Project {
+  id        String   @id @default(cuid())
+  name      String
+  color     String   @default("#6366f1")
+  archived  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tasks Task[]
+
+  @@index([userId])
+}
+
+model Task {
+  id          String      @id @default(cuid())
+  title       String
+  description String?
+  status      TaskStatus  @default(TODO)
+  priority    Priority    @default(MID)
+  dueDate     DateTime?
+  focusDate   DateTime?
+
+  // 周期模板机制：repeatRule 非空 => 本行是模板，不出现在日常列表；
+  // 实例通过 repeatTemplateId 指回模板，instanceDate 用于按天去重
+  repeatRule       RepeatRule?
+  repeatTemplateId String?
+  instanceDate     DateTime?
+
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectId String?
+  project   Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  timeLogs TimeLog[]
+  goals    Goal[]
+
+  @@index([userId, status])
+  @@index([focusDate])
+  @@index([repeatTemplateId, instanceDate])
+}
+
+model TimeLog {
+  id     String  @id @default(cuid())
+  date   DateTime @db.Date
+  hours  Float
+  note   String?
+  source TimeLogSource @default(MANUAL)
+
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  taskId String?
+  task   Task?   @relation(fields: [taskId], references: [id], onDelete: SetNull)
+
+  @@index([userId, date])
+  @@index([taskId])
+}
+
+model Attendance {
+  id         String            @id @default(cuid())
+  date       DateTime          @db.Date
+  clockInAt  DateTime?
+  clockOutAt DateTime?
+  status     AttendanceStatus  @default(NORMAL)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+}
+
+model LeaveRequest {
+  id        String      @id @default(cuid())
+  type      LeaveType
+  startDate DateTime    @db.Date
+  endDate   DateTime    @db.Date
+  reason    String?
+  status    LeaveStatus @default(PENDING)
+  createdAt DateTime    @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Goal {
+  id          String     @id @default(cuid())
+  title       String
+  description String?
+  period      GoalPeriod
+  startDate   DateTime   @db.Date
+  endDate     DateTime   @db.Date
+  archived    Boolean    @default(false)
+  createdAt   DateTime   @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tasks Task[]
+
+  @@index([userId])
+}
+
+model Habit {
+  id       String        @id @default(cuid())
+  name     String
+  emoji    String        @default("✅")
+  schedule HabitSchedule @default(DAILY)
+  active   Boolean       @default(true)
+  createdAt DateTime     @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  logs HabitLog[]
+
+  @@index([userId])
+}
+
+model HabitLog {
+  id     String   @id @default(cuid())
+  date   DateTime @db.Date
+  done   Boolean  @default(true)
+
+  habitId String
+  habit   Habit   @relation(fields: [habitId], references: [id], onDelete: Cascade)
+
+  @@unique([habitId, date])
+}
+
+model WeeklyReport {
+  id         String    @id @default(cuid())
+  weekStart  DateTime  @db.Date
+  autoDraft  String
+  editedText String?
+  exportedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, weekStart])
+}

@@ -1,0 +1,43 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: max-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: office
+      POSTGRES_PASSWORD: office123
+      POSTGRES_DB: office
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U office -d office"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  # 每日定时备份数据库到 ./backups，滚动保留最近 7 份
+  db-backup:
+    image: postgres:16-alpine
+    container_name: max-db-backup
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGHOST: db
+      PGUSER: office
+      PGPASSWORD: office123
+      PGDATABASE: office
+    volumes:
+      - ./backups:/backups
+    entrypoint: >
+      sh -c "while true; do
+        pg_dump -F c -f /backups/office_$$(date +%Y%m%d_%H%M%S).dump || echo backup-failed;
+        find /backups -name '*.dump' -type f | sort -r | tail -n +8 | xargs -r rm -f;
+        sleep 86400;
+      done"
+
+volumes:
+  pgdata:
