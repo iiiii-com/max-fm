@@ -65,3 +65,7 @@ next-env.d.ts
 .vercel
 .env*
 start.log
+
+# local runtime logs
+validate.log
+.superpowers/

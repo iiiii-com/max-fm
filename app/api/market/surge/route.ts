@@ -12,29 +12,61 @@ async function fetchList(fid: string, fields: string, pz = 12) {
   return j?.data?.diff ?? [];
 }
 
-/** 异动原因判定 */
-function reasonTag(item: any): string {
+/** 异动分档：把涨停榜/涨幅榜/异动榜/跌幅榜合并后的列表按档位归类 */
+export type SurgeBucket = "limit-up" | "big-up" | "watch" | "big-down" | "limit-down";
+
+/**
+ * 异动原因判定。
+ *
+ * 旧实现把不同来源的榜单（涨停 / 涨幅 / 异动 / 跌幅）直接拼在一起返回，
+ * 排序完全不连续（实测出现 9.27 → 9.99 → 10.01 → 4.16 → 9.8），
+ * 界面上看起来像排序坏了。现在给出明确档位 + 档内排序依据。
+ * 同时对「既没涨跌幅越界也没资金异动」的情况给出具体说明，而不是笼统的「异动观察」。
+ */
+function classify(item: any): { bucket: SurgeBucket; reason: string } {
   const pct = item.f3 as number | undefined;
   const flow = item.f62 as number | undefined;
+  const turnover = item.f6 as number | undefined;
   const tags: string[] = [];
+
+  let bucket: SurgeBucket = "watch";
   if (pct != null) {
-    if (pct >= 9.5) tags.push("涨停/大涨");
-    else if (pct <= -9.5) tags.push("跌停/大跌");
-    else if (pct >= 5) tags.push("大幅上涨");
-    else if (pct <= -5) tags.push("大幅下跌");
+    if (pct >= 9.5) {
+      bucket = "limit-up";
+      tags.push("涨停/大涨");
+    } else if (pct >= 5) {
+      bucket = "big-up";
+      tags.push("大幅上涨");
+    } else if (pct <= -9.5) {
+      bucket = "limit-down";
+      tags.push("跌停/大跌");
+    } else if (pct <= -5) {
+      bucket = "big-down";
+      tags.push("大幅下跌");
+    }
   }
   if (flow != null) {
     if (flow > 5e8) tags.push("主力抢筹");
     else if (flow < -5e8) tags.push("主力出逃");
   }
-  return tags.length ? tags.join(" · ") : "异动观察";
+  // 无越界信号时说明它到底是被哪一项选进来的
+  if (!tags.length) {
+    if (pct != null) tags.push(`涨跌幅 ${pct >= 0 ? "+" : ""}${pct}%`);
+    else if (turnover != null) tags.push("成交额居前");
+    else tags.push("入选异动榜");
+  }
+  return { bucket, reason: tags.join(" · ") };
 }
 
+const BUCKET_ORDER: SurgeBucket[] = ["limit-up", "big-up", "watch", "big-down", "limit-down"];
+
 function marketOf(code: string): string {
-  if (code.startsWith("6") || code.startsWith("9")) return "沪";
-  if (code.startsWith("0") || code.startsWith("3")) return "深";
+  // 注意顺序：科创板 68x / 创业板 30x 都以 6、3 开头，必须先判
   if (code.startsWith("68")) return "科创板";
   if (code.startsWith("30")) return "创业板";
+  if (code.startsWith("6") || code.startsWith("9")) return "沪";
+  if (code.startsWith("0")) return "深";
+  if (code.startsWith("3")) return "深";
   return "A股";
 }
 
@@ -58,16 +90,30 @@ export async function GET() {
     push(flow, 6);
     push(turnover, 6);
 
-    const surges = [...merged.values()].map((it: any) => ({
-      code: it.f12,
-      name: it.f14,
-      market: marketOf(it.f12),
-      price: it.f2 ?? null,
-      pct: it.f3 ?? null,
-      mainFlow: it.f62 ?? null,
-      turnover: it.f6 ?? null,
-      reason: reasonTag(it),
-    }));
+    // 归入明确档位并做**档内排序**，使整体顺序连续（涨停 → 大涨 → 异动 → 大跌 → 跌停）
+    const ranked = [...merged.values()]
+      .map((it: any) => {
+        const c = classify(it);
+        return {
+          code: it.f12,
+          name: it.f14,
+          market: marketOf(it.f12),
+          price: it.f2 ?? null,
+          pct: it.f3 ?? null,
+          mainFlow: it.f62 ?? null,
+          turnover: it.f6 ?? null,
+          reason: c.reason,
+          bucket: c.bucket,
+        };
+      })
+      .sort((a, b) => {
+        const ba = BUCKET_ORDER.indexOf(a.bucket);
+        const bb = BUCKET_ORDER.indexOf(b.bucket);
+        if (ba !== bb) return ba - bb;
+        // 同档内按涨跌幅绝对值从大到小
+        return Math.abs(Number(b.pct ?? 0)) - Math.abs(Number(a.pct ?? 0));
+      });
+    const surges = ranked;
 
     // 行业板块热点（涨幅前 8）
     const sectorRes = await fetch(

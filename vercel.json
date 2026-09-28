@@ -1,15 +1,15 @@
 {
   "crons": [
     {
-      "path": "/api/tasks/run?task=daily&secret=jgtew8z20dxhqmlp9bnoi6k1",
+      "path": "/api/tasks/run?task=daily",
       "schedule": "30 15 * * 1-5"
     },
     {
-      "path": "/api/tasks/run?task=policy-sync&secret=jgtew8z20dxhqmlp9bnoi6k1",
+      "path": "/api/tasks/run?task=policy-sync",
       "schedule": "0 */6 * * *"
     },
     {
-      "path": "/api/tasks/run?task=all&secret=jgtew8z20dxhqmlp9bnoi6k1",
+      "path": "/api/tasks/run?task=all",
       "schedule": "0 3 1 * *"
     }
   ]

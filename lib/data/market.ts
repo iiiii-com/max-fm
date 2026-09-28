@@ -1,4 +1,5 @@
 import type { KlineBar } from "@/app/api/stock/kline/route";
+import { cached } from "./upstream-cache";
 
 const UA = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/126 Safari/537.36" };
 
@@ -11,8 +12,12 @@ async function getJson<T>(url: string, timeoutMs = 20000): Promise<T> {
 // ---------- 资金流 ----------
 
 export interface StockFlow {
-  mainNetIn: number; // 主力净流入(元)
-  mainPct: number; // 主力净占比%
+  /** 主力净流入(元) = 超大单 + 大单，与下方四档**同一交易日**，保证内部自洽 */
+  mainNetIn: number;
+  /** 主力净占比%（东财口径，来自实时快照） */
+  mainPct: number;
+  /** 四档明细所属交易日（东财按交易日披露资金流分布） */
+  tierDate: string | null;
   superNetIn: number; // 超大单净额
   bigNetIn: number; // 大单净额
   midNetIn: number; // 中单净额
@@ -28,10 +33,15 @@ export interface StockFlow {
 }
 
 export async function fetchStockFlow(secid: string): Promise<StockFlow | null> {
+  // 资金流按交易日更新，盘中 TTL 20s 足够；同时避免详情页/榜单重复打同一标的
+  return (await cached<StockFlow | null>(`stock:flow:${secid}`, 20_000, () => loadStockFlow(secid))).data;
+}
+
+async function loadStockFlow(secid: string): Promise<StockFlow | null> {
   try {
     const [real, kline] = await Promise.all([
       getJson<{ data?: Record<string, any> }>(
-        `https://push2.eastmoney.com/api/qt/stock/get?secid=${secid}&fields=f43,f57,f58,f62,f66,f69,f72,f75,f78,f84,f85,f86,f184&fltt=2&invt=2`
+        `https://push2.eastmoney.com/api/qt/stock/get?secid=${secid}&fields=f43,f57,f58,f62,f184&fltt=2&invt=2`
       ),
       getJson<{ data?: { klines?: string[] } }>(
         `https://push2his.eastmoney.com/api/qt/stock/fflow/daykline/get?lmt=0&klt=101&secid=${secid}&fields1=f1,f2,f3,f7&fields2=f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61,f62,f63,f64,f65&fltt=2`
@@ -49,26 +59,40 @@ export async function fetchStockFlow(secid: string): Promise<StockFlow | null> {
     };
     const mainNetIn5 = sum(5);
     const mainNetIn10 = sum(10);
-    const mainNetIn = Number(d.f62) || 0;
-    const mainPct = Number(d.f184) || 0;
-    const score = computeFlowScore(mainNetIn5, mainNetIn10, mainPct, rows.length);
-    // 四档净额与占比：取最近交易日（daykline 末行）——字段序：日期,主力,小单,中单,大单,超大单,主力%,小单%,中单%,大单%,超大单%,收盘,涨跌,...
+
+    // 四档明细取自 daykline 末行（最近一个已披露交易日），字段序：
+    // 日期, 主力, 小单, 中单, 大单, 超大单, 主力%, 小单%, 中单%, 大单%, 超大单%, 收盘, 涨跌幅, ...
     const lastRow = rows.length ? String(rows[rows.length - 1]).split(",") : [];
     const f = (i: number) => (lastRow.length > i ? parseFloat(lastRow[i]) : NaN);
+    const superNetIn = isNaN(f(5)) ? 0 : f(5);
+    const bigNetIn = isNaN(f(4)) ? 0 : f(4);
+    const midNetIn = isNaN(f(3)) ? 0 : f(3);
+    const smallNetIn = isNaN(f(2)) ? 0 : f(2);
+
+    // 关键：主力净流入由**同一行的超大单 + 大单**推导。
+    // 旧实现取实时快照的 f62（当日、盘中、可能为 0）而四档取历史末行（上一交易日），
+    // 导致「四档之和为 −5.28 亿但主力显示 +2」这类自相矛盾。
+    const hasTiers = !isNaN(f(5)) || !isNaN(f(4));
+    const mainNetIn = hasTiers ? superNetIn + bigNetIn : Number(d.f62) || 0;
+    const mainPct = hasTiers && !isNaN(f(6)) ? f(6) : Number(d.f184) || 0;
+    const score = computeFlowScore(mainNetIn5, mainNetIn10, mainPct, rows.length);
+
     return {
       mainNetIn,
       mainPct,
-      superNetIn: isNaN(f(5)) ? 0 : f(5), // 超大单净额
-      bigNetIn: isNaN(f(4)) ? 0 : f(4),   // 大单净额
-      midNetIn: isNaN(f(3)) ? 0 : f(3),   // 中单净额
-      smallNetIn: isNaN(f(2)) ? 0 : f(2), // 小单净额
+      tierDate: /^\d{4}-\d{2}-\d{2}$/.test(lastRow[0] ?? "") ? lastRow[0] : null,
+      superNetIn,
+      bigNetIn,
+      midNetIn,
+      smallNetIn,
       superPct: isNaN(f(10)) ? null : f(10),
       bigPct: isNaN(f(9)) ? null : f(9),
       midPct: isNaN(f(8)) ? null : f(8),
       smallPct: isNaN(f(7)) ? null : f(7),
       mainNetIn5,
       mainNetIn10,
-      trend: score > 60 ? "流入" : score < 40 ? "流出" : "平衡",
+      // 流向判定必须与 mainNetIn 同号，否则会出现「主力资金流出(+1.30%)」这种自相矛盾的文案
+      trend: mainNetIn > 0 ? "流入" : mainNetIn < 0 ? "流出" : "平衡",
       trendScore: score,
     };
   } catch {
@@ -285,7 +309,10 @@ export function scoreStock(flow: StockFlow | null, signals: IndicatorSignals | n
   const level = total >= 70 ? "强势" : total >= 50 ? "中性偏强" : total >= 40 ? "中性偏弱" : "弱势";
   const signalsList = [
     ...(signals?.signals ?? []),
-    flow ? `主力资金${flow.trend}(${flow.mainPct > 0 ? "+" : ""}${flow.mainPct.toFixed(2)}%)` : "",
+    // 方向词与数值同源（trend 由 mainNetIn 符号推导），避免「主力资金流出(+1.30%)」这类自相矛盾
+    flow
+      ? `主力资金${flow.trend}（${flow.mainNetIn >= 0 ? "+" : ""}${(flow.mainNetIn / 1e8).toFixed(2)}亿 / 占比 ${flow.mainPct >= 0 ? "+" : ""}${flow.mainPct.toFixed(2)}%）`
+      : "",
     `估值${valuation >= 60 ? "偏低" : valuation <= 35 ? "偏高" : "中性"}`,
   ].filter(Boolean);
 
@@ -312,33 +339,87 @@ export interface EtfQuote {
   price: number;
   prevClose: number;
   changePct: number;
-  nav: number; // 净值(IOPV)
-  premiumPct: number; // 溢价率%
+  /** 基金单位净值（最新披露值，非盘中 IOPV） */
+  nav: number | null;
+  /** 净值日期：单位净值按交易日披露，盘中溢价率只能基于该日净值计算 */
+  navDate: string | null;
+  /**
+   * 溢价率 = (场内价 − 最新披露单位净值) / 最新披露单位净值 × 100，%。
+   * 取不到净值时为 null（前端显示「—」），**绝不用当日涨跌幅冒充溢价率**。
+   */
+  premiumPct: number | null;
   turnover: number;
+  /** 成交额（元）——东财个股快照中该字段为 f48，f6 对 ETF 不返回 */
   amount: number;
+  /** 成交量（股） */
+  volume: number;
   scale: number; // 规模(元)
 }
 
-export async function fetchEtfQuote(secid: string): Promise<EtfQuote | null> {
+/** 拉取 ETF 最新披露单位净值（东方财富基金历史净值）。失败返回 null。 */
+async function fetchEtfNav(code: string): Promise<{ nav: number; date: string } | null> {
+  // 净值一天只更新一次，缓存 5 分钟足够，且能消掉同一页 14 只 ETF 的重复请求
+  return (await cached<{ nav: number; date: string } | null>(`etf:nav:${code}`, 300_000, () => loadEtfNav(code))).data;
+}
+
+async function loadEtfNav(code: string): Promise<{ nav: number; date: string } | null> {
   try {
-    const d = await getJson<{ data?: Record<string, any> }>(
-      `https://push2.eastmoney.com/api/qt/stock/get?secid=${secid}&fields=f43,f57,f58,f60,f170,f168,f6,f116,f162,f167&fltt=2&invt=2`
+    const res = await fetch(
+      `https://api.fund.eastmoney.com/f10/lsjz?fundCode=${encodeURIComponent(code)}&pageIndex=1&pageSize=2`,
+      {
+        headers: {
+          "User-Agent": UA["User-Agent"],
+          Referer: "https://fundf10.eastmoney.com/",
+        },
+        signal: AbortSignal.timeout(10000),
+        cache: "no-store",
+      }
     );
+    if (!res.ok) return null;
+    const j: any = await res.json();
+    const row = j?.Data?.LSJZList?.[0];
+    const nav = Number(row?.DWJZ);
+    if (!Number.isFinite(nav) || nav <= 0) return null;
+    return { nav, date: String(row?.FSRQ ?? "") };
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchEtfQuote(secid: string): Promise<EtfQuote | null> {
+  // 行情 20s / 净值 5min：ETF 详情一次要取 ~14 只，
+  // 若每只都直通上游，单次页面渲染就是 14 个请求 × 2 个源，很容易把免费源打成限频。
+  return (await cached<EtfQuote | null>(`etf:quote:${secid}`, 20_000, () => loadEtfQuote(secid))).data;
+}
+
+async function loadEtfQuote(secid: string): Promise<EtfQuote | null> {
+  try {
+    const code = secid.split(".")[1] ?? "";
+    const [d, navInfo] = await Promise.all([
+      getJson<{ data?: Record<string, any> }>(
+        // f43 最新价 / f60 昨收 / f47 成交量 / f48 成交额 / f116 规模 / f168 换手率
+        // 注意：f169/f170 在个股快照里分别是涨跌额/涨跌幅，**不是**溢价率，不可用于计算净值。
+        `https://push2.eastmoney.com/api/qt/stock/get?secid=${secid}&fields=f43,f57,f58,f60,f47,f48,f116,f168&fltt=2&invt=2`
+      ),
+      code ? fetchEtfNav(code) : Promise.resolve(null),
+    ]);
     const q = d?.data;
     if (!q) return null;
     const price = Number(q.f43) || 0;
     const prev = Number(q.f60) || 0;
-    const premium = Number(q.f170) ?? 0;
+    const nav = navInfo?.nav ?? null;
     return {
-      code: String(q.f57),
+      code: String(q.f57 ?? code),
       name: String(q.f58),
       price,
       prevClose: prev,
       changePct: prev > 0 ? ((price - prev) / prev) * 100 : 0,
-      nav: price / (1 + (isFinite(premium) ? premium / 100 : 0)),
-      premiumPct: isFinite(premium) ? premium : 0,
+      nav,
+      navDate: navInfo?.date || null,
+      premiumPct: nav != null && nav > 0 ? ((price - nav) / nav) * 100 : null,
       turnover: Number(q.f168) || 0,
-      amount: Number(q.f6) || 0,
+      amount: Number(q.f48) || 0,
+      volume: Number(q.f47) || 0,
       scale: Number(q.f116) || 0,
     };
   } catch {

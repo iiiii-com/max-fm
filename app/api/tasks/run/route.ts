@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { db, uid, now } from "@/lib/db";
 import * as s from "@/lib/db/schema";
 import { aiGenerate, aiGenerateOrFallback, hasAI } from "@/lib/ai";
-import { getIndicators, getPolicies, getTemperatures } from "@/lib/data/queries";
+import { getIndicators, getPolicies, getTemperatures, getFeelingAggregates } from "@/lib/data/queries";
 import { fetchQuotes, fetchSectors } from "@/lib/data/quotes";
 import { syncMacroReal, calcMacroTemperature } from "@/lib/data/macro-sync";
 import { syncPoliciesReal } from "@/lib/data/policy-sync";
@@ -13,9 +13,17 @@ export const maxDuration = 300;
 export async function GET(req: Request) {
   const auth = req.headers.get("authorization");
   const { searchParams } = new URL(req.url);
-  const secretParam = searchParams.get("secret");
   const secret = process.env.CRON_SECRET;
-  if (secret && auth !== `Bearer ${secret}` && secretParam !== secret) {
+  // 只接受 Authorization 头，不再接受 URL 里的 ?secret=。
+  // 原因：vercel.json 里的明文 secret 会随仓库泄露，且 URL 会进访问日志 / Referer。
+  // Vercel 平台在配置了 CRON_SECRET 环境变量后，会自动带上该头。
+  if (!secret) {
+    return NextResponse.json(
+      { error: "CRON_SECRET 未配置；为避免任务被任意触发，已拒绝无鉴权请求" },
+      { status: 503 }
+    );
+  }
+  if (auth !== `Bearer ${secret}`) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
   const task = searchParams.get("task") || "all";
@@ -52,17 +60,29 @@ export async function GET(req: Request) {
 
   const temperatureReport = async () => {
     const temp = await calcMacroTemperature();
-    const [temps, policies] = await Promise.all([getTemperatures(), getPolicies()]);
+    const [temps, policies, feeling] = await Promise.all([
+      getTemperatures(),
+      getPolicies(),
+      getFeelingAggregates(),
+    ]);
     const latest = temps[temps.length - 1];
     if (!latest) return "无温度数据";
-    const diff = temp - 45;
     const policyTitle = policies[0]?.title ?? "近期政策";
-    const fb = `# 温差报告\n\n本月宏观温度 **${temp}°**，大众体感温度 **45°**，温差 **${diff} 度**。\n\n**温差来源**：1）平均值掩盖结构差异；2）宏观增长未同步传导至居民收入；3）指标滞后于现实感受；4）地区与行业分化。\n\n**近期相关**：${policyTitle}。`;
-    const prompt = `宏观温度=${temp}°，大众体感=45°，温差=${diff}度。生成《温差报告》Markdown，300-500 字，解释温差成因（统计口径/收入传导/时间滞后/地区行业分化），引用近期政策「${policyTitle}」。`;
+
+    // 体感必须来自真实问卷聚合；无问卷时温差不可计算，此时只出宏观温度部分，
+    // 不再沿用硬编码的「体感 45°」（旧实现把 45 同时写进了 fallback 文案与 AI prompt）。
+    if (feeling.overall == null || feeling.sampleCount === 0) {
+      return "暂无体感问卷数据，温差报告需等体感均值产生后才能生成（不填充默认值）";
+    }
+    const feelingTemp = Math.round(feeling.overall);
+    const diff = Math.round(temp - feelingTemp);
+
+    const fb = `# 温差报告\n\n本月宏观温度 **${temp}°**，大众体感温度 **${feelingTemp}°**（${feeling.sampleCount} 份问卷均值），温差 **${diff > 0 ? "+" : ""}${diff} 度**。\n\n**温差来源**：1）平均值掩盖结构差异；2）宏观增长未同步传导至居民收入；3）指标滞后于现实感受；4）地区与行业分化。\n\n**近期相关**：${policyTitle}。`;
+    const prompt = `宏观温度=${temp}°，大众体感=${feelingTemp}°（问卷样本 ${feeling.sampleCount} 份），温差=${diff}度。生成《温差报告》Markdown，300-500 字，解释温差成因（统计口径/收入传导/时间滞后/地区行业分化），引用近期政策「${policyTitle}」。不得编造未提供的数字。`;
     const content = await aiGenerateOrFallback(prompt, fb, { model: "strong", maxTokens: 1200 });
     const today = new Date().toISOString().slice(0, 10);
     await db.insert(s.temperatureAnalyses).values({ id: uid("tan"), date: today, temperatureDiff: diff, content, createdAt: now() } as any);
-    return `已生成温差报告（${diff}°）`;
+    return `已生成温差报告（${diff > 0 ? "+" : ""}${diff}°）`;
   };
 
   const macroMonthly = async () => {

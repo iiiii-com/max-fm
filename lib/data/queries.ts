@@ -95,17 +95,91 @@ export async function getHistoryEvent(slug: string) {
   return rows[0] ?? null;
 }
 
+/**
+ * 大众体感聚合。
+ *
+ * 口径纪律：`overall` 无数据时返回 **null**，不再回退到硬编码的 45。
+ * 旧实现 `?? 45` 会让「体感 45°」在无问卷数据时依然被当作真实值展示/参与计算，
+ * 进而让「温差」这个全站核心概念在不同页面出现 45 / 48.9 / 推导值多个版本。
+ * 无数据时调用方必须显式显示「暂无问卷数据」。
+ */
 export async function getFeelingAggregates() {
   const rows = await db.select().from(s.feelingAggregates);
   const overall = rows.find((r: any) => r.dimension === "overall");
+  const avg = Number(overall?.avgScore);
+  const n = Number(overall?.sampleCount) || 0;
   return {
-    overall: overall?.avgScore ?? 45,
-    sampleCount: overall?.sampleCount ?? 0,
+    /** 体感温度（0–100）；无有效样本时为 null */
+    overall: n > 0 && Number.isFinite(avg) ? avg : null,
+    sampleCount: n,
+    updatedAt: overall?.updatedAt ?? null,
     byAge: rows.filter((r: any) => r.dimension === "age_group"),
     byOccupation: rows.filter((r: any) => r.dimension === "occupation"),
     byRegion: rows.filter((r: any) => r.dimension === "region"),
   };
 }
+
+/**
+ * 当前宏观温度（最新一期），无数据返回 null。
+ * 与体感配对即可算出「温差」；任一侧缺失时温差必须为 null，不得用常量补齐。
+ */
+export async function getTemperatureSnapshot() {
+  const rows = (await db
+    .select()
+    .from(s.macroTemperatures)
+    .orderBy(desc(s.macroTemperatures.date))
+    .limit(1)) as any[];
+  const t = Number(rows?.[0]?.temperature);
+  return {
+    temperature: Number.isFinite(t) ? t : null,
+    date: rows?.[0]?.date ?? null,
+  };
+}
+
+/**
+ * 「宏观温度 / 体感温度 / 温差」三者的唯一格式化入口。
+ *
+ * 全站曾出现三个互不一致的体感值（45° 硬编码、48.9° 实测、45+推导值），
+ * 根因是每个页面各自拼字符串。现在所有展示都必须走这里：
+ *  - 任一侧缺失 → 温差为 null，展示为「—」并说明缺哪一侧；
+ *  - 绝不回退到任何常量。
+ */
+export interface TempDiffView {
+  macro: number | null;
+  feeling: number | null;
+  diff: number | null;
+  sampleCount: number;
+  macroDate: string | null;
+  /** 缺失原因（用于展示层提示），无缺失时为 null */
+  missing: "macro" | "feeling" | "both" | null;
+}
+
+export function buildTempDiffView(
+  macroRaw: number | null | undefined,
+  feelingRaw: number | null | undefined,
+  sampleCount = 0,
+  macroDate: string | null = null
+): TempDiffView {
+  const macro = Number.isFinite(Number(macroRaw)) ? Number(macroRaw) : null;
+  const feeling = Number.isFinite(Number(feelingRaw)) ? Number(feelingRaw) : null;
+  const missing = macro == null && feeling == null ? "both" : macro == null ? "macro" : feeling == null ? "feeling" : null;
+  return {
+    macro,
+    feeling,
+    diff: macro != null && feeling != null ? Math.round(macro - feeling) : null,
+    sampleCount,
+    macroDate,
+    missing,
+  };
+}
+
+/** 温度展示：缺失时返回「—」而不是任何占位数字 */
+export const fmtTemp = (v: number | null | undefined): string =>
+  v == null || !Number.isFinite(Number(v)) ? "—" : String(Math.round(Number(v)));
+
+/** 温差展示：缺失时返回「—」 */
+export const fmtDiff = (v: number | null | undefined): string =>
+  v == null || !Number.isFinite(Number(v)) ? "—" : `${v > 0 ? "+" : ""}${Math.round(Number(v))}`;
 
 export async function getTemperatures() {
   return db.select().from(s.macroTemperatures).orderBy(asc(s.macroTemperatures.date));
@@ -126,6 +200,18 @@ export async function getUserAdvice(userId: string) {
 
 export async function getWatchlist(userId: string) {
   return db.select().from(s.watchlists).where(eq(s.watchlists.uid, userId));
+}
+
+/**
+ * 已生成 AI 解读的政策 id 集合。
+ * 列表页据此显示「已生成 / 未生成」，而不是像旧实现那样给每条政策都挂上
+ * 「普通人怎么看 / 投资者关注点 / 专业解读」三个看起来能点、实际点不动的标签。
+ */
+export async function getPolicyAnalysisIds(): Promise<Set<string>> {
+  const rows = (await db
+    .select({ uid: s.policyAnalyses.uid, popular: s.policyAnalyses.popular, professional: s.policyAnalyses.professional })
+    .from(s.policyAnalyses)) as any[];
+  return new Set(rows.filter((r) => r?.popular && r?.professional).map((r) => String(r.uid)));
 }
 
 export async function getUserFeelings(userId: string) {

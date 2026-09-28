@@ -2,7 +2,15 @@ import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-/** 个股/指数历史估值（PE/PB 近 5 年，东财 RPT_VALUEANALYSIS_DET）→ 当前分位 */
+/** 个股/指数历史估值（PE/PB 近 5 年，东财 RPT_VALUEANALYSIS_DET）→ 当前分位
+ *
+ * 返回结构说明（K线实验室 04 模块此前因读错结构而整块空白）：
+ *   current : 最新一期的 PE-TTM / PB-MRQ
+ *   stats   : **PE 口径**的统计（min/max/avg/pctile/samples/period），保持历史字段不变
+ *   pbStats : **PB 口径**的同结构统计（新增）
+ *   bands   : PE / PB 各自的 P10/P25/P50/P75/P90 分位值（新增，供分位带渲染）
+ *   series  : 降采样后的 PE 曲线（samples 为未降采样的真实交易日数）
+ */
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const secid = searchParams.get("secid") ?? "1.600519";
@@ -15,7 +23,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: false, error: "估值分位暂仅支持 A 股个股/指数" }, { status: 400 });
   }
   try {
-    // 近 5 年历史估值（约 1220 交易日）
+    // 近 5 年历史估值（约 1240 个交易日）
     const filter = isIndex ? `(SECURITY_CODE%3D%22${code}%22)` : `(SECUCODE%3D%22${code}.${mkt === "1" ? "SH" : "SZ"}%22)`;
     const url =
       `https://datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPT_VALUEANALYSIS_DET` +
@@ -31,18 +39,48 @@ export async function GET(req: Request) {
 
     const pts = rows
       .filter((r) => r.PE_TTM != null && r.PE_TTM > 0)
-      .map((r) => ({ date: r.TRADE_DATE.slice(0, 10), pe: Number(r.PE_TTM), pb: r.PB_MRQ != null ? Number(r.PB_MRQ) : null }))
+      .map((r) => ({ date: r.TRADE_DATE.slice(0, 10), pe: Number(r.PE_TTM), pb: r.PB_MRQ != null && r.PB_MRQ > 0 ? Number(r.PB_MRQ) : null }))
       .sort((a, b) => (a.date < b.date ? -1 : 1));
 
-    const pes = pts.map((p) => p.pe);
-    const cur = pes[pes.length - 1];
-    const min = Math.min(...pes);
-    const max = Math.max(...pes);
-    const avg = pes.reduce((a, b) => a + b, 0) / pes.length;
-    // 当前 PE 的历史百分位（低于当前值的比例）
-    const pctile = (pes.filter((p) => p <= cur).length / pes.length) * 100;
+    /** 分位：小于等于当前值的样本占比 */
+    const percentileOf = (arr: number[], cur: number) => (arr.filter((p) => p <= cur).length / arr.length) * 100;
+    /** P10/P25/P50/P75/P90：对已排序序列做线性插值取分位 */
+    const quantiles = (sorted: number[]) => {
+      if (!sorted.length) return null;
+      const at = (p: number) => {
+        const idx = ((sorted.length - 1) * p) / 100;
+        const lo = Math.floor(idx);
+        const hi = Math.ceil(idx);
+        return lo === hi ? sorted[lo] : sorted[lo] + (sorted[hi] - sorted[lo]) * (idx - lo);
+      };
+      return {
+        p10: Number(at(10).toFixed(2)),
+        p25: Number(at(25).toFixed(2)),
+        p50: Number(at(50).toFixed(2)),
+        p75: Number(at(75).toFixed(2)),
+        p90: Number(at(90).toFixed(2)),
+      };
+    };
+    const statOf = (arr: number[]) => {
+      const sorted = [...arr].sort((a, b) => a - b);
+      const cur = arr[arr.length - 1];
+      return {
+        min: Number(sorted[0].toFixed(2)),
+        max: Number(sorted[sorted.length - 1].toFixed(2)),
+        avg: Number((arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(2)),
+        pctile: Number(percentileOf(arr, cur).toFixed(1)), // 当前值的历史分位 %
+        samples: arr.length,
+        bands: quantiles(sorted),
+      };
+    };
 
-    // 采样降密度（每 5 个点取 1，最多 248 点用于曲线）
+    const pes = pts.map((p) => p.pe);
+    const pbs = pts.map((p) => p.pb).filter((v): v is number => v != null && v > 0);
+    const cur = pes[pes.length - 1];
+    const peStat = statOf(pes);
+    const last = pts[pts.length - 1];
+
+    // 采样降密度（每 5 个点取 1，最多约 248 点用于曲线）
     const sampled = pts.filter((_, i) => i % 5 === 0 || i === pts.length - 1);
 
     return NextResponse.json(
@@ -51,15 +89,11 @@ export async function GET(req: Request) {
         secuCode: isIndex ? code : `${code}.${mkt === "1" ? "SH" : "SZ"}`,
         updated: new Date().toISOString(),
         source: "东财历史估值（RPT_VALUEANALYSIS_DET）",
-        current: { pe: Number(cur.toFixed(2)), pb: pts[pts.length - 1].pb != null ? Number(pts[pts.length - 1].pb!.toFixed(2)) : null },
-        stats: {
-          min: Number(min.toFixed(2)),
-          max: Number(max.toFixed(2)),
-          avg: Number(avg.toFixed(2)),
-          pctile: Number(pctile.toFixed(1)), // 当前 PE 历史分位 %
-          samples: pts.length,
-          period: `${pts[0]?.date} ~ ${pts[pts.length - 1]?.date}`,
-        },
+        current: { pe: Number(cur.toFixed(2)), pb: last.pb != null ? Number(last.pb.toFixed(2)) : null },
+        // 保持原有 PE 统计字段（老消费方依赖），额外挂 bands
+        stats: { ...peStat, period: `${pts[0]?.date} ~ ${last?.date}` },
+        pbStats: pbs.length >= 20 ? statOf(pbs) : null,
+        bands: { pe: peStat.bands, pb: pbs.length >= 20 ? quantiles([...pbs].sort((a, b) => a - b)) : null },
         series: sampled.map((p) => ({ date: p.date, pe: Number(p.pe.toFixed(2)) })),
       },
       { headers: { "Cache-Control": "public, max-age=3600, s-maxage=3600" } }
