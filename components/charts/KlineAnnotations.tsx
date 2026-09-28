@@ -46,13 +46,13 @@ interface Props {
 }
 
 const TOOL_COLORS: Record<Exclude<AnnotationTool, "select">, string> = {
-  trend: "#3b82f6",
-  hline: "#dc2626",
-  vline: "#16a34a",
-  channel: "#f59e0b",
-  rect: "#8b5cf6",
-  ray: "#0ea5e9",
-  fib: "#e11d48",
+  trend: "#1d4ed8",
+  hline: "#c0392b",
+  vline: "#1e8449",
+  channel: "#b45309",
+  rect: "#7c3aed",
+  ray: "#0284c7",
+  fib: "#be123c",
 };
 
 /** 生成唯一 id（SSR 安全：模块级计数器，服务端与客户端一致） */

@@ -38,16 +38,16 @@ export default function FundTrendChart({ secid }: { secid: string }) {
 
   const option: EChartsOption = {
     animation: false,
-    tooltip: { trigger: "axis", backgroundColor: "rgba(255,255,255,0.96)", borderColor: "#cbd5e1", textStyle: { color: "#1e293b", fontSize: 11 }, formatter: (p: any) => { const i = Array.isArray(p) ? p[0]?.dataIndex ?? 0 : 0; const pt = d.trend[i]; return pt ? `<b>${pt.t}</b><br/>主力累计净流入 ${(pt.main ?? 0) >= 0 ? "+" : ""}${((pt.main ?? 0) / 1e8).toFixed(2)}亿` : ""; } },
+    tooltip: { trigger: "axis", backgroundColor: "rgba(255,255,255,0.96)", borderColor: "#e2e0dc", textStyle: { color: "#e2e0dc", fontSize: 11 }, formatter: (p: any) => { const i = Array.isArray(p) ? p[0]?.dataIndex ?? 0 : 0; const pt = d.trend[i]; return pt ? `<b>${pt.t}</b><br/>主力累计净流入 ${(pt.main ?? 0) >= 0 ? "+" : ""}${((pt.main ?? 0) / 1e8).toFixed(2)}亿` : ""; } },
     grid: { left: 52, right: 14, top: 14, bottom: 20 },
     xAxis: { type: "category", data: times, axisLabel: { fontSize: 8, interval: Math.floor(times.length / 4) }, boundaryGap: false },
-    yAxis: { type: "value", axisLabel: { fontSize: 9, formatter: (v: number) => `${(v / 1e8).toFixed(0)}亿` }, splitLine: { lineStyle: { color: "#292929", type: "dashed" } } },
+    yAxis: { type: "value", axisLabel: { fontSize: 9, formatter: (v: number) => `${(v / 1e8).toFixed(0)}亿` }, splitLine: { lineStyle: { color: "#e2e0dc", type: "dashed" } } },
     series: [
       {
         name: "主力净流入(累计)", type: "line", data: mains, showSymbol: false,
-        lineStyle: { width: 1.4, color: last >= 0 ? "#d7000b" : "#0aa06e" },
+        lineStyle: { width: 1.4, color: last >= 0 ? "#c0392b" : "#1e8449" },
         areaStyle: { color: last >= 0 ? "rgba(215,0,11,0.08)" : "rgba(10,160,110,0.08)" },
-        markLine: { silent: true, symbol: "none", lineStyle: { color: "#94a3b8", type: "dashed", width: 0.8 }, data: [{ yAxis: 0 }] },
+        markLine: { silent: true, symbol: "none", lineStyle: { color: "#8a867e", type: "dashed", width: 0.8 }, data: [{ yAxis: 0 }] },
       },
     ],
   };

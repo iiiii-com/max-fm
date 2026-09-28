@@ -219,8 +219,8 @@ export default async function AcademyPage({ params }: { params: Promise<{ slug: 
           <h3 className="font-bold text-sm mb-3">能力演进路线</h3>
           <div className="space-y-2.5">
             {[
-              { v: "V1.0 基础版", text: a.roadmap.v1, tone: "#94a3b8" },
-              { v: "V2.0 专业版", text: a.roadmap.v2, tone: "#3b82f6" },
+              { v: "V1.0 基础版", text: a.roadmap.v1, tone: "#8a867e" },
+              { v: "V2.0 专业版", text: a.roadmap.v2, tone: "#1d4ed8" },
               { v: "V3.0 研究平台版", text: a.roadmap.v3, tone: "#a855f7" },
             ].map((r) => (
               <div key={r.v} className="flex items-start gap-2.5">

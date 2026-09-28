@@ -83,7 +83,7 @@ function MiniSpark({ code, expanded, onExpand }: { code: string; expanded: boole
         if (!b) return "";
         const prev = i > 0 ? bars[i - 1].close : b.open;
         const pct = ((b.close - prev) / prev) * 100;
-        return `<div style="font-size:12px;line-height:1.6"><b>${b.date}</b><br/>收 ${b.close.toFixed(2)}（<span style="color:${pct >= 0 ? "#dc2626" : "#16a34a"}">${pct >= 0 ? "+" : ""}${pct.toFixed(2)}%</span>）</div>`;
+        return `<div style="font-size:12px;line-height:1.6"><b>${b.date}</b><br/>收 ${b.close.toFixed(2)}（<span style="color:${pct >= 0 ? "#c0392b" : "#1e8449"}">${pct >= 0 ? "+" : ""}${pct.toFixed(2)}%</span>）</div>`;
       } }),
       series: [
         {
@@ -91,7 +91,7 @@ function MiniSpark({ code, expanded, onExpand }: { code: string; expanded: boole
           data: closes,
           smooth: true,
           showSymbol: false,
-          lineStyle: { width: 1.2, color: closes[closes.length - 1] >= closes[0] ? "#dc2626" : "#16a34a" },
+          lineStyle: { width: 1.2, color: closes[closes.length - 1] >= closes[0] ? "#c0392b" : "#1e8449" },
           areaStyle: {
             color: {
               type: "linear", x: 0, y: 0, x2: 0, y2: 1,

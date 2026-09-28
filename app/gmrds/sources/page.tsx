@@ -30,10 +30,10 @@ const SOURCES: {
 ];
 
 const STATUS_TONE: Record<string, string> = {
-  已核验: "#16a34a",
-  未确证: "#f59e0b",
-  待接入: "#64748b",
-  框架设定: "#8b5cf6",
+  已核验: "#1e8449",
+  未确证: "#b45309",
+  待接入: "#6b6862",
+  框架设定: "#7c3aed",
 };
 
 export default function GmrdsSourcesPage() {

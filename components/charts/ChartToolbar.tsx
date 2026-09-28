@@ -1,7 +1,7 @@
 "use client";
 
 export type ChartType = "line" | "bar" | "area";
-export type ChartRange = 12 | 36 | 60 | 0;
+export type ChartRange = 12 | 36 | 60 | 120 | 0;
 
 export const RANGE_OPTIONS: Array<{ label: string; value: ChartRange }> = [
   { label: "近1年", value: 12 },

@@ -49,11 +49,14 @@ export default async function MapPage() {
   const totalTrade = fmt1(data.reduce((s: number, d: any) => s + d.trade, 0));
   const totalPop = fmt1(data.reduce((s: number, d: any) => s + d.population, 0));
   const avgGrowth = fmt1(data.reduce((s: number, d: any) => s + d.growth, 0) / Math.max(data.length, 1));
-  const richest = [...data].sort((a, b) => b.perCapitaGdp - a.perCapitaGdp)[0];
+  const richest = [...data].sort((a: any, b: any) => b.perCapitaGdp - a.perCapitaGdp)[0];
+  // 省级加总口径提示：31 省 GDP 相加与全国 GDP 并不相等（统计口径、普查修订、省级与全国核算方法差异），
+  // 因此**不展示**「占全国约 X 成」这类需要全国总量才能算、而站内并无全国总量数据的比例。
+  const gdpSumNote = "31 省相加口径，不等于全国 GDP";
 
   const summary = [
-    { label: "31 省 GDP 合计", value: `${totalGdp} 万亿`, note: "占全国总量约 9 成" },
-    { label: "平均 GDP 增速", value: `${avgGrowth}%`, note: "2025 年省级均值" },
+    { label: "31 省 GDP 合计", value: `${totalGdp} 万亿`, note: gdpSumNote },
+    { label: "平均 GDP 增速", value: `${avgGrowth}%`, note: "2025 年省级算术均值（非加权）" },
     { label: "外贸合计", value: `${totalTrade} 万亿`, note: "进出口总额加总" },
     { label: "人口合计", value: `${totalPop} 亿`, note: "常住人口加总" },
     { label: "人均 GDP 最高", value: richest?.name ?? "—", note: `${fmt1(richest?.perCapitaGdp ?? 0)} 万元` },

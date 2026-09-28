@@ -7,10 +7,10 @@ import type { EChartsOption } from "echarts";
 export default function MerrillClock({ growth, inflation }: { growth: number; inflation: number }) {
   const option = useMemo<EChartsOption>(() => {
     const quadrants = [
-      { label: "复苏期", x: 6.5, y: 1, x0: 2, y0: -3, assets: "股票优先 · 债券次之", color: "#16a34a" },
-      { label: "过热期", x: 6.5, y: 5, x0: 2, y0: 2, assets: "大宗商品 · 股票", color: "#dc2626" },
+      { label: "复苏期", x: 6.5, y: 1, x0: 2, y0: -3, assets: "股票优先 · 债券次之", color: "#1e8449" },
+      { label: "过热期", x: 6.5, y: 5, x0: 2, y0: 2, assets: "大宗商品 · 股票", color: "#c0392b" },
       { label: "滞胀期", x: 1.5, y: 5, x0: -1.5, y0: 2, assets: "现金 · 黄金", color: "#d97706" },
-      { label: "衰退期", x: 1.5, y: 1, x0: -1.5, y0: -3, assets: "债券 · 现金", color: "#2563eb" },
+      { label: "衰退期", x: 1.5, y: 1, x0: -1.5, y0: -3, assets: "债券 · 现金", color: "#1d4ed8" },
     ];
     const markLine = [
       { xAxis: 3.5, label: { formatter: "增长 3.5%", position: "insideEndTop" as const }, lineStyle: { color: "#999", type: "dashed" as const } },

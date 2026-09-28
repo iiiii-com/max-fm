@@ -5,33 +5,19 @@ import EChart from "./EChart";
 import ChartToolbar, { downloadCSV, type ChartType, type ChartRange } from "./ChartToolbar";
 import type { EChartsOption } from "echarts";
 import { MACRO_METRIC_COLORS } from "./palette";
+import { MACRO_INDICATORS } from "@/lib/data/macro-indicators";
 
-export const METRICS = [
-  { type: "gdp", name: "GDP 同比增速", unit: "%" },
-  { type: "cpi", name: "CPI 同比", unit: "%" },
-  { type: "ppi", name: "PPI 同比", unit: "%" },
-  { type: "pmi", name: "制造业 PMI", unit: "" },
-  { type: "m2", name: "M2 同比增速", unit: "%" },
-  { type: "tsf", name: "社融增量", unit: "万亿" },
-  { type: "lpr", name: "1年期 LPR", unit: "%" },
-  { type: "fx", name: "外汇储备", unit: "万亿$" },
-  { type: "ind", name: "工业增加值同比", unit: "%" },
-  { type: "retail", name: "社零同比", unit: "%" },
-  { type: "invest", name: "固定资产投资同比", unit: "%" },
-  { type: "realestate", name: "房地产开发投资同比", unit: "%" },
-  { type: "fin", name: "财政收入同比", unit: "%" },
-  { type: "export", name: "出口同比", unit: "%" },
-  { type: "import", name: "进口同比", unit: "%" },
-  { type: "unemp", name: "城镇调查失业率", unit: "%" },
-  { type: "houseprice", name: "百城房价同比", unit: "%" },
-  { type: "yield10y", name: "10年期国债收益率", unit: "%" },
-  { type: "usdcny", name: "美元兑人民币", unit: "" },
-  { type: "m1", name: "M1 同比增速", unit: "%" },
-  { type: "tsfstock", name: "社融存量同比", unit: "%" },
-  { type: "loans", name: "新增人民币贷款", unit: "万亿" },
-  { type: "gold", name: "伦敦金现货", unit: "美元/盎司" },
-  { type: "carsales", name: "乘用车零售销量", unit: "万辆" },
-].map((m) => ({ ...m, color: MACRO_METRIC_COLORS[m.type] ?? "#d7d7d7" }));
+/**
+ * 指标下拉清单：直接取站内唯一事实来源。
+ * 此前此处与 /macro 各抄一份，且把「美元兑人民币(离岸)」写成「美元兑人民币」，
+ * 导致对比工具里选中的指标名与指标卡对不上。
+ */
+export const METRICS = MACRO_INDICATORS.map((m) => ({
+  type: m.type,
+  name: m.title,
+  unit: m.unit,
+  color: MACRO_METRIC_COLORS[m.type] ?? "#d7d7d7",
+}));
 
 export default function CompareTool() {
   const [a, setA] = useState("gdp");
@@ -97,7 +83,7 @@ export default function CompareTool() {
         {
           type: log && canLog ? "log" : "value", scale: true, name: `${metaA.name}(${metaA.unit || "-"})`,
           nameTextStyle: { fontSize: 10 }, axisLabel: { fontSize: 10 },
-          splitLine: { lineStyle: { color: "#292929", type: "dashed" } },
+          splitLine: { lineStyle: { color: "#e2e0dc", type: "dashed" } },
         },
         {
           type: log && canLog ? "log" : "value", scale: true, name: `${metaB.name}(${metaB.unit || "-"})`,

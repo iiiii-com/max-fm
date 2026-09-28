@@ -153,8 +153,8 @@ export default function StockSearch() {
       value: b.volume,
       itemStyle: { color: b.close >= b.open ? "rgba(220,38,38,0.6)" : "rgba(22,163,74,0.6)" },
     }));
-    const upColor = "#dc2626";
-    const downColor = "#16a34a";
+    const upColor = "#c0392b";
+    const downColor = "#1e8449";
     return {
       animation: false,
       tooltip: mkKlineTooltip({ bars, formatter: (params: any) => {
@@ -177,7 +177,7 @@ export default function StockSearch() {
         { ...mkSubAxis(dates.length, 1), data: dates },
       ],
       yAxis: [
-        { type: "value", scale: true, gridIndex: 0, axisLabel: { fontSize: 10 }, splitLine: { lineStyle: { color: "#292929", type: "dashed" } } },
+        { type: "value", scale: true, gridIndex: 0, axisLabel: { fontSize: 10 }, splitLine: { lineStyle: { color: "#e2e0dc", type: "dashed" } } },
         { type: "value", gridIndex: 1, axisLabel: { fontSize: 9 }, splitLine: { show: false } },
       ],
       dataZoom: [
@@ -191,9 +191,9 @@ export default function StockSearch() {
         },
         // 逐根涨跌幅标注（scatter 叠加，candlestick label 实测不渲染）
         mkPctLabel({ bars, show: showPct, position: pctPos, fontSize: pctFont, pctRange: vRange }),
-        { name: "MA5", type: "line", data: ma(closes, 5), smooth: true, showSymbol: false, lineStyle: { width: 1, color: "#f59e0b" } },
-        { name: "MA10", type: "line", data: ma(closes, 10), smooth: true, showSymbol: false, lineStyle: { width: 1, color: "#3b82f6" } },
-        { name: "MA20", type: "line", data: ma(closes, 20), smooth: true, showSymbol: false, lineStyle: { width: 1, color: "#8b5cf6" } },
+        { name: "MA5", type: "line", data: ma(closes, 5), smooth: true, showSymbol: false, lineStyle: { width: 1, color: "#b45309" } },
+        { name: "MA10", type: "line", data: ma(closes, 10), smooth: true, showSymbol: false, lineStyle: { width: 1, color: "#1d4ed8" } },
+        { name: "MA20", type: "line", data: ma(closes, 20), smooth: true, showSymbol: false, lineStyle: { width: 1, color: "#7c3aed" } },
         { name: "成交量", type: "bar", data: volumes, xAxisIndex: 1, yAxisIndex: 1 },
       ],
     };

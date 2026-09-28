@@ -43,7 +43,7 @@ export default function RotationMatrix() {
 
   const opt: EChartsOption = {
     animation: false,
-    tooltip: { trigger: "item", backgroundColor: "rgba(255,255,255,0.96)", borderColor: "#cbd5e1", textStyle: { color: "#1e293b", fontSize: 11 }, formatter: (p: any) => { const d = p.data; return `<b>${d[2]}</b><br/>涨跌幅 ${d[0] >= 0 ? "+" : ""}${d[0].toFixed(2)}%<br/>主力净流入 ${d[1] >= 0 ? "+" : ""}${d[1].toFixed(1)}亿`; } },
+    tooltip: { trigger: "item", backgroundColor: "rgba(255,255,255,0.96)", borderColor: "#e2e0dc", textStyle: { color: "#e2e0dc", fontSize: 11 }, formatter: (p: any) => { const d = p.data; return `<b>${d[2]}</b><br/>涨跌幅 ${d[0] >= 0 ? "+" : ""}${d[0].toFixed(2)}%<br/>主力净流入 ${d[1] >= 0 ? "+" : ""}${d[1].toFixed(1)}亿`; } },
     grid: { left: 30, right: 30, top: 26, bottom: 24 },
     xAxis: { type: "value", name: "相对强度（涨跌幅%）", nameLocation: "middle", nameGap: 24, min: -12, max: 12, axisLabel: { fontSize: 9 } },
     yAxis: { type: "value", name: "主力资金（亿）", min: -maxFlow, max: maxFlow, axisLabel: { fontSize: 9 } },
@@ -54,7 +54,7 @@ export default function RotationMatrix() {
           value: [Number(d.x.toFixed(2)), Number(d.y.toFixed(1))],
           symbolSize: Math.min(46, 12 + (Math.abs(d.y) / maxFlow) * 30),
           itemStyle: { color: d.y >= 0 ? "rgba(215,0,11,0.55)" : "rgba(10,160,110,0.55)", borderColor: "#fff", borderWidth: 1 },
-          label: { show: true, formatter: d.name, position: "top", fontSize: 8.5, color: "#64748b" },
+          label: { show: true, formatter: d.name, position: "top", fontSize: 8.5, color: "#6b6862" },
         })),
         markArea: {
           silent: true,
@@ -65,10 +65,10 @@ export default function RotationMatrix() {
             [{ coord: [-12, -maxFlow], name: "规避区\n弱+流出" }, { coord: [0, 0] }],
           ],
           itemStyle: { opacity: 0.1 },
-          label: { show: true, fontSize: 9, color: "#64748b" },
+          label: { show: true, fontSize: 9, color: "#6b6862" },
         },
         markLine: {
-          silent: true, symbol: "none", lineStyle: { color: "#cbd5e1", width: 0.8 },
+          silent: true, symbol: "none", lineStyle: { color: "#e2e0dc", width: 0.8 },
           data: [{ xAxis: 0 }, { yAxis: 0 }],
         },
       },

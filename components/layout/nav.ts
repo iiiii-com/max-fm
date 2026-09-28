@@ -81,7 +81,14 @@ export const NAV: NavGroup[] = [
       { href: "/market", label: "大盘指数", desc: "指数行情 · 板块资金流", icon: Gauge },
       { href: "/sector", label: "板块中心", desc: "板块行情 · 资金 · 成分股", icon: LayoutGrid },
       { href: "/market?tab=stocks", label: "个股行情", desc: "K 线 + 资金双图联动", icon: CandlestickChart },
-      { href: "/etf", label: "ETF 专区", desc: "ETF 行情与持仓透视", icon: LineChart },
+      /**
+       * 必须指向 `/market?tab=etf` 而不是 `/etf`：
+       * `/etf` 只是一个 302 重定向到 `/market?tab=etf` 的别名页，
+       * 而面包屑是按 `href === "/market?tab=etf"` 匹配子项的。
+       * 旧配置写 `/etf` 导致 ETF tab 匹配不到任何子项，回退显示成「大盘指数」——
+       * 于是 /etf 页面的面包屑是「首页 / 市场洞察 / 大盘指数」，但内容是 ETF 专区。
+       */
+      { href: "/market?tab=etf", label: "ETF 专区", desc: "ETF 行情与持仓透视", icon: LineChart },
       { href: "/compare", label: "对比中心", desc: "股票 · 指数 · ETF 跨类对比", icon: GitCompareArrows },
     ],
   },

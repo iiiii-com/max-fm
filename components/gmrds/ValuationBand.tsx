@@ -34,14 +34,14 @@ export default function ValuationBand({
         trigger: "axis",
         axisPointer: { type: "shadow" },
         backgroundColor: "rgba(255,255,255,0.96)",
-        borderColor: "#cbd5e1",
-        textStyle: { color: "#1e293b", fontSize: 12 },
+        borderColor: "#e2e0dc",
+        textStyle: { color: "#e2e0dc", fontSize: 12 },
         formatter: (params: any) => {
           const arr = Array.isArray(params) ? params : [params];
           const i = arr[0]?.dataIndex ?? 0;
           const it = items[i];
           const pe = it.pe != null ? `${it.pe} 倍` : "未接入";
-          return `<b>${it.name}</b><br/>当前 PE：${pe}<br/>合理区间：${it.band[0]}~${it.band[1]} 倍${it.note ? `<br/><span style="color:#64748b;font-size:11px">${it.note}</span>` : ""}`;
+          return `<b>${it.name}</b><br/>当前 PE：${pe}<br/>合理区间：${it.band[0]}~${it.band[1]} 倍${it.note ? `<br/><span style="color:#6b6862;font-size:11px">${it.note}</span>` : ""}`;
         },
       },
       xAxis: {
@@ -70,7 +70,7 @@ export default function ValuationBand({
           type: "scatter",
           data: items.map((i) => [i.pe, i.name]),
           symbolSize: 10,
-          itemStyle: { color: (p: any) => (p.value?.[0] == null ? "#94a3b8" : p.value[0] > items[p.dataIndex].band[1] ? "#d7000b" : p.value[0] < items[p.dataIndex].band[0] ? "#0aa06e" : "#3b82f6") },
+          itemStyle: { color: (p: any) => (p.value?.[0] == null ? "#8a867e" : p.value[0] > items[p.dataIndex].band[1] ? "#c0392b" : p.value[0] < items[p.dataIndex].band[0] ? "#1e8449" : "#1d4ed8") },
         },
       ],
     };

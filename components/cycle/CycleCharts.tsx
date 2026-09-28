@@ -6,12 +6,12 @@ import type { EChartsOption } from "@/components/charts/echarts";
 
 /** 全站统一色（与 app/globals.css 令牌一致；涨红跌绿遵循 A 股惯例） */
 const C = {
-  up: "#ff4d4f",
-  down: "#00c176",
+  up: "#c0392b",
+  down: "#1e8449",
   primary: "#f28c00",
-  muted: "#8a8a8a",
-  border: "#292929",
-  surface: "#141414",
+  muted: "#6b6862",
+  border: "#e2e0dc",
+  surface: "#f4f3f0",
   fg: "#d7d7d7",
 };
 

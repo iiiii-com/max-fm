@@ -65,53 +65,68 @@ export function IndexListCard(props: {
 
 /* ---------------- 10 市场宽度 ---------------- */
 interface BreadthResp {
+  ok?: boolean;
+  error?: string;
   up?: number;
   down?: number;
   flat?: number;
-  limitUp?: number;
-  limitDown?: number;
-  total?: number;
-  asOf?: string;
-  stopped?: boolean;
-  [k: string]: unknown;
+  upRatio?: number;
+  /** 两市合计成交额（亿元）；取不到时为 null */
+  amountYi?: number | null;
+  stage?: string;
+  source?: string;
+  updated?: string;
 }
 
 export function BreadthCard() {
   const [d, setD] = useState<BreadthResp | null>(null);
-  const [err, setErr] = useState(false);
+  const [err, setErr] = useState("");
   useEffect(() => {
     let dead = false;
     fetch("/api/market/breadth")
       .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
-      .then((j) => !dead && setD(j))
-      .catch(() => !dead && setErr(true));
+      .then((j) => {
+        if (dead) return;
+        // 接口以 ok=false + error 表达「数据源不可达」，不返回半截数据
+        if (j?.ok) setD(j);
+        else setErr(j?.error ?? "市场宽度数据源暂不可达");
+      })
+      .catch(() => !dead && setErr("市场宽度数据源暂不可达"));
     return () => {
       dead = true;
     };
   }, []);
-  const cells: Array<{ l: string; v: string; cls?: string; s?: string }> = d
+
+  /**
+   * 只展示接口真实提供的字段。
+   * 旧实现还列了「涨停 / 跌停 / 参与家数」三格，而接口从未返回这三个字段，
+   * 于是实验室 10 号模块长期是 3 个真实值 + 3 个「—」。
+   */
+  const cells: Array<{ l: string; v: string; cls?: string }> = d
     ? [
         { l: "上涨", v: String(d.up ?? "—"), cls: "up" },
         { l: "下跌", v: String(d.down ?? "—"), cls: "down" },
         { l: "平盘", v: String(d.flat ?? "—"), cls: "flat" },
-        { l: "涨停", v: String(d.limitUp ?? "—"), cls: "up" },
-        { l: "跌停", v: String(d.limitDown ?? "—"), cls: "down" },
-        { l: "参与家数", v: String(d.total ?? "—") },
+        { l: "上涨占比", v: d.upRatio == null ? "—" : `${d.upRatio}%` },
+        { l: "两市成交额", v: d.amountYi == null ? "—" : `${(d.amountYi / 10000).toFixed(2)} 万亿` },
+        { l: "温度", v: d.stage ?? "—" },
       ]
     : [];
   return (
     <>
       <div className="gmt-stat-strip gmt-fill">
         {cells.map((c) => (
-          <div key={c.l} className="gmt-stat" data-insp={JSON.stringify({ label: `市场宽度 · ${c.l}`, value: c.v, source: "沪深交易所公开行情聚合", asOf: d?.asOf, note: "统计沪深两市全部挂牌股票的家数分布。" })}>
+          <div key={c.l} className="gmt-stat" data-insp={JSON.stringify({ label: `市场宽度 · ${c.l}`, value: c.v, source: d?.source ?? "东方财富指数快照", asOf: d?.updated, note: "统计沪深两市全部挂牌股票的涨跌平家数。" })}>
             <div className="sl">{c.l}</div>
             <div className={`sv ${c.cls ?? ""}`}>{c.v}</div>
           </div>
         ))}
-        {(err || d?.stopped) && <div className="gmt-empty">源暂缺 · 上游限频（本站不虚构数值）</div>}
+        {err && <div className="gmt-empty">{err}（本站不虚构数值）</div>}
         {!d && !err && <div className="gmt-empty">加载中…</div>}
       </div>
-      <div className="gmt-note">宽度 = 沪深两市上涨/下跌/平盘家数分布 · 情绪温度计的经典口径</div>
+      <div className="gmt-note">
+        宽度 = 沪深两市上涨/下跌/平盘家数分布（情绪温度计的经典口径）· 成交额为两市合计，取自指数快照
+      </div>
     </>
   );
 }

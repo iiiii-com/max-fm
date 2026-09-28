@@ -5,7 +5,7 @@ import ChinaMap from "./charts/ChinaMap";
 import { fmt } from "@/lib/utils";
 
 const METRICS = [
-  { key: "gdp", label: "GDP 总量", unit: "万亿", color: ["#fde8e8", "#c8102e"] },
+  { key: "gdp", label: "GDP 总量", unit: "万亿", color: ["#fde8e8", "#c0392b"] },
   { key: "growth", label: "GDP 同比", unit: "%", color: ["#dbeafe", "#1d4ed8"] },
   { key: "perCapitaGdp", label: "人均 GDP", unit: "万", color: ["#d1fae5", "#047857"] },
   { key: "trade", label: "进出口", unit: "万亿", color: ["#fef3c7", "#b45309"] },
@@ -37,7 +37,7 @@ function ProvinceDetail({ name, history }: { name: string; history: Row[] }) {
 
   const option = useMemo(() => {
     const METAS: Record<string, { label: string; unit: string; color: string }> = {
-      gdp: { label: "GDP 总量", unit: "万亿", color: "#c8102e" },
+      gdp: { label: "GDP 总量", unit: "万亿", color: "#c0392b" },
       population: { label: "人口", unit: "亿", color: "#a21caf" },
       fiscalRevenue: { label: "财政收入", unit: "万亿", color: "#0369a1" },
       growth: { label: "GDP 同比", unit: "%", color: "#1d4ed8" },
@@ -197,7 +197,10 @@ export default function ProvinceMap({ data, history }: { data: Row[]; history: R
                   {METRICS.map((m) => (
                     <th key={m.key} className="py-2 px-3 font-medium text-right whitespace-nowrap">
                       <button onClick={() => setSortKey(m.key)} className={`hover:text-primary transition-colors ${sortKey === m.key ? "text-primary" : ""}`}>
-                        {m.label}{sortKey === m.key ? " ↓" : ""}
+                        {m.label}
+                        {/* 表头标出单位：旧实现单元格后缀为空，31 行全是「14.8」这类无单位裸数字 */}
+                        <span className="text-[10px] font-normal opacity-70 ml-0.5">({m.unit})</span>
+                        {sortKey === m.key ? " ↓" : ""}
                       </button>
                     </th>
                   ))}
@@ -212,12 +215,12 @@ export default function ProvinceMap({ data, history }: { data: Row[]; history: R
                   >
                     <td className="py-2 pl-3 pr-3 font-medium">{RANK_LABEL[i] ?? i + 1}</td>
                     <td className="py-2 pr-3 font-medium">{d.name}</td>
-                    {cell(d, "gdp", "" )}
+                    {cell(d, "gdp", " 万亿")}
                     {cell(d, "growth", "%")}
-                    {cell(d, "perCapitaGdp", "")}
-                    {cell(d, "trade", "")}
-                    {cell(d, "population", "")}
-                    {cell(d, "fiscalRevenue", "")}
+                    {cell(d, "perCapitaGdp", " 万")}
+                    {cell(d, "trade", " 万亿")}
+                    {cell(d, "population", " 亿")}
+                    {cell(d, "fiscalRevenue", " 万亿")}
                   </tr>
                 ))}
               </tbody>

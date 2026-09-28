@@ -1,31 +1,46 @@
 ﻿import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPolicyWithAnalysis, getPolicies } from "@/lib/data/queries";
-import { Card, Badge, AIFlag } from "@/components/ui";
-import Markdown from "@/components/markdown";
-import { fmtDate, safeJsonArray } from "@/lib/utils";
+import { Card, Badge } from "@/components/ui";
+import { PolicyAnalysisPanels } from "@/components/policy-analysis-panels";
+import { fmtDate } from "@/lib/utils";
 import { bootstrap } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = { title: "政策详情" };
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const row = await getPolicyWithAnalysis(id).catch(() => null);
+  const p = row?.policy as any;
+  return {
+    title: p ? p.title : "政策详情",
+    description: p ? `${p.department || ""} ${p.publishDate || ""} ${p.summary || p.title}`.trim().slice(0, 120) : undefined,
+  };
+}
 
+/**
+ * 产业链关键词命中表。
+ * 旧表把「银行」「消费」「汽车」这类泛词也算作命中，导致《审计法实施条例》
+ * （只因出现「银行」「消费」字样）被标注为「受益产业链：银行保险、消费」——
+ * 实际上审计条例只会收紧审计监督。规则：只用**指向具体产业**的强特征词，
+ * 并且在 UI 上明确标注这是「关键词命中」，不宣称政策利好该行业。
+ */
 const SECTOR_HINTS: Array<{ label: string; slug: string; words: string[] }> = [
-  { label: "新能源汽车", slug: "nev", words: ["新能源", "汽车", "购置税", "充电"] },
-  { label: "半导体", slug: "semiconductor", words: ["芯片", "半导体", "集成电路", "晶圆"] },
-  { label: "人工智能", slug: "ai", words: ["人工智能", "AI", "算力", "大模型"] },
-  { label: "房地产", slug: "realestate", words: ["地产", "住房", "房贷", "楼市", "商品房"] },
-  { label: "医药生物", slug: "pharma", words: ["医药", "医保", "集采", "创新药", "医疗"] },
-  { label: "光伏", slug: "solar", words: ["光伏", "装机", "组件"] },
-  { label: "机器人", slug: "robot", words: ["机器人", "人形"] },
-  { label: "银行保险", slug: "finance", words: ["银行", "保险", "息差", "降准", "资本充足"] },
-  { label: "消费", slug: "baijiu", words: ["消费", "白酒", "以旧换新", "补贴", "内需"] },
-  { label: "农业食品", slug: "agrifood", words: ["农业", "粮食", "种业", "食品"] },
-  { label: "军工", slug: "defense", words: ["军工", "国防", "装备"] },
-  { label: "低空经济", slug: "lowaltitude", words: ["低空", "eVTOL", "无人机"] },
+  { label: "新能源汽车", slug: "nev", words: ["新能源汽车", "动力电池", "充电桩", "购置税"] },
+  { label: "半导体", slug: "semiconductor", words: ["集成电路", "晶圆", "半导体", "芯片"] },
+  { label: "人工智能", slug: "ai", words: ["人工智能", "大模型", "算力"] },
+  { label: "房地产", slug: "realestate", words: ["商品房", "楼市", "住房公积金", "房地产", "房贷"] },
+  { label: "医药生物", slug: "pharma", words: ["集中采购", "医保", "创新药", "医疗器械"] },
+  { label: "光伏", slug: "solar", words: ["光伏", "风电", "可再生能源装机"] },
+  { label: "机器人", slug: "robot", words: ["人形机器人", "机器人产业"] },
+  { label: "银行保险", slug: "finance", words: ["资本充足率", "存款准备金", "偿付能力", "不良贷款率"] },
+  { label: "消费", slug: "baijiu", words: ["以旧换新", "消费券", "家电下乡", "促消费"] },
+  { label: "农业食品", slug: "agrifood", words: ["粮食", "种业", "耕地", "农产品"] },
+  { label: "军工", slug: "defense", words: ["国防科技", "军民融合", "装备采购"] },
+  { label: "低空经济", slug: "lowaltitude", words: ["低空经济", "通用航空", "无人机"] },
 ];
 
-/** 政策类别 → 影响方向（股市/楼市/消费/产业）映射（研究框架设定，供投资者参考） */
+/** 政策类别 → 影响方向（研究框架设定，供投资者参考） */
 const IMPACT_MAP: Record<string, string[]> = {
   "货币政策": ["股市流动性", "利率敏感资产", "汇率"],
   "财政": ["基建投资", "消费补贴", "企业税负"],
@@ -45,8 +60,10 @@ export default async function PolicyDetailPage({ params }: { params: Promise<{ i
   const [row, others] = await Promise.all([getPolicyWithAnalysis(id), getPolicies()]);
   if (!row) notFound();
   const { policy: p, analysis } = row;
-  const corpus = `${p.title} ${p.summary} ${p.content} ${analysis?.popular ?? ""} ${analysis?.professional ?? ""}`;
-  const hitSectors = SECTOR_HINTS.filter((s) => s.words.some((w) => corpus.includes(w)));
+  const a = analysis as any;
+  // 命中判定只用标题 + 摘要 + 原文，避免把「解读文本」里的泛词也算进来
+  const corpus = `${p.title} ${p.summary ?? ""} ${p.content ?? ""}`;
+  const sectorHits = SECTOR_HINTS.filter((s) => s.words.some((w) => corpus.includes(w)));
   const impacts = IMPACT_MAP[p.category ?? ""] ?? [];
 
   return (
@@ -69,82 +86,51 @@ export default async function PolicyDetailPage({ params }: { params: Promise<{ i
         )}
       </header>
 
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <Card>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-bold">普通人怎么看</h2>
-            <AIFlag />
-          </div>
-          {analysis?.popular ? (
-            <div className="prose-sm"><Markdown content={analysis.popular} /></div>
-          ) : <p className="text-sm text-muted">分析生成中</p>}
-        </Card>
-        <Card>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-bold">专业解读</h2>
-            <AIFlag />
-          </div>
-          {analysis?.professional ? (
-            <div className="prose-sm"><Markdown content={analysis.professional} /></div>
-          ) : <p className="text-sm text-muted">分析生成中</p>}
-        </Card>
-        <Card>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-bold">趋势与风险</h2>
-            <AIFlag />
-          </div>
-          {analysis?.detail ? (
-            <div className="prose-sm"><Markdown content={analysis.detail} /></div>
-          ) : <p className="text-sm text-muted">分析生成中</p>}
-        </Card>
-      </section>
-
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <Card>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-bold">关联数据</h2>
-          </div>
-          {analysis?.dataLinks ? (
-            <>
-              <p className="text-sm text-muted mb-2">政策解读涉及的关联指标：</p>
-              <div className="flex flex-wrap gap-2">
-                {safeJsonArray<string>(analysis.dataLinks).map((d) => (
-                  <Badge key={d} tone="gray">{d}</Badge>
-                ))}
-              </div>
-              <p className="text-xs text-muted mt-4">数据由 Max 数据管道自动关联，分析由 AI 生成。</p>
-            </>
-          ) : <p className="text-sm text-muted">数据关联生成中</p>}
-          {hitSectors.length > 0 && (
-            <>
-              <p className="text-sm text-muted mb-2 mt-4">政策可能受益的产业链：</p>
-              <div className="flex flex-wrap gap-2">
-                {hitSectors.map((s) => (
-                  <Link key={s.slug} href={`/industry/${s.slug}`} className="hover:opacity-70 transition-opacity">
-                    <Badge tone="red">{s.label}</Badge>
-                  </Link>
-                ))}
-              </div>
-            </>
-          )}
-          {impacts.length > 0 && (
-            <div className="mt-4 rounded-lg border border-border/60 px-3 py-2.5">
-              <p className="text-xs text-muted mb-1.5">潜在影响方向（研究框架设定，供参考）：</p>
-              <div className="flex flex-wrap gap-1.5">
-                {impacts.map((t) => (
-                  <span key={t} className="text-[11px] px-2 py-0.5 rounded-full bg-primary/8 text-primary border border-primary/20">{t}</span>
-                ))}
-              </div>
-            </div>
-          )}
-        </Card>
-      </section>
+      <PolicyAnalysisPanels
+        id={id}
+        popular={a?.popular ?? null}
+        professional={a?.professional ?? null}
+        detail={a?.detail ?? null}
+        dataLinks={a?.dataLinks ?? null}
+        sectorHits={sectorHits}
+      />
 
       <section>
-        <Card>
-          <h2 className="font-bold mb-3">政策原文要点</h2>
-          <pre className="whitespace-pre-wrap font-sans text-sm text-muted leading-relaxed">{p.content}</pre>
-        </Card>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <Card>
+            <h2 className="font-bold mb-3">政策原文</h2>
+            <pre className="whitespace-pre-wrap font-sans text-sm text-muted leading-relaxed max-h-[520px] overflow-y-auto">{p.content}</pre>
+          </Card>
+          <div className="lg:col-span-2 space-y-4">
+            {sectorHits.length > 0 && (
+              <Card>
+                <h2 className="font-bold mb-2">关键词命中的相关产业链</h2>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {sectorHits.map((s) => (
+                    <Link key={s.slug} href={`/industry/${s.slug}`} className="hover:opacity-70 transition-opacity">
+                      <Badge tone="gray">{s.label}</Badge>
+                    </Link>
+                  ))}
+                </div>
+                <p className="text-xs text-muted leading-relaxed">
+                  以上仅为<b>关键词匹配</b>结果，用于帮助定位原文涉及的领域，
+                  <b>不代表该政策会利好这些行业</b>，请以 AI 解读与原文为准。
+                </p>
+              </Card>
+            )}
+            {impacts.length > 0 && (
+              <Card>
+                <h2 className="font-bold mb-2">潜在影响方向</h2>
+                <div className="flex flex-wrap gap-1.5">
+                  {impacts.map((t) => (
+                    <span key={t} className="text-[11px] px-2 py-0.5 rounded-full bg-primary/8 text-primary border border-primary/20">{t}</span>
+                  ))}
+                </div>
+                <p className="text-xs text-muted mt-2">按政策类别的研究框架映射得出，属定性参考，非量化结论。</p>
+              </Card>
+            )}
+          </div>
+        </div>
       </section>
 
       <section>

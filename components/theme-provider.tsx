@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 
 const ThemeContext = createContext<{ theme: "light" | "dark"; toggle: () => void }>({
-  theme: "dark",
+  theme: "light",
   toggle: () => {},
 });
 
@@ -33,11 +33,11 @@ function writeStoredTheme(theme: "light" | "dark") {
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<"light" | "dark">(() => {
-    if (typeof window === "undefined") return "dark";
+    if (typeof window === "undefined") return "light";
     const saved = readStoredTheme();
     if (saved) return saved;
-    // 终端风格：无显式偏好时默认深色（明暗两档均为深色，此档更沉）
-    return "dark";
+    // 无显式偏好时用浅色机构研究（默认档）。暗色仍可通过右上角切换保留。
+    return "light";
   });
 
   useEffect(() => {

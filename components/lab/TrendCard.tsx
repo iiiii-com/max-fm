@@ -75,8 +75,8 @@ export default function TrendCard({ secid, isIndex }: { secid: string; isIndex: 
           itemStyle: { color: "rgba(59,130,246,0.6)", borderRadius: [2, 2, 0, 0] },
           data: trend.map((p) => p.netProfit),
         },
-        { name: "毛利率", type: "line", yAxisIndex: 1, symbol: "circle", symbolSize: 5, lineStyle: { width: 1.5, color: "#f59e0b" }, itemStyle: { color: "#f59e0b" }, data: trend.map((p) => p.grossMargin) },
-        { name: "ROE", type: "line", yAxisIndex: 1, symbol: "circle", symbolSize: 5, lineStyle: { width: 1.5, color: "#8b5cf6" }, itemStyle: { color: "#8b5cf6" }, data: trend.map((p) => p.roe) },
+        { name: "毛利率", type: "line", yAxisIndex: 1, symbol: "circle", symbolSize: 5, lineStyle: { width: 1.5, color: "#b45309" }, itemStyle: { color: "#b45309" }, data: trend.map((p) => p.grossMargin) },
+        { name: "ROE", type: "line", yAxisIndex: 1, symbol: "circle", symbolSize: 5, lineStyle: { width: 1.5, color: "#7c3aed" }, itemStyle: { color: "#7c3aed" }, data: trend.map((p) => p.roe) },
       ],
     };
   }, [trend]);

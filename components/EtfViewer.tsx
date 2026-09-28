@@ -142,8 +142,8 @@ export default function EtfViewer() {
       value: b.volume,
       itemStyle: { color: b.close >= b.open ? "rgba(220,38,38,0.6)" : "rgba(22,163,74,0.6)" },
     }));
-    const upColor = "#dc2626";
-    const downColor = "#16a34a";
+    const upColor = "#c0392b";
+    const downColor = "#1e8449";
     return {
       animation: false,
       tooltip: mkKlineTooltip({ bars, formatter: (params: any) => {
@@ -166,7 +166,7 @@ export default function EtfViewer() {
         { ...mkSubAxis(dates.length, 1), data: dates },
       ],
       yAxis: [
-        { type: "value", scale: true, gridIndex: 0, axisLabel: { fontSize: 10 }, splitLine: { lineStyle: { color: "#292929", type: "dashed" } } },
+        { type: "value", scale: true, gridIndex: 0, axisLabel: { fontSize: 10 }, splitLine: { lineStyle: { color: "#e2e0dc", type: "dashed" } } },
         { type: "value", gridIndex: 1, axisLabel: { fontSize: 9 }, splitLine: { show: false } },
       ],
       dataZoom: [
@@ -180,9 +180,9 @@ export default function EtfViewer() {
         },
         // 逐根涨跌幅标注（scatter 叠加）
         mkPctLabel({ bars, show: showPct, position: pctPos, fontSize: pctFont, pctRange: vRange }),
-        { name: "MA5", type: "line", data: closes.map((_, i) => i < 4 ? null : closes.slice(i - 4, i + 1).reduce((a, c) => a + c, 0) / 5), smooth: true, showSymbol: false, lineStyle: { width: 1, color: "#f59e0b" } },
-        { name: "MA10", type: "line", data: closes.map((_, i) => i < 9 ? null : closes.slice(i - 9, i + 1).reduce((a, c) => a + c, 0) / 10), smooth: true, showSymbol: false, lineStyle: { width: 1, color: "#3b82f6" } },
-        { name: "MA20", type: "line", data: closes.map((_, i) => i < 19 ? null : closes.slice(i - 19, i + 1).reduce((a, c) => a + c, 0) / 20), smooth: true, showSymbol: false, lineStyle: { width: 1, color: "#8b5cf6" } },
+        { name: "MA5", type: "line", data: closes.map((_, i) => i < 4 ? null : closes.slice(i - 4, i + 1).reduce((a, c) => a + c, 0) / 5), smooth: true, showSymbol: false, lineStyle: { width: 1, color: "#b45309" } },
+        { name: "MA10", type: "line", data: closes.map((_, i) => i < 9 ? null : closes.slice(i - 9, i + 1).reduce((a, c) => a + c, 0) / 10), smooth: true, showSymbol: false, lineStyle: { width: 1, color: "#1d4ed8" } },
+        { name: "MA20", type: "line", data: closes.map((_, i) => i < 19 ? null : closes.slice(i - 19, i + 1).reduce((a, c) => a + c, 0) / 20), smooth: true, showSymbol: false, lineStyle: { width: 1, color: "#7c3aed" } },
         { name: "成交量", type: "bar", data: volumes, xAxisIndex: 1, yAxisIndex: 1 },
       ],
     };

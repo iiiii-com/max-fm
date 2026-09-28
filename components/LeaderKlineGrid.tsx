@@ -63,7 +63,7 @@ function MiniKline({ secid, name, onPick }: { secid: string; name: string; onPic
     const first = closes[0];
     const last = closes[closes.length - 1];
     const up = last >= first;
-    const color = up ? "#dc2626" : "#16a34a";
+    const color = up ? "#c0392b" : "#1e8449";
     const m5 = sma(closes, 5);
     const m20 = sma(closes, 20);
     return {
@@ -78,17 +78,17 @@ function MiniKline({ secid, name, onPick }: { secid: string; name: string; onPic
         if (!b) return "";
         const prev = i > 0 ? bars[i - 1].close : b.open;
         const pct = ((b.close - prev) / prev) * 100;
-        return `<div style="font-size:12px;line-height:1.6"><b>${b.date}</b><br/>收 ${b.close.toFixed(2)}（<span style="color:${pct >= 0 ? "#dc2626" : "#16a34a"}">${pct >= 0 ? "+" : ""}${pct.toFixed(2)}%</span>）<br/>高 ${b.high.toFixed(2)} · 低 ${b.low.toFixed(2)}</div>`;
+        return `<div style="font-size:12px;line-height:1.6"><b>${b.date}</b><br/>收 ${b.close.toFixed(2)}（<span style="color:${pct >= 0 ? "#c0392b" : "#1e8449"}">${pct >= 0 ? "+" : ""}${pct.toFixed(2)}%</span>）<br/>高 ${b.high.toFixed(2)} · 低 ${b.low.toFixed(2)}</div>`;
       } }),
       series: [
         {
           name: "K线", type: "candlestick", data: ohlc,
-          itemStyle: { color, color0: "#16a34a", borderColor: color, borderColor0: "#16a34a" },
+          itemStyle: { color, color0: "#1e8449", borderColor: color, borderColor0: "#1e8449" },
         },
         // 逐根涨跌幅标注（scatter 叠加；迷你图只标最近 3 根避免重叠）
         mkPctSeries({ bars, show: true, fontSize: 8, maxVisible: 3, keep: 3 }),
-        { name: "MA5", type: "line", data: m5, smooth: true, showSymbol: false, lineStyle: { width: 0.8, color: "#f59e0b" } },
-        { name: "MA20", type: "line", data: m20, smooth: true, showSymbol: false, lineStyle: { width: 0.8, color: "#3b82f6" } },
+        { name: "MA5", type: "line", data: m5, smooth: true, showSymbol: false, lineStyle: { width: 0.8, color: "#b45309" } },
+        { name: "MA20", type: "line", data: m20, smooth: true, showSymbol: false, lineStyle: { width: 0.8, color: "#1d4ed8" } },
       ],
     };
   }, [bars]);

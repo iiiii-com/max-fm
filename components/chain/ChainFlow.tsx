@@ -5,7 +5,7 @@ import Link from "next/link";
 import { clamp } from "@/lib/utils";
 import type { ChainSegment, StaticChain } from "@/lib/data/chains";
 
-const STAGE_COLOR: Record<string, string> = { 上游: "#0891b2", 中游: "#c8102e", 下游: "#4f46e5" };
+const STAGE_COLOR: Record<string, string> = { 上游: "#0891b2", 中游: "#c0392b", 下游: "#4f46e5" };
 
 function Arrow() {
   return (

@@ -86,7 +86,7 @@ export default function KonratiefWaveChart({ waves }: { waves: KonratiefWave[] }
       coord: [c.year, 0.02],
       symbol: "pin",
       symbolSize: 30,
-      itemStyle: { color: "#ff4d4f" },
+      itemStyle: { color: "#c0392b" },
       label: { show: false },
       value: c.label,
     }));
@@ -121,8 +121,8 @@ export default function KonratiefWaveChart({ waves }: { waves: KonratiefWave[] }
           });
           const crisis = CRISIS_MARKS.find((c) => c.year === year);
           let html = `<b>${year}</b>`;
-          if (hit) html += `<br/>${hit.no} ${hit.name}（${hit.years}）<br/><span style="color:#8a8a8a">技术：${hit.tech}</span>`;
-          if (crisis) html += `<br/><span style="color:#ff4d4f">◉ ${crisis.label}</span>`;
+          if (hit) html += `<br/>${hit.no} ${hit.name}（${hit.years}）<br/><span style="color:#6b6862">技术：${hit.tech}</span>`;
+          if (crisis) html += `<br/><span style="color:#c0392b">◉ ${crisis.label}</span>`;
           return html;
         },
       },

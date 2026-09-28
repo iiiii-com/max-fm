@@ -164,8 +164,8 @@ export default function SectorKlinePanel({ sector, onClose }: { sector: DetailSe
                   itemStyle: {
                     color:
                       r.main >= 0
-                        ? { type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: "#dc2626" }, { offset: 1, color: "rgba(220,38,38,0.25)" }] }
-                        : { type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: "#16a34a" }, { offset: 1, color: "rgba(22,163,74,0.25)" }] },
+                        ? { type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: "#c0392b" }, { offset: 1, color: "rgba(220,38,38,0.25)" }] }
+                        : { type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: "#1e8449" }, { offset: 1, color: "rgba(22,163,74,0.25)" }] },
                   },
                 },
           ),
@@ -175,7 +175,7 @@ export default function SectorKlinePanel({ sector, onClose }: { sector: DetailSe
           type: "line",
           yAxisIndex: 1,
           symbol: "none",
-          lineStyle: { width: 1.5, color: "#f59e0b" },
+          lineStyle: { width: 1.5, color: "#b45309" },
           areaStyle: { color: { type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: "rgba(245,158,11,0.25)" }, { offset: 1, color: "rgba(245,158,11,0.02)" }] } },
           data: rows.map((r) => r.close),
         },

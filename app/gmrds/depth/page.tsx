@@ -10,7 +10,7 @@ import RadarChart from "@/components/gmrds/RadarChart";
 
 export const metadata = { title: "环节深度研究 | 研究体系 GMRDS" };
 
-const STAGE_COLORS = ["#3b82f6", "#16a34a", "#e11d48", "#f59e0b"];
+const STAGE_COLORS = ["#1d4ed8", "#1e8449", "#be123c", "#b45309"];
 const STAGE_BG: Record<string, string> = {
   "宏观研判": "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
   "资产与行业": "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
@@ -33,8 +33,8 @@ function VizByType({ type, label }: { type: string; label: string }) {
             { name: "财务稳健", max: 10 }, { name: "盈利真实性", max: 10 },
           ]}
           series={[
-            { name: "贵州茅台（真实指标映射）", values: [9, 6, 9, 8, 9], color: "#16a34a" },
-            { name: "宁德时代（真实指标映射）", values: [7, 9, 6, 7, 8], color: "#3b82f6" },
+            { name: "贵州茅台（真实指标映射）", values: [9, 6, 9, 8, 9], color: "#1e8449" },
+            { name: "宁德时代（真实指标映射）", values: [7, 9, 6, 7, 8], color: "#1d4ed8" },
           ]}
           title="标的财务质量雷达 · 茅台 vs 宁德（真实指标映射）"
           caption="图注：数值由真实财务指标（ROE/毛利率/现金流/负债率）归一化映射，茅台 ROE 16.75%/毛利率 89.56%、宁德 ROE 12.1%/毛利率 23.9%（东财 F10 2026 中报）。"
@@ -50,8 +50,8 @@ function VizByType({ type, label }: { type: string; label: string }) {
           { name: "技术", max: 5 }, { name: "情绪", max: 5 }, { name: "风险", max: 5 },
         ]}
         series={[
-          { name: "2024-09 共振（进攻）", values: [4, 4, 4, 3, 3, 4, 3, 2, 2], color: "#d7000b" },
-          { name: "2022 紧缩（防守）", values: [1, 2, 1, 2, 3, 2, 1, 3, 4], color: "#0aa06e" },
+          { name: "2024-09 共振（进攻）", values: [4, 4, 4, 3, 3, 4, 3, 2, 2], color: "#c0392b" },
+          { name: "2022 紧缩（防守）", values: [1, 2, 1, 2, 3, 2, 1, 3, 4], color: "#1e8449" },
         ]}
         title="九环节评分雷达 · 进攻 vs 防守情景（真实数据映射）"
         caption="图注：环节 1-9 评分（-5~5）按宏观/流动性与风险敞口映射；进攻情景对应 2024-09 反转（上证 2702.19→3968.84），防守情景对应 2022 紧缩（-15.1%）。"

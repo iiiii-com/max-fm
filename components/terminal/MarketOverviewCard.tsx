@@ -19,9 +19,9 @@ const PINNED = [
 ];
 
 function color(pct: number) {
-  if (pct > 0.05) return "#dc2626";
-  if (pct < -0.05) return "#16a34a";
-  return "#64748b";
+  if (pct > 0.05) return "#c0392b";
+  if (pct < -0.05) return "#1e8449";
+  return "#6b6862";
 }
 
 export default function MarketOverviewCard() {

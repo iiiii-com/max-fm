@@ -147,7 +147,7 @@ export default function ChainSchematic({ nodes, title }: { nodes: FlowNode[]; ti
 
           {/* 每列：淡染底色 + 左右导轨，营造终端分栏的秩序感 */}
           {cols.map((c) => {
-            const color = CHAIN_LEVEL_COLORS[c.level] ?? "#8a8a8a";
+            const color = CHAIN_LEVEL_COLORS[c.level] ?? "#6b6862";
             return (
               <g key={c.level}>
                 <rect x={c.x - BOX_W / 2 - 12} y={RAIL_TOP} width={BOX_W + 24} height={H - RAIL_TOP - 10} fill={color} opacity={0.05} />
@@ -159,7 +159,7 @@ export default function ChainSchematic({ nodes, title }: { nodes: FlowNode[]; ti
 
           {/* 列头 */}
           {cols.map((c) => {
-            const color = CHAIN_LEVEL_COLORS[c.level] ?? "#8a8a8a";
+            const color = CHAIN_LEVEL_COLORS[c.level] ?? "#6b6862";
             return (
               <g key={c.level}>
                 <rect x={c.x - BOX_W / 2} y={26} width={BOX_W} height={30} rx={2} fill="var(--surface)" stroke="var(--border)" />
@@ -210,7 +210,7 @@ export default function ChainSchematic({ nodes, title }: { nodes: FlowNode[]; ti
               if (y == null) return null;
               const isOn = hover === key || open === key;
               const dim = linked ? !linked.has(key) : false;
-              const color = CHAIN_LEVEL_COLORS[c.level] ?? "#8a8a8a";
+              const color = CHAIN_LEVEL_COLORS[c.level] ?? "#6b6862";
               return (
                 <g
                   key={key}
@@ -274,7 +274,7 @@ export default function ChainSchematic({ nodes, title }: { nodes: FlowNode[]; ti
       {/* 移动端：纵向分组 */}
       <div className="space-y-4 sm:hidden">
         {cols.map((c) => {
-          const color = CHAIN_LEVEL_COLORS[c.level] ?? "#8a8a8a";
+          const color = CHAIN_LEVEL_COLORS[c.level] ?? "#6b6862";
           return (
             <div key={c.level}>
               <div className="mb-1.5 flex items-center gap-2 border-b border-border pb-1">
@@ -309,13 +309,13 @@ export default function ChainSchematic({ nodes, title }: { nodes: FlowNode[]; ti
       {active && (
         <div
           className="border border-border bg-card p-3"
-          style={{ borderLeftWidth: 3, borderLeftColor: CHAIN_LEVEL_COLORS[active.level ?? ""] ?? "#8a8a8a" }}
+          style={{ borderLeftWidth: 3, borderLeftColor: CHAIN_LEVEL_COLORS[active.level ?? ""] ?? "#6b6862" }}
         >
           <div className="flex items-center gap-2">
             <span className="text-[13px] font-bold">{active.name}</span>
             <span
               className="font-mono text-[10px] tracking-widest"
-              style={{ color: CHAIN_LEVEL_COLORS[active.level ?? ""] ?? "#8a8a8a" }}
+              style={{ color: CHAIN_LEVEL_COLORS[active.level ?? ""] ?? "#6b6862" }}
             >
               {active.level}
             </span>

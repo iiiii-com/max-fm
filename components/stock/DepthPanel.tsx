@@ -67,7 +67,7 @@ export default function DepthPanel({ secid, flow }: { secid: string; flow?: { ma
     animation: false,
     tooltip: {
       trigger: "axis",
-      backgroundColor: "rgba(255,255,255,0.96)", borderColor: "#cbd5e1", textStyle: { color: "#1e293b", fontSize: 11 },
+      backgroundColor: "rgba(255,255,255,0.96)", borderColor: "#e2e0dc", textStyle: { color: "#e2e0dc", fontSize: 11 },
       formatter: (params: any) => {
         const arr = Array.isArray(params) ? params : [params];
         const i = arr[0]?.dataIndex ?? 0;
@@ -87,19 +87,19 @@ export default function DepthPanel({ secid, flow }: { secid: string; flow?: { ma
       { type: "category", gridIndex: 1, data: times, axisLabel: { show: false } },
     ],
     yAxis: [
-      { type: "value", scale: true, axisLabel: { fontSize: 9 }, splitLine: { lineStyle: { color: "#292929", type: "dashed" } } },
+      { type: "value", scale: true, axisLabel: { fontSize: 9 }, splitLine: { lineStyle: { color: "#e2e0dc", type: "dashed" } } },
       { type: "value", gridIndex: 1, axisLabel: { fontSize: 8 }, splitLine: { show: false } },
     ],
     series: [
       {
         name: "价格", type: "line", data: prices, xAxisIndex: 0, yAxisIndex: 0,
-        showSymbol: false, smooth: true, lineStyle: { width: 1.4, color: "#3b82f6" },
+        showSymbol: false, smooth: true, lineStyle: { width: 1.4, color: "#1d4ed8" },
         areaStyle: { color: "rgba(59,130,246,0.08)" },
-        markLine: preClose ? { silent: true, symbol: "none", lineStyle: { color: "#f59e0b", type: "dashed", width: 0.8 }, label: { show: true, formatter: `昨收 ${preClose}`, fontSize: 8, color: "#d97706", position: "insideEndTop" }, data: [{ yAxis: preClose }] } : undefined,
+        markLine: preClose ? { silent: true, symbol: "none", lineStyle: { color: "#b45309", type: "dashed", width: 0.8 }, label: { show: true, formatter: `昨收 ${preClose}`, fontSize: 8, color: "#d97706", position: "insideEndTop" }, data: [{ yAxis: preClose }] } : undefined,
       },
       {
         name: "均价", type: "line", data: avgs, xAxisIndex: 0, yAxisIndex: 0,
-        showSymbol: false, lineStyle: { width: 1, color: "#f59e0b" },
+        showSymbol: false, lineStyle: { width: 1, color: "#b45309" },
       },
       {
         name: "成交量", type: "bar", data: vols, xAxisIndex: 1, yAxisIndex: 1,

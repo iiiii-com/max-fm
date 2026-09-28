@@ -118,7 +118,7 @@ export default function UsMarketKline() {
     ];
     if (hasMacd) xAxes.push({ ...mkSubAxis(years.length, 2), data: years });
     const yAxes: any[] = [
-      { type: "value", scale: true, gridIndex: 0, axisLabel: { fontSize: 9 }, splitLine: { lineStyle: { color: "#292929", type: "dashed" } } },
+      { type: "value", scale: true, gridIndex: 0, axisLabel: { fontSize: 9 }, splitLine: { lineStyle: { color: "#e2e0dc", type: "dashed" } } },
       { type: "value", gridIndex: 1, axisLabel: { fontSize: 8 }, splitLine: { show: false } },
     ];
     if (hasMacd) yAxes.push({ type: "value", gridIndex: 2, axisLabel: { fontSize: 8 }, splitLine: { show: false }, scale: true });
@@ -128,7 +128,7 @@ export default function UsMarketKline() {
     const markAreas: any[] = [];
     let onTop = true;
     for (const ev of US_EVENTS) {
-      const color = ev.direction === "down" ? "#16a34a" : ev.direction === "up" ? "#dc2626" : "#d97706";
+      const color = ev.direction === "down" ? "#1e8449" : ev.direction === "up" ? "#c0392b" : "#d97706";
       onTop = !onTop;
       markLines.push({
         xAxis: String(ev.year),
@@ -153,36 +153,36 @@ export default function UsMarketKline() {
     const legendData = ["K 线", "成交量"];
     if (indicators.includes("ma")) {
       const m5 = sma(closes, 3), m10 = sma(closes, 5), m20 = sma(closes, 10);
-      for (const [name, data, color] of [["MA3Y", m5, "#f59e0b"], ["MA5Y", m10, "#3b82f6"], ["MA10Y", m20, "#8b5cf6"]] as const) {
+      for (const [name, data, color] of [["MA3Y", m5, "#b45309"], ["MA5Y", m10, "#1d4ed8"], ["MA10Y", m20, "#7c3aed"]] as const) {
         indicatorSeries.push({ name, type: "line", data, smooth: true, showSymbol: false, lineStyle: { width: 1, color } });
         legendData.push(name);
       }
     }
     if (indicators.includes("boll")) {
       const b = boll(closes, 5);
-      indicatorSeries.push({ name: "BOLL上", type: "line", data: b.upper, smooth: true, showSymbol: false, lineStyle: { width: 0.8, color: "#94a3b8", type: "dashed" } });
-      indicatorSeries.push({ name: "BOLL中", type: "line", data: b.mid, smooth: true, showSymbol: false, lineStyle: { width: 0.8, color: "#64748b" } });
-      indicatorSeries.push({ name: "BOLL下", type: "line", data: b.lower, smooth: true, showSymbol: false, lineStyle: { width: 0.8, color: "#94a3b8", type: "dashed" } });
+      indicatorSeries.push({ name: "BOLL上", type: "line", data: b.upper, smooth: true, showSymbol: false, lineStyle: { width: 0.8, color: "#8a867e", type: "dashed" } });
+      indicatorSeries.push({ name: "BOLL中", type: "line", data: b.mid, smooth: true, showSymbol: false, lineStyle: { width: 0.8, color: "#6b6862" } });
+      indicatorSeries.push({ name: "BOLL下", type: "line", data: b.lower, smooth: true, showSymbol: false, lineStyle: { width: 0.8, color: "#8a867e", type: "dashed" } });
       legendData.push("BOLL上", "BOLL中", "BOLL下");
     }
     if (indicators.includes("kdj")) {
       const k = kdj(bars);
-      for (const [name, data, color] of [["K", k.k, "#f59e0b"], ["D", k.d, "#3b82f6"], ["J", k.j, "#a855f7"]] as const) {
+      for (const [name, data, color] of [["K", k.k, "#b45309"], ["D", k.d, "#1d4ed8"], ["J", k.j, "#a855f7"]] as const) {
         indicatorSeries.push({ name, type: "line", data, smooth: true, showSymbol: false, lineStyle: { width: 0.9, color } });
         legendData.push(name);
       }
     }
     if (indicators.includes("rsi")) {
       const r6 = rsi(closes, 3), r14 = rsi(closes, 5);
-      for (const [name, data, color] of [["RSI3", r6, "#f59e0b"], ["RSI5", r14, "#8b5cf6"]] as const) {
+      for (const [name, data, color] of [["RSI3", r6, "#b45309"], ["RSI5", r14, "#7c3aed"]] as const) {
         indicatorSeries.push({ name, type: "line", data, smooth: true, showSymbol: false, lineStyle: { width: 0.9, color } });
         legendData.push(name);
       }
     }
     if (hasMacd) {
       const m = macd(closes);
-      indicatorSeries.push({ name: "DIF", type: "line", data: m.dif, xAxisIndex: 2, yAxisIndex: 2, smooth: true, showSymbol: false, lineStyle: { width: 0.9, color: "#3b82f6" } });
-      indicatorSeries.push({ name: "DEA", type: "line", data: m.dea, xAxisIndex: 2, yAxisIndex: 2, smooth: true, showSymbol: false, lineStyle: { width: 0.9, color: "#f59e0b" } });
+      indicatorSeries.push({ name: "DIF", type: "line", data: m.dif, xAxisIndex: 2, yAxisIndex: 2, smooth: true, showSymbol: false, lineStyle: { width: 0.9, color: "#1d4ed8" } });
+      indicatorSeries.push({ name: "DEA", type: "line", data: m.dea, xAxisIndex: 2, yAxisIndex: 2, smooth: true, showSymbol: false, lineStyle: { width: 0.9, color: "#b45309" } });
       indicatorSeries.push({
         name: "MACD", type: "bar", data: m.hist.map((v) => ({ value: v, itemStyle: { color: (v ?? 0) >= 0 ? "rgba(220,38,38,0.55)" : "rgba(22,163,74,0.55)" } })),
         xAxisIndex: 2, yAxisIndex: 2,
@@ -214,7 +214,7 @@ export default function UsMarketKline() {
           name: "K 线",
           type: "candlestick",
           data: ohlc,
-          itemStyle: { color: "#dc2626", color0: "#16a34a", borderColor: "#dc2626", borderColor0: "#16a34a" },
+          itemStyle: { color: "#c0392b", color0: "#1e8449", borderColor: "#c0392b", borderColor0: "#1e8449" },
           markLine: { symbol: "none", silent: true, data: markLines },
           markArea: { silent: true, data: markAreas },
           markPoint: {

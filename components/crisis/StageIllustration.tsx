@@ -3,8 +3,8 @@
 import type { Regime } from "@/lib/data/crisis/types";
 
 const REGIME_META: Record<Regime, { label: string; color: string; bg: string }> = {
-  crash: { label: "回调 · 恐慌下行", color: "#dc2626", bg: "rgba(220,38,38,0.06)" },
-  rally: { label: "上涨 · 趋势上行", color: "#16a34a", bg: "rgba(22,163,74,0.06)" },
+  crash: { label: "回调 · 恐慌下行", color: "#c0392b", bg: "rgba(220,38,38,0.06)" },
+  rally: { label: "上涨 · 趋势上行", color: "#1e8449", bg: "rgba(22,163,74,0.06)" },
   range: { label: "震荡 · 横盘整理", color: "#8b8b85", bg: "rgba(139,139,133,0.07)" },
 };
 
@@ -104,7 +104,7 @@ export default function StageIllustration({
           <g transform="translate(262,14)" className="icon-pulse">
             <path
               d="M4 0 L20 0 L16 9 L26 9 L8 26 L12 15 L0 15 Z"
-              fill="#f59e0b"
+              fill="#b45309"
               opacity={0.95}
             />
           </g>
@@ -113,16 +113,16 @@ export default function StageIllustration({
           <g transform="translate(266,16)" className="arrow-bounce">
             <path
               d="M8 24 L8 4 L2 10 L0 7 L8 0 L16 7 L14 10 L8 4 L8 24 Z"
-              fill="#f59e0b"
+              fill="#b45309"
               opacity={0.95}
             />
           </g>
         )}
         {regime === "range" && (
           <g transform="translate(262,12)" className="icon-pulse">
-            <rect x="0" y="0" width="14" height="24" rx="3" fill="none" stroke="#f59e0b" strokeWidth={1.6} />
-            <line x1="4" y1="12" x2="16" y2="12" stroke="#f59e0b" strokeWidth={1.6} />
-            <line x1="7" y1="4" x2="7" y2="20" stroke="#f59e0b" strokeWidth={1.6} />
+            <rect x="0" y="0" width="14" height="24" rx="3" fill="none" stroke="#b45309" strokeWidth={1.6} />
+            <line x1="4" y1="12" x2="16" y2="12" stroke="#b45309" strokeWidth={1.6} />
+            <line x1="7" y1="4" x2="7" y2="20" stroke="#b45309" strokeWidth={1.6} />
           </g>
         )}
         <text x={22} y={24} fontSize={10} fill={meta.color} fontWeight={700}>

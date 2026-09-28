@@ -40,7 +40,7 @@ function Sparkline({ data }: { data: number[] }) {
     const y = h - pad - ((v - min) / span) * (h - pad * 2);
     return [x, y] as const;
   });
-  const color = data[data.length - 1] >= 0 ? "#dc2626" : "#16a34a";
+  const color = data[data.length - 1] >= 0 ? "#c0392b" : "#1e8449";
   const last = pts[pts.length - 1];
   return (
     <svg width={w} height={h} className="block" aria-hidden>

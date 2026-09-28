@@ -1,6 +1,6 @@
 import { ROADMAP } from "@/lib/data/gmrds";
 
-const VERSION_COLORS = ["#94a3b8", "#3b82f6", "#a855f7"];
+const VERSION_COLORS = ["#8a867e", "#1d4ed8", "#a855f7"];
 
 /**
  * 版本演进时间线（V1.0 → V2.0 → V3.0 阶梯上升）

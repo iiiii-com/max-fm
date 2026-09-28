@@ -26,7 +26,7 @@ export default function BuySellScanner({ bars, height = 360 }: { bars: ScanBar[]
       animation: false,
       tooltip: {
         trigger: "axis", axisPointer: { type: "cross" },
-        backgroundColor: "rgba(255,255,255,0.96)", borderColor: "#cbd5e1", textStyle: { color: "#1e293b", fontSize: 12 },
+        backgroundColor: "rgba(255,255,255,0.96)", borderColor: "#e2e0dc", textStyle: { color: "#e2e0dc", fontSize: 12 },
         formatter: (params: any) => {
           const arr = Array.isArray(params) ? params : [params];
           const i = arr[0]?.dataIndex ?? 0;
@@ -38,7 +38,7 @@ export default function BuySellScanner({ bars, height = 360 }: { bars: ScanBar[]
       legend: { top: 2, right: 6, textStyle: { fontSize: 11 }, data: ["K线", "MA20", "买卖信号"] },
       grid: { left: 52, right: 16, top: 34, bottom: 28 },
       xAxis: { type: "category", data: dates, axisLabel: { fontSize: 10 } },
-      yAxis: { scale: true, axisLabel: { fontSize: 10 }, splitLine: { lineStyle: { color: "#eef0ec" } } },
+      yAxis: { scale: true, axisLabel: { fontSize: 10 }, splitLine: { lineStyle: { color: "#f4f3f0" } } },
       dataZoom: [
         { type: "inside", start: 0, end: 100 },
         { type: "slider", height: 14, bottom: 2, start: 0, end: 100 },
@@ -47,10 +47,10 @@ export default function BuySellScanner({ bars, height = 360 }: { bars: ScanBar[]
         {
           name: "K线", type: "candlestick",
           data: bars.map((b) => [b.open, b.close, b.low, b.high]),
-          itemStyle: { color: "#d7000b", color0: "#0aa06e", borderColor: "#d7000b", borderColor0: "#0aa06e" },
+          itemStyle: { color: "#c0392b", color0: "#1e8449", borderColor: "#c0392b", borderColor0: "#1e8449" },
         },
         mkPctSeries({ bars, show: true, position: "top", fontSize: 9, maxVisible: 60, keep: 60 }),
-        { name: "MA20", type: "line", data: ma20, smooth: true, showSymbol: false, lineStyle: { width: 1, color: "#3b82f6" } },
+        { name: "MA20", type: "line", data: ma20, smooth: true, showSymbol: false, lineStyle: { width: 1, color: "#1d4ed8" } },
         {
           name: "买卖信号", type: "scatter",
           data: signals.map((s) => {
@@ -60,9 +60,9 @@ export default function BuySellScanner({ bars, height = 360 }: { bars: ScanBar[]
               value: [s.date, b ? (s.type === "buy" ? b.low * 0.99 : b.high * 1.01) : 0],
               label: {
                 show: isHover, formatter: s.type === "buy" ? "▲买" : "▼卖", position: s.type === "buy" ? "bottom" : "top",
-                fontSize: 10, fontWeight: 800, color: s.type === "buy" ? "#d7000b" : "#0aa06e",
+                fontSize: 10, fontWeight: 800, color: s.type === "buy" ? "#c0392b" : "#1e8449",
               },
-              itemStyle: { color: s.type === "buy" ? "#d7000b" : "#0aa06e", borderColor: "#fff", borderWidth: 1.5 },
+              itemStyle: { color: s.type === "buy" ? "#c0392b" : "#1e8449", borderColor: "#fff", borderWidth: 1.5 },
             };
           }),
           symbol: s2 => (s2[0] === "buy" ? "triangle" : "pin"),

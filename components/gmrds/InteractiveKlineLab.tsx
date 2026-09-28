@@ -85,25 +85,25 @@ export default function InteractiveKlineLab({
       mkPctSeries({ bars: visible, show: true, position: "top", fontSize: 9, maxVisible: 60, keep: 60 }),
       {
         name: "K线", type: "candlestick", data: ohlc,
-        itemStyle: { color: "#d7000b", color0: "#0aa06e", borderColor: "#d7000b", borderColor0: "#0aa06e" },
+        itemStyle: { color: "#c0392b", color0: "#1e8449", borderColor: "#c0392b", borderColor0: "#1e8449" },
       },
     ];
     if (showMA) {
-      series.push({ name: "MA5", type: "line", data: sma(closes, 5), smooth: true, showSymbol: false, lineStyle: { width: 1, color: "#f59e0b" } });
-      series.push({ name: "MA20", type: "line", data: sma(closes, 20), smooth: true, showSymbol: false, lineStyle: { width: 1, color: "#3b82f6" } });
-      series.push({ name: "MA60", type: "line", data: sma(closes, 60), smooth: true, showSymbol: false, lineStyle: { width: 1, color: "#8b5cf6" } });
+      series.push({ name: "MA5", type: "line", data: sma(closes, 5), smooth: true, showSymbol: false, lineStyle: { width: 1, color: "#b45309" } });
+      series.push({ name: "MA20", type: "line", data: sma(closes, 20), smooth: true, showSymbol: false, lineStyle: { width: 1, color: "#1d4ed8" } });
+      series.push({ name: "MA60", type: "line", data: sma(closes, 60), smooth: true, showSymbol: false, lineStyle: { width: 1, color: "#7c3aed" } });
     }
     if (showBoll) {
       const b = boll(closes, 20, 2);
-      series.push({ name: "BOLL上", type: "line", data: b.upper, smooth: true, showSymbol: false, lineStyle: { width: 0.8, color: "#94a3b8", type: "dashed" } });
-      series.push({ name: "BOLL中", type: "line", data: b.mid, smooth: true, showSymbol: false, lineStyle: { width: 0.8, color: "#64748b" } });
-      series.push({ name: "BOLL下", type: "line", data: b.lower, smooth: true, showSymbol: false, lineStyle: { width: 0.8, color: "#94a3b8", type: "dashed" } });
+      series.push({ name: "BOLL上", type: "line", data: b.upper, smooth: true, showSymbol: false, lineStyle: { width: 0.8, color: "#8a867e", type: "dashed" } });
+      series.push({ name: "BOLL中", type: "line", data: b.mid, smooth: true, showSymbol: false, lineStyle: { width: 0.8, color: "#6b6862" } });
+      series.push({ name: "BOLL下", type: "line", data: b.lower, smooth: true, showSymbol: false, lineStyle: { width: 0.8, color: "#8a867e", type: "dashed" } });
     }
     if (hasMacd) {
       const m = macd(closes);
-      series.push({ name: "MACD", type: "bar", data: m.hist, xAxisIndex: 1, yAxisIndex: 1, itemStyle: { color: (p: any) => (p.value >= 0 ? "#d7000b" : "#0aa06e") } });
-      series.push({ name: "DIF", type: "line", data: m.dif, xAxisIndex: 1, yAxisIndex: 1, showSymbol: false, lineStyle: { width: 1, color: "#f59e0b" } });
-      series.push({ name: "DEA", type: "line", data: m.dea, xAxisIndex: 1, yAxisIndex: 1, showSymbol: false, lineStyle: { width: 1, color: "#3b82f6" } });
+      series.push({ name: "MACD", type: "bar", data: m.hist, xAxisIndex: 1, yAxisIndex: 1, itemStyle: { color: (p: any) => (p.value >= 0 ? "#c0392b" : "#1e8449") } });
+      series.push({ name: "DIF", type: "line", data: m.dif, xAxisIndex: 1, yAxisIndex: 1, showSymbol: false, lineStyle: { width: 1, color: "#b45309" } });
+      series.push({ name: "DEA", type: "line", data: m.dea, xAxisIndex: 1, yAxisIndex: 1, showSymbol: false, lineStyle: { width: 1, color: "#1d4ed8" } });
     }
     if (showMarks && period === "day") {
       const activeMarks = marks ?? REAL_MARKS;
@@ -114,8 +114,8 @@ export default function InteractiveKlineLab({
           const b = visible.find((x) => x.date === m.date);
           return {
             value: [m.date, b ? b.high * 1.01 : 0],
-            label: { show: true, formatter: m.label, position: "top", fontSize: 10, fontWeight: 700, color: m.type === "buy" ? "#d7000b" : "#0aa06e" },
-            itemStyle: { color: m.type === "buy" ? "#d7000b" : "#0aa06e", borderColor: "#fff", borderWidth: 1.5 },
+            label: { show: true, formatter: m.label, position: "top", fontSize: 10, fontWeight: 700, color: m.type === "buy" ? "#c0392b" : "#1e8449" },
+            itemStyle: { color: m.type === "buy" ? "#c0392b" : "#1e8449", borderColor: "#fff", borderWidth: 1.5 },
           };
         }),
         symbol: "pin", symbolSize: 30, z: 8,
@@ -130,9 +130,9 @@ export default function InteractiveKlineLab({
       }
       if (showKdj) {
         const k = kdj(visible);
-        series.push({ name: "K", type: "line", data: k.k, xAxisIndex: oscGrid, yAxisIndex: oscGrid, showSymbol: false, lineStyle: { width: 1, color: "#3b82f6" } });
-        series.push({ name: "D", type: "line", data: k.d, xAxisIndex: oscGrid, yAxisIndex: oscGrid, showSymbol: false, lineStyle: { width: 1, color: "#f59e0b" } });
-        series.push({ name: "J", type: "line", data: k.j, xAxisIndex: oscGrid, yAxisIndex: oscGrid, showSymbol: false, lineStyle: { width: 0.8, color: "#94a3b8", type: "dashed" } });
+        series.push({ name: "K", type: "line", data: k.k, xAxisIndex: oscGrid, yAxisIndex: oscGrid, showSymbol: false, lineStyle: { width: 1, color: "#1d4ed8" } });
+        series.push({ name: "D", type: "line", data: k.d, xAxisIndex: oscGrid, yAxisIndex: oscGrid, showSymbol: false, lineStyle: { width: 1, color: "#b45309" } });
+        series.push({ name: "J", type: "line", data: k.j, xAxisIndex: oscGrid, yAxisIndex: oscGrid, showSymbol: false, lineStyle: { width: 0.8, color: "#8a867e", type: "dashed" } });
       }
     }
     series.push({ name: "成交量", type: "bar", data: visible.map((b) => b.volume), xAxisIndex: hasMacd ? 2 : 1, yAxisIndex: hasMacd ? 2 : 1, itemStyle: { color: "rgba(100,116,139,0.5)" } });
@@ -151,7 +151,7 @@ export default function InteractiveKlineLab({
     ];
     for (let g = 2; g < nGrid; g++) xAxes.push({ type: "category", gridIndex: g, data: dates, axisLabel: g === nGrid - 1 ? { fontSize: 9 } : { show: false } });
     const yAxes: any[] = [
-      { scale: true, axisLabel: { fontSize: 10 }, splitLine: { lineStyle: { color: "#eef0ec" } } },
+      { scale: true, axisLabel: { fontSize: 10 }, splitLine: { lineStyle: { color: "#f4f3f0" } } },
       { gridIndex: 1, axisLabel: { fontSize: 9 }, splitLine: { show: false } },
     ];
     for (let g = 2; g < nGrid; g++) yAxes.push({ gridIndex: g, min: 0, max: 100, axisLabel: { fontSize: 8 }, splitLine: { show: false } });
@@ -160,7 +160,7 @@ export default function InteractiveKlineLab({
       animation: false,
       tooltip: {
         trigger: "axis", axisPointer: { type: "cross" },
-        backgroundColor: "rgba(255,255,255,0.96)", borderColor: "#cbd5e1", textStyle: { color: "#1e293b", fontSize: 12 },
+        backgroundColor: "rgba(255,255,255,0.96)", borderColor: "#e2e0dc", textStyle: { color: "#e2e0dc", fontSize: 12 },
         formatter: (params: any) => {
           const arr = Array.isArray(params) ? params : [params];
           const i = arr[0]?.dataIndex ?? 0;
@@ -168,7 +168,7 @@ export default function InteractiveKlineLab({
           if (!b) return "";
           const prev = i > 0 ? visible[i - 1].close : b.open;
           const pct = prev ? ((b.close - prev) / prev) * 100 : 0;
-          const col = pct >= 0 ? "#d7000b" : "#0aa06e";
+          const col = pct >= 0 ? "#c0392b" : "#1e8449";
           return `<b>${b.date}</b> <span style="color:${col}">${pct >= 0 ? "+" : ""}${pct.toFixed(2)}%</span><br/>开 ${b.open} 收 ${b.close}<br/>高 ${b.high} 低 ${b.low}`;
         },
       },

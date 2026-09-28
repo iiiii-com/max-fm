@@ -9,8 +9,7 @@ import { useWatchlist } from "@/lib/hooks/useWatchlist";
 interface BoardLeader {
   name: string;
   secid: string;
-  pct: number;
-  mainNet: number;
+  pct: number | null;
 }
 
 interface BoardSector {
@@ -24,6 +23,7 @@ interface BoardSector {
   up: number;
   down: number;
   flat: number;
+  tier: number;
   leader: BoardLeader | null;
 }
 
@@ -43,10 +43,18 @@ interface HotItem {
   flat: number;
 }
 
+interface BoardUniverse {
+  total: number;
+  returned: number;
+  deduped: number;
+  note: string;
+}
+
 interface BoardResp {
   ok: boolean;
   updated?: string;
   source?: string;
+  universe?: BoardUniverse;
   list?: BoardSector[];
   rankIn?: RankItem[];
   rankOut?: RankItem[];
@@ -72,14 +80,17 @@ const fmtPct = (v: number | null) => (v == null ? "—" : `${v >= 0 ? "+" : ""}$
 
 type SortKey = "changePct" | "mainNetIn" | "mainPct" | "amount";
 
-/** 板块中心：行情全列表 + 资金排行 + 热点 + 详情面板（K线/资金历史/成分股） */
+/** 板块中心：行情列表 + 资金排行 + 热点 + 详情面板（K线/资金历史/成分股） */
 export default function SectorCenter({ initialBk }: { initialBk?: string }) {
   const { toggle, has } = useWatchlist();
   const [data, setData] = useState<BoardResp | null>(null);
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(true);
+  // 默认按主力净流入降序（最强在前）；本组件比较器为 (va-vb)*dir，故 dir=-1 即降序
   const [sortKey, setSortKey] = useState<SortKey>("mainNetIn");
   const [sortDir, setSortDir] = useState<1 | -1>(-1);
+  const [hideSubtier, setHideSubtier] = useState(true);
+  const [query, setQuery] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
   const [detailMap, setDetailMap] = useState<Record<string, SectorStock[]>>({});
   const [detailLoading, setDetailLoading] = useState<string | null>(null);
@@ -136,7 +147,10 @@ export default function SectorCenter({ initialBk }: { initialBk?: string }) {
   };
 
   const sorted = useMemo(() => {
-    const list = [...(data?.list ?? [])];
+    let list = [...(data?.list ?? [])];
+    if (hideSubtier) list = list.filter((s) => !s.tier);
+    const q = query.trim();
+    if (q) list = list.filter((s) => s.name.includes(q) || s.code.toLowerCase().includes(q.toLowerCase()));
     const dir = sortDir;
     list.sort((a, b) => {
       const va = a[sortKey];
@@ -144,8 +158,9 @@ export default function SectorCenter({ initialBk }: { initialBk?: string }) {
       return (va - vb) * dir;
     });
     return list;
-  }, [data, sortKey, sortDir]);
+  }, [data, sortKey, sortDir, hideSubtier, query]);
 
+  // 排名类指标首次点击一律降序（最强在前）
   const setSort = (k: SortKey) => {
     if (sortKey === k) setSortDir((d) => (d === -1 ? 1 : -1));
     else {
@@ -157,7 +172,10 @@ export default function SectorCenter({ initialBk }: { initialBk?: string }) {
   const list = data?.list ?? [];
   const upCount = list.filter((s) => s.changePct > 0).length;
   const downCount = list.filter((s) => s.changePct < 0).length;
-  const sumFlow = list.reduce((acc, s) => acc + s.mainNetIn, 0);
+  // 涨跌家数可跨板块加总（每只股票只归属一个板块），与「主力净流入合计」不同——
+  // 后者在父子层级板块间会重复计算同一笔资金，故本站不提供该合计数。
+  const memberUp = list.reduce((a, s) => a + (s.up || 0), 0);
+  const memberDown = list.reduce((a, s) => a + (s.down || 0), 0);
 
   return (
     <div className="space-y-5">
@@ -165,11 +183,14 @@ export default function SectorCenter({ initialBk }: { initialBk?: string }) {
       {!err && data && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div className="card p-3">
-            <p className="text-[11px] text-muted">行业板块</p>
-            <p className="text-lg font-bold font-mono mt-0.5">{list.length}</p>
+            <p className="text-[11px] text-muted">板块数（已取前 {list.length}）</p>
+            <p className="text-lg font-bold font-mono mt-0.5">
+              {list.length}
+              <span className="text-[11px] text-muted font-normal ml-1">/ 全集 {data.universe?.total ?? "—"}</span>
+            </p>
           </div>
           <div className="card p-3">
-            <p className="text-[11px] text-muted">上涨 / 下跌</p>
+            <p className="text-[11px] text-muted">板块涨 / 跌</p>
             <p className="text-lg font-bold font-mono mt-0.5">
               <span className="up">{upCount}</span>
               <span className="text-muted"> / </span>
@@ -177,9 +198,11 @@ export default function SectorCenter({ initialBk }: { initialBk?: string }) {
             </p>
           </div>
           <div className="card p-3 col-span-2 sm:col-span-1">
-            <p className="text-[11px] text-muted">主力净流入合计</p>
-            <p className={`text-lg font-bold font-mono mt-0.5 ${sumFlow >= 0 ? "up" : "down"}`}>
-              {sumFlow >= 0 ? "+" : ""}{fmtMoney(sumFlow)}
+            <p className="text-[11px] text-muted" title="成分股涨跌家数，可跨板块加总">成分股涨 / 跌</p>
+            <p className="text-lg font-bold font-mono mt-0.5">
+              <span className="up">{memberUp}</span>
+              <span className="text-muted"> / </span>
+              <span className="down">{memberDown}</span>
             </p>
           </div>
           <div className="card p-3 col-span-2 sm:col-span-1 hidden sm:block">
@@ -216,11 +239,37 @@ export default function SectorCenter({ initialBk }: { initialBk?: string }) {
           {/* 板块行情全列表 */}
           <div className="lg:col-span-2 space-y-4">
             <div className="card p-3">
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-2 mb-2 flex-wrap">
                 <LayoutGrid className="w-4 h-4 text-primary" />
-                <h2 className="font-bold text-sm">板块行情全列表</h2>
+                <h2 className="font-bold text-sm">板块行情</h2>
                 <span className="text-[10px] text-muted">点击行展开成分股 · 走势进入详情</span>
               </div>
+              <div className="flex items-center gap-2 mb-2 flex-wrap">
+                <input
+                  type="search"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="搜索板块名或代码"
+                  aria-label="搜索板块"
+                  className="text-xs px-2 py-1 rounded-md border border-border bg-background w-40"
+                />
+                <label className="inline-flex items-center gap-1.5 text-[11px] text-muted cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={hideSubtier}
+                    onChange={(e) => setHideSubtier(e.target.checked)}
+                    className="accent-[var(--color-primary)]"
+                  />
+                  隐藏 Ⅱ/Ⅲ 细分分册
+                </label>
+                <span className="text-[11px] text-muted">显示 {sorted.length} 个</span>
+              </div>
+              {data?.universe && (
+                <p className="text-[10px] text-muted mb-2 leading-relaxed">
+                  {data.universe.note}。东财行业板块共 {data.universe.total} 个，本页按主力净流入取前 {data.universe.returned} 个
+                  {data.universe.deduped < data.universe.returned && `，跨层级去重后 ${data.universe.deduped} 个`}。
+                </p>
+              )}
               <div className="relative">
                 <div className="overflow-x-auto">
                 <table className="w-full text-sm table-stripe">
@@ -243,6 +292,13 @@ export default function SectorCenter({ initialBk }: { initialBk?: string }) {
                     </tr>
                   </thead>
                   <tbody>
+                    {sorted.length === 0 && (
+                      <tr>
+                        <td colSpan={6} className="py-8 text-center text-xs text-muted">
+                          没有匹配的板块{query.trim() ? `（关键词「${query.trim()}」）` : ""}
+                        </td>
+                      </tr>
+                    )}
                     {sorted.map((s, i) => {
                       const open = expanded === s.code;
                       const details = detailMap[s.code];
@@ -262,6 +318,9 @@ export default function SectorCenter({ initialBk }: { initialBk?: string }) {
                                 >
                                   {s.name}
                                 </Link>
+                                {s.tier ? (
+                                  <span className="text-[9px] text-muted border border-border/60 rounded px-1" title="东财细分分册，与母板块成分重叠">分册</span>
+                                ) : null}
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
@@ -397,6 +456,9 @@ export default function SectorCenter({ initialBk }: { initialBk?: string }) {
 
       <p className="text-[10px] text-muted leading-relaxed">
         口径：涨跌幅 / 主力净流入 = 超大单+大单净额（东财口径）；净占比 = 主力净流入占成交额比例；数据 20 秒级延迟，仅作研究参考，不构成投资建议。
+        <br />
+        东财行业板块之间存在父子层级（如 电力 ⊂ 公用事业）与 Ⅱ/Ⅲ 细分分册，同一只成分股会出现在多个板块中，
+        因此<span className="font-medium text-foreground">各板块资金流不可跨板块相加</span>；本站不提供「主力净流入合计」。
       </p>
     </div>
   );

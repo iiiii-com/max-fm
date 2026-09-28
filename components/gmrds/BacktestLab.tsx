@@ -58,7 +58,7 @@ export default function BacktestLab() {
       animation: false,
       tooltip: {
         trigger: "axis",
-        backgroundColor: "rgba(255,255,255,0.96)", borderColor: "#cbd5e1", textStyle: { color: "#1e293b", fontSize: 12 },
+        backgroundColor: "rgba(255,255,255,0.96)", borderColor: "#e2e0dc", textStyle: { color: "#e2e0dc", fontSize: 12 },
       },
       legend: { top: 2, right: 6, textStyle: { fontSize: 10 }, data: ["策略净值", "买入持有"] },
       grid: { left: 56, right: 16, top: 34, bottom: 24 },
@@ -68,12 +68,12 @@ export default function BacktestLab() {
         {
           name: "策略净值", type: "line", showSymbol: false, smooth: true,
           data: result.equityCurve.map((p) => p.nav),
-          lineStyle: { width: 1.6, color: "#d7000b" }, itemStyle: { color: "#d7000b" }, areaStyle: { color: "rgba(215,0,11,0.08)" },
+          lineStyle: { width: 1.6, color: "#c0392b" }, itemStyle: { color: "#c0392b" }, areaStyle: { color: "rgba(215,0,11,0.08)" },
         },
         {
           name: "买入持有", type: "line", showSymbol: false, smooth: true,
           data: result.equityCurve.map((p) => p.benchmark),
-          lineStyle: { width: 1.2, color: "#64748b", type: "dashed" }, itemStyle: { color: "#64748b" },
+          lineStyle: { width: 1.2, color: "#6b6862", type: "dashed" }, itemStyle: { color: "#6b6862" },
         },
       ],
     };
@@ -123,9 +123,9 @@ export default function BacktestLab() {
           {/* 统计卡 */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {[
-              ["总收益", `${result.totalRet >= 0 ? "+" : ""}${result.totalRet}%`, result.totalRet >= 0 ? "#d7000b" : "#0aa06e"],
-              ["年化收益", `${result.annualRet >= 0 ? "+" : ""}${result.annualRet}%`, result.annualRet >= 0 ? "#d7000b" : "#0aa06e"],
-              ["最大回撤", `-${result.maxDrawdown}%`, "#0aa06e"],
+              ["总收益", `${result.totalRet >= 0 ? "+" : ""}${result.totalRet}%`, result.totalRet >= 0 ? "#c0392b" : "#1e8449"],
+              ["年化收益", `${result.annualRet >= 0 ? "+" : ""}${result.annualRet}%`, result.annualRet >= 0 ? "#c0392b" : "#1e8449"],
+              ["最大回撤", `-${result.maxDrawdown}%`, "#1e8449"],
               ["胜率 / 交易", `${result.winRate}% / ${result.tradeCount}次`, "#475569"],
             ].map(([label, val, color]) => (
               <div key={String(label)} className="rounded-lg border border-border bg-card px-3 py-2">

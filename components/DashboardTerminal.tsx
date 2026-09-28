@@ -11,6 +11,8 @@ interface TermModule {
   id: string;
   name: string;
   desc: string;
+  /** 占满整行（xl 下跨 2 列）。给列数多、半栏会被压扁的模块用。 */
+  wide?: boolean;
   render: () => React.ReactNode;
 }
 
@@ -39,6 +41,8 @@ const MODULES: Record<string, TermModule> = {
     id: "sector",
     name: "板块资金",
     desc: "板块主力资金流 · 北向资金 · 自选下钻",
+    // 宽版：7 列行情表在半栏宽度下会被压到横向裁切，让它独占一行
+    wide: true,
     render: () => <MarketDashboard />,
   },
 };
@@ -184,7 +188,7 @@ export default function DashboardTerminal() {
               onDragOver={(e) => e.preventDefault()}
               onDrop={() => onDrop(id)}
               onDragEnd={endDrag}
-              className={`${visible.length === 1 ? "" : "min-w-0"} ${dragging === id ? "opacity-40" : ""} transition-opacity`}
+              className={`${visible.length === 1 ? "" : "min-w-0"} ${MODULES[id]?.wide ? "xl:col-span-2" : ""} ${dragging === id ? "opacity-40" : ""} transition-opacity`}
             >
               <div className="rounded-xl border border-border bg-card overflow-hidden">
                 <div

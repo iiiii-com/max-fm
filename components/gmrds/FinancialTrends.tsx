@@ -60,7 +60,7 @@ export default function FinancialTrends() {
       animation: false,
       tooltip: {
         trigger: "axis",
-        backgroundColor: "rgba(255,255,255,0.96)", borderColor: "#cbd5e1", textStyle: { color: "#1e293b", fontSize: 12 },
+        backgroundColor: "rgba(255,255,255,0.96)", borderColor: "#e2e0dc", textStyle: { color: "#e2e0dc", fontSize: 12 },
         formatter: (params: any) => {
           const arr = Array.isArray(params) ? params : [params];
           const i = arr[0]?.dataIndex ?? 0;
@@ -79,15 +79,15 @@ export default function FinancialTrends() {
         { type: "category", gridIndex: 1, data: periods, axisLabel: { fontSize: 9, rotate: 30 } },
       ],
       yAxis: [
-        { type: "value", name: "亿元", axisLabel: { fontSize: 9 }, splitLine: { lineStyle: { color: "#eef0ec" } } },
-        { type: "value", gridIndex: 1, name: "%", axisLabel: { fontSize: 9 }, splitLine: { lineStyle: { color: "#eef0ec" } } },
+        { type: "value", name: "亿元", axisLabel: { fontSize: 9 }, splitLine: { lineStyle: { color: "#f4f3f0" } } },
+        { type: "value", gridIndex: 1, name: "%", axisLabel: { fontSize: 9 }, splitLine: { lineStyle: { color: "#f4f3f0" } } },
       ],
       series: [
         // 注意：多 grid 下每个 series 必须显式配对 xAxisIndex/yAxisIndex（同属一个 grid），否则 ECharts 6 报 "xAxis and yAxis must use the same grid"
         { name: "营收(亿)", type: "bar", xAxisIndex: 0, yAxisIndex: 0, data: revenues, itemStyle: { color: "rgba(215,0,11,0.75)" }, barMaxWidth: 28 },
         { name: "净利(亿)", type: "bar", xAxisIndex: 0, yAxisIndex: 0, data: profits, itemStyle: { color: "rgba(215,0,11,0.35)" }, barMaxWidth: 28 },
-        { name: "毛利率%", type: "line", xAxisIndex: 1, yAxisIndex: 1, data: margins, smooth: true, showSymbol: false, lineStyle: { width: 1.6, color: "#3b82f6" } },
-        { name: "ROE%", type: "line", xAxisIndex: 1, yAxisIndex: 1, data: roes, smooth: true, showSymbol: false, lineStyle: { width: 1.6, color: "#f59e0b" } },
+        { name: "毛利率%", type: "line", xAxisIndex: 1, yAxisIndex: 1, data: margins, smooth: true, showSymbol: false, lineStyle: { width: 1.6, color: "#1d4ed8" } },
+        { name: "ROE%", type: "line", xAxisIndex: 1, yAxisIndex: 1, data: roes, smooth: true, showSymbol: false, lineStyle: { width: 1.6, color: "#b45309" } },
       ],
     };
   }, [trend]);

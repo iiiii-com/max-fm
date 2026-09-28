@@ -146,20 +146,20 @@ export default function CityIndustryMap() {
       tooltip: {
         trigger: "item",
         backgroundColor: "rgba(255,255,255,0.96)",
-        borderColor: "#cbd5e1",
+        borderColor: "#e2e0dc",
         borderWidth: 1,
         padding: [10, 12],
-        textStyle: { color: "#1e293b", fontSize: 12 },
+        textStyle: { color: "#e2e0dc", fontSize: 12 },
         extraCssText: "box-shadow:0 4px 16px rgba(0,0,0,0.12);border-radius:8px",
         formatter: (params: any) => {
           const d = params?.data as { name?: string; province?: string; gdp?: string; pillar?: string[]; advantage?: string[]; companies?: string[] } | undefined;
           if (!d?.name) return "";
           const rows = [
-            d.province ? `<div style="color:#64748b;font-size:11px;margin-bottom:4px">${d.province} · GDP ${d.gdp ?? "—"}</div>` : "",
-            d.pillar?.length ? `<div style="margin-bottom:2px"><span style="color:#64748b">🏭 支柱产业</span>：<b>${d.pillar.join("、")}</b></div>` : "",
-            d.advantage?.length ? `<div style="margin-bottom:2px"><span style="color:#64748b">🚀 产业优势</span>：${d.advantage.join("、")}</div>` : "",
-            d.companies?.length ? `<div style="margin-bottom:2px"><span style="color:#64748b">🏢 代表企业</span>：${d.companies.join("、")}</div>` : "",
-            `<div style="color:#64748b;font-size:11px;margin-top:4px">产业 ${d.pillar?.length ?? 0} 项 · 代表企业 ${d.companies?.length ?? 0} 家 · 优势 ${d.advantage?.length ?? 0} 项</div>`,
+            d.province ? `<div style="color:#6b6862;font-size:11px;margin-bottom:4px">${d.province} · GDP ${d.gdp ?? "—"}</div>` : "",
+            d.pillar?.length ? `<div style="margin-bottom:2px"><span style="color:#6b6862">🏭 支柱产业</span>：<b>${d.pillar.join("、")}</b></div>` : "",
+            d.advantage?.length ? `<div style="margin-bottom:2px"><span style="color:#6b6862">🚀 产业优势</span>：${d.advantage.join("、")}</div>` : "",
+            d.companies?.length ? `<div style="margin-bottom:2px"><span style="color:#6b6862">🏢 代表企业</span>：${d.companies.join("、")}</div>` : "",
+            `<div style="color:#6b6862;font-size:11px;margin-top:4px">产业 ${d.pillar?.length ?? 0} 项 · 代表企业 ${d.companies?.length ?? 0} 家 · 优势 ${d.advantage?.length ?? 0} 项</div>`,
           ];
           return `<b style="font-size:13px">${d.name}</b>${rows.join("")}`;
         },
@@ -168,7 +168,7 @@ export default function CityIndustryMap() {
         map: "china",
         roam: true,
         zoom: 1.1,
-        itemStyle: { areaColor: "rgba(99,102,241,0.06)", borderColor: "#64748b", borderWidth: 0.6 },
+        itemStyle: { areaColor: "rgba(99,102,241,0.06)", borderColor: "#6b6862", borderWidth: 0.6 },
         emphasis: { itemStyle: { areaColor: "rgba(99,102,241,0.12)" }, label: { show: false } },
         label: { show: false },
         // 分层渲染：geo 背景层静态、气泡层独立，缩放时只重绘气泡
@@ -202,11 +202,11 @@ export default function CityIndustryMap() {
             textBorderColor: "rgba(255,255,255,0.9)",
             textBorderWidth: 2,
           },
-          itemStyle: { color: "#c8102e", shadowBlur: 6, shadowColor: "rgba(200,16,46,0.4)" },
+          itemStyle: { color: "#c0392b", shadowBlur: 6, shadowColor: "rgba(200,16,46,0.4)" },
           emphasis: {
             scale: 1.4,
-            itemStyle: { color: "#e11d48" },
-            label: { show: true, fontSize: 12, color: "#c8102e", fontWeight: "bold", textBorderWidth: 3 },
+            itemStyle: { color: "#be123c" },
+            label: { show: true, fontSize: 12, color: "#c0392b", fontWeight: "bold", textBorderWidth: 3 },
           },
         },
       ],

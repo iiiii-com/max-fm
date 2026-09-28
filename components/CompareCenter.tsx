@@ -50,7 +50,10 @@ const PRESETS: CmpTarget[] = [
 ];
 
 export default function CompareCenter() {
-  const [picked, setPicked] = useState<CmpTarget[]>([]);
+  // 默认预选 3 个标的。
+  // 旧实现初始为「全空」，页面首屏只有一句「请先选择 2 个以上标的」——对「对比中心」这种
+  // 以图为唯一目的的页面来说，等于要求用户先做一次无反馈的初始化操作才看得到任何东西。
+  const [picked, setPicked] = useState<CmpTarget[]>(() => [PRESETS[0], PRESETS[2], PRESETS[3]]);
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<CmpTarget[]>([]);
   const [searching, setSearching] = useState(false);
@@ -183,7 +186,7 @@ export default function CompareCenter() {
         name: "归一化（起点 = 100）",
         nameTextStyle: { fontSize: 10 },
         axisLabel: { fontSize: 10, formatter: "{value}" },
-        splitLine: { lineStyle: { color: "#292929", type: "dashed" } },
+        splitLine: { lineStyle: { color: "#e2e0dc", type: "dashed" } },
       },
       dataZoom: [
         { type: "inside", start: 0, end: 100 },
@@ -303,6 +306,8 @@ export default function CompareCenter() {
                   key={p.secid}
                   onClick={() => add(p)}
                   className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border text-xs hover:border-primary/50 hover:text-primary transition-colors"
+                  aria-pressed={selectedIds.has(p.secid)}
+                  aria-label={`添加「${p.name}」到对比`}
                 >
                   <span className={`text-[10px] px-1 py-px rounded ${KIND_STYLE[p.kind]}`}>{KIND_LABEL[p.kind]}</span>
                   {p.name}

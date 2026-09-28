@@ -58,8 +58,8 @@ export function KlineDetailPanel({ bar, prev, prevClose, onClose, title, classNa
   const change = prevCloseValue != null ? bar.close - prevCloseValue : null;
   const pct = prevCloseValue != null && prevCloseValue !== 0 ? ((bar.close - prevCloseValue) / prevCloseValue) * 100 : null;
   const up = (pct ?? 0) >= 0;
-  const upColor = "#dc2626"; // A 股惯例：涨红
-  const downColor = "#16a34a"; // 跌绿
+  const upColor = "#c0392b"; // A 股惯例：涨红
+  const downColor = "#1e8449"; // 跌绿
   const c = up ? upColor : downColor;
   const sign = up ? "+" : "";
 

@@ -1,43 +1,44 @@
 @import "tailwindcss";
 
-/* ============ 设计 Token：MX 终端风格（全站统一深色终端） ============
-   复刻 GMT//全球市场终端：黑底 · 琥珀命令色 · 硬边窗口 · 等宽字 · 红涨绿跌
-   两套 token 均为深色（明暗切换改为「暗度」微调，不再回到纸张浅色） */
+/* ============ 设计 Token：浅色机构研究 ============
+   参照交易所公告 / 卖方研报：纸面暖白 · 墨色文字 · 发丝线 · 无彩色主色 · 红涨绿跌
+   刻意不设彩色主色——研究类产品的权威感来自黑白灰 + 一条粗分隔线，
+   彩色主色会让整站显得像消费级 App。 */
 :root {
-  --background: #050505; /* 页面底 */
-  --foreground: #d7d7d7; /* 主文字 */
-  --card: #0a0a0a; /* 卡片 / 面板 */
-  --surface: #141414; /* 次级面板 / 表格条纹 / 代码块 */
-  --border: #292929;
-  --border-strong: #3a3a3a;
-  --muted: #8a8a8a; /* 次要文字（黑底对比度 4.6:1） */
-  --primary: #f28c00; /* 终端琥珀 */
-  --primary-dark: #b26a00;
-  --primary-soft: rgba(242, 140, 0, 0.12); /* 激活 / 选中底 */
-  --up: #ff4d4f; /* 涨 = 红（A 股惯例） */
-  --down: #00c176; /* 跌 = 绿 */
-  --accent: #f28c00; /* 警示 / 标注 */
-  --accent-soft: rgba(242, 140, 0, 0.1);
-  --ring: rgba(242, 140, 0, 0.35); /* 焦点环 */
+  --background: #fbfbfa; /* 纸面 */
+  --foreground: #1a1a1a; /* 墨色 */
+  --card: #ffffff; /* 卡片纯白，与纸面拉开一层 */
+  --surface: #f4f3f0; /* 次级面 / 表格条纹 / 代码块 */
+  --border: #e2e0dc; /* 发丝线 */
+  --border-strong: #1a1a1a; /* 仅用于主标题下的 2px 粗线 */
+  --muted: #6b6862; /* 次要文字（白底对比度 ≥ 5.6:1） */
+  --primary: #1a1a1a; /* 强调色 = 墨色 */
+  --primary-dark: #000000;
+  --primary-soft: rgba(26, 26, 26, 0.06); /* 激活 / 选中底 */
+  --up: #c0392b; /* 涨 = 红（A 股惯例）；浅底需更深才够对比 */
+  --down: #1e8449; /* 跌 = 绿 */
+  --accent: #1a1a1a;
+  --accent-soft: rgba(26, 26, 26, 0.05);
+  --ring: rgba(26, 26, 26, 0.3); /* 焦点环 */
 
-  /* 终端为硬边窗口：阴影仅保留极淡的层次，视觉主要靠 1px 边框 */
-  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.5);
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.55);
-  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.6);
-  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.65);
+  /* 浅底纸面：阴影极轻，层次主要靠 1px 边框而非浮起感 */
+  --shadow-xs: 0 1px 2px rgba(26, 26, 26, 0.05);
+  --shadow-sm: 0 1px 3px rgba(26, 26, 26, 0.07);
+  --shadow-md: 0 2px 8px rgba(26, 26, 26, 0.08);
+  --shadow-lg: 0 8px 24px rgba(26, 26, 26, 0.1);
 
-  /* 圆角：硬边（1px 微圆角，与终端窗口一致） */
-  --radius-sm: 1px;
-  --radius-md: 1px;
-  --radius-lg: 1px;
+  /* 2px：1px 微圆角在浅底上会显脏 */
+  --radius-sm: 2px;
+  --radius-md: 2px;
+  --radius-lg: 3px;
 }
 
-/* ============ 设计 Token：终端深色（更沉的底，明暗切换仍可用） ============ */
+/* ============ 暗色模式（备用，暂不作为默认） ============ */
 .dark {
-  --background: #000000;
+  --background: #0a0a0a;
   --foreground: #d7d7d7;
   --card: #050505;
-  --surface: #101010;
+  --surface: #141414;
   --border: #292929;
   --border-strong: #3a3a3a;
   --muted: #8a8a8a;
@@ -82,9 +83,31 @@
   --radius-sm: var(--radius-sm);
   --radius-md: var(--radius-md);
   --radius-lg: var(--radius-lg);
-  /* 终端等宽字体：拉丁/数字用 IBM Plex Mono，中文回退系统黑体（与 K 线实验室一致） */
-  --font-sans: var(--font-ibm-plex-mono), "IBM Plex Mono", ui-monospace, "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+  /* 标题衬线：研报 / 公告质感（字面量，避免 @theme 内自引用） */
+  --font-serif: "Songti SC", "Noto Serif CJK SC", "Source Han Serif SC", SimSun, Georgia, serif;
+  /* 正文用无衬线（原设定把 IBM Plex Mono 放在 sans 首位，导致长段落极难读，
+     与「研究/研报」气质相反）。等宽字体只留给数字与代码。 */
+  --font-sans: var(--font-geist-sans), "Geist", ui-sans-serif, -apple-system,
+    "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", "Source Han Sans SC", sans-serif;
   --font-mono: var(--font-ibm-plex-mono), "IBM Plex Mono", ui-monospace, "JetBrains Mono", Consolas, monospace;
+}
+
+/* 数字统一等宽对齐：表格列、行情读数纵向不错位（A股行情惯例） */
+.font-num,
+.tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* 主标题下 2px 粗线：替代彩色主色建立层级（研究类版式的经典手法） */
+.rule-strong {
+  border-bottom: 2px solid var(--border-strong);
+}
+
+/* 章节标题：衬线 + 紧字距 */
+.heading-serif {
+  font-family: var(--font-serif);
+  letter-spacing: -0.01em;
 }
 
 body {
@@ -188,9 +211,9 @@ a:active,
 
 /* 输入框：黑底 + 琥珀聚焦边 */
 .input {
-  background: #000;
-  border: 1px solid var(--border-strong);
-  border-radius: 1px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
   padding: 0.5rem 0.75rem;
   font-size: 0.875rem;
   color: var(--foreground);
@@ -223,63 +246,37 @@ a:active,
 .table-stripe tbody tr:hover {
   background: var(--primary-soft);
 }
+/* 表头永不折行：「主力净流入」折成「主力/净流/入」是金融表格最刺眼的粗糙点 */
+.table-stripe th {
+  white-space: nowrap;
+}
+/* 数字单元格用 .num 标记，同样禁止折行（容器 overflow-x-auto 负责横向滚动） */
+.table-stripe td.num {
+  white-space: nowrap;
+}
 
 /* 文本选中：琥珀底黑字（终端惯例） */
 ::selection {
   background: var(--primary);
-  color: #000;
+  color: #fff;
 }
 
-/* ---------- 终端适配层：把残留的浅色语义类映射为深色等效 ----------
-   仅改配色，不改结构与内容；避免换肤后白底/深色字不可读 */
-/* 浅底标签 → 深底亮字（原 bg-*-50 + text-*-600/700 组合） */
-.bg-red-50, .bg-red-100 { background-color: #5a1416 !important; }
-.bg-emerald-50, .bg-green-50 { background-color: #004d30 !important; }
-.bg-amber-50, .bg-yellow-50, .bg-orange-50 { background-color: #4a2f00 !important; }
-.bg-sky-50, .bg-blue-50, .bg-cyan-50 { background-color: #06303a !important; }
-.bg-violet-50, .bg-purple-50, .bg-indigo-50 { background-color: #2a1a4a !important; }
-.bg-gray-50, .bg-slate-50, .bg-zinc-50, .bg-neutral-50 { background-color: var(--surface) !important; }
-/* 深色文字 → 提亮（黑底上 600/700/800/900 级色不可读） */
-.text-red-600, .text-red-700, .text-red-800, .text-red-900,
-.text-rose-600, .text-rose-700 { color: #ff8a8c !important; }
-.text-emerald-600, .text-emerald-700, .text-emerald-800,
-.text-green-600, .text-green-700, .text-green-800 { color: #4ade80 !important; }
-.text-amber-600, .text-amber-700, .text-amber-800,
-.text-yellow-600, .text-yellow-700, .text-orange-600, .text-orange-700 { color: #fbbf24 !important; }
-.text-sky-600, .text-sky-700, .text-blue-600, .text-blue-700,
-.text-cyan-600, .text-cyan-700 { color: #67d8e8 !important; }
-.text-violet-600, .text-violet-700, .text-purple-600, .text-purple-700,
-.text-indigo-600, .text-indigo-700 { color: #b39ddb !important; }
-.text-gray-600, .text-gray-700, .text-slate-600, .text-slate-700,
-.text-zinc-600, .text-zinc-700, .text-neutral-600, .text-neutral-700 { color: var(--muted) !important; }
-/* 白底 / 白字 */
-.bg-white { background-color: var(--card) !important; }
-.text-black { color: #000 !important; }
-/* 主色（琥珀）底上的白字 → 黑字：琥珀 #F28C00 上白字对比度仅 2.9，黑字 8.1 */
+/* ---------- 原「终端适配层」已整体移除 ----------
+   那是深色主题时期的换肤补丁：用 !important 把所有浅色语义类
+   （bg-*-50/100、text-*-600/700、bg-white、bg-white/5..25 等）强行改写成深色等价值。
+   切到浅色机构研究风格后，它会反过来把整站压回深色 —— 且因为带 !important，
+   任何令牌改动都盖不过它。故整段删除，让原生 Tailwind 语义色直接生效。
+   唯一保留的需求是「彩色实心底上的文字用白/黑保证对比」，改为按需在组件里处理。 */
+
+/* 实心强调底上的文字：--primary 现在是墨色，白字对比度 15.8:1，正确 */
 .bg-primary.text-white,
 .bg-primary .text-white,
-.bg-primary-dark .text-white,
-.from-primary .text-white,
-.to-primary-dark .text-white,
-.bg-gradient-to-r.from-primary .text-white { color: #000 !important; }
-/* 半透明黑底（遮罩/渐隐）在深色下加亮，避免糊成一团 */
-.bg-black\/20, .bg-black\/30, .bg-black\/40, .bg-black\/50, .bg-black\/60 {
-  background-color: rgba(0, 0, 0, 0.72) !important;
-}
-/* 半透明白底（Hero 玻璃感等）在深色下改为主色微光，保留层次不刺眼 */
-.bg-white\/5, .bg-white\/10, .bg-white\/15, .bg-white\/20, .bg-white\/25 {
-  background-color: rgba(242, 140, 0, 0.12) !important;
-}
-/* 强调色实心徽章（400/500 级亮底）上的白字 → 黑字：终端惯例的高对比标签 */
-[class*="-400"].text-white, [class*="-500"].text-white,
-[class*="-400"] .text-white, [class*="-500"] .text-white,
-[class*="-400"] .font-black, [class*="-500"] .font-black {
-  color: #000 !important;
-}
-/* 低透明度次要文字提亮：原本为浅色底设计的 /40~/70 在黑底上过淡 */
-.text-muted\/40, .text-muted\/50, .text-muted\/60, .text-muted\/70, .text-muted\/80 {
-  color: color-mix(in srgb, var(--muted) 85%, transparent) !important;
-}
+.bg-primary-dark .text-white { color: #fff !important; }
+
+/* 半透明遮罩：浅色主题下用墨色而非纯黑，避免糊成脏灰 */
+.bg-black\/20 { background-color: rgba(26, 26, 26, 0.12) !important; }
+.bg-black\/30, .bg-black\/40 { background-color: rgba(26, 26, 26, 0.22) !important; }
+.bg-black\/50, .bg-black\/60 { background-color: rgba(26, 26, 26, 0.38) !important; }
 
 /* 桌面滚动条细化（WebKit） */
 @media (min-width: 768px) {

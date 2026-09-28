@@ -6,7 +6,7 @@ import DataLayersDiagram from "@/components/gmrds/DataLayersDiagram";
 
 export const metadata = { title: "数据互通机制 | 研究体系 GMRDS" };
 
-const LAYER_COLORS: Record<string, string> = { L1: "#0ea5e9", L2: "#10b981", L3: "#ec4899" };
+const LAYER_COLORS: Record<string, string> = { L1: "#0284c7", L2: "#1e8449", L3: "#be185d" };
 
 export default function DataPlatformPage() {
   return (

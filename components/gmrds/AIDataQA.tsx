@@ -110,7 +110,7 @@ export default function AIDataQA() {
                     {t.changePct != null ? ` · ${t.changePct >= 0 ? "+" : ""}${t.changePct.toFixed(2)}%` : ""}
                     {t.monthChg != null ? ` · 近1月${t.monthChg >= 0 ? "+" : ""}${t.monthChg.toFixed(1)}%` : ""}
                   </p>
-                  <p className="text-[10px] mt-1" style={{ color: t.pe != null && t.pe > 30 ? "#d7000b" : t.pe != null && t.pe < 15 ? "#0aa06e" : "#475569" }}>
+                  <p className="text-[10px] mt-1" style={{ color: t.pe != null && t.pe > 30 ? "#c0392b" : t.pe != null && t.pe < 15 ? "#1e8449" : "#475569" }}>
                     {t.verdict}
                   </p>
                 </a>

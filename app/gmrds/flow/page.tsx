@@ -7,7 +7,7 @@ import { DECISION_FLOW, academyBySlug } from "@/lib/data/gmrds";
 
 export const metadata = { title: "十一环节详解 | 研究体系 GMRDS" };
 
-const STAGE_COLORS = ["#0ea5e9", "#10b981", "#ec4899", "#eab308"];
+const STAGE_COLORS = ["#0284c7", "#1e8449", "#be185d", "#a16207"];
 
 export default function FlowPage() {
   return (

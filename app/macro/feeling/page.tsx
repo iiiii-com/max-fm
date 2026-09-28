@@ -1,5 +1,5 @@
 ﻿import Link from "next/link";
-import { getFeelingAggregates, getTemperatures, getTemperatureAnalysis, getArticles } from "@/lib/data/queries";
+import { getFeelingAggregates, getTemperatures, getTemperatureAnalysis, getArticles, buildTempDiffView, fmtTemp, fmtDiff } from "@/lib/data/queries";
 import { SectionTitle, Card, Badge, AIFlag } from "@/components/ui";
 import { DualThermometer, TempTrendChart, FeelingBar } from "@/components/charts/Thermometer";
 import Markdown from "@/components/markdown";
@@ -18,10 +18,13 @@ export default async function FeelingPage() {
     getTemperatureAnalysis(),
     getArticles("temperature"),
   ]);
-  const macro = temps[temps.length - 1]?.temperature ?? 62;
-  const diff = Math.round(macro - feeling.overall);
+  const lastTemp = temps[temps.length - 1];
+  const tv = buildTempDiffView(lastTemp?.temperature, feeling.overall, feeling.sampleCount, lastTemp?.date ?? null);
   const tempReport = articles[0];
-  const trend = temps.slice(-12).map((t: any) => ({ date: t.date, macro: t.temperature ?? 0, feeling: 45 + Math.round((t.temperature ?? 62) - 62) * 0.6 }));
+  // 体感没有按月的时间序列（问卷只在提交时记一条当日分），旧实现用
+  // `45 + (macro-62)*0.6` 把体感线**由宏观线推导**出来——那不是体感数据。
+  // 现只画真实的宏观温度序列，体感以「当前均值参考线」呈现并明确标注无历史序列。
+  const trend = temps.slice(-12).map((t: any) => ({ date: t.date, macro: t.temperature ?? 0 }));
 
   return (
     <div className="mx-auto max-w-7xl px-3 sm:px-4 py-5 sm:py-6 space-y-8">
@@ -32,11 +35,26 @@ export default async function FeelingPage() {
 
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card>
-          <SectionTitle title="双温度计" sub={`宏观 ${macro}° vs 体感 ${fmt(feeling.overall)}°，温差 ${diff > 0 ? "+" : ""}${diff}°`} />
-          <DualThermometer macro={macro} feeling={feeling.overall} />
+          <SectionTitle
+            title="双温度计"
+            sub={
+              tv.missing
+                ? "宏观温度或体感数据缺失，温差暂不可计算"
+                : `宏观 ${fmtTemp(tv.macro)}° vs 体感 ${fmtTemp(tv.feeling)}°，温差 ${fmtDiff(tv.diff)}°（体感基于 ${tv.sampleCount} 份问卷）`
+            }
+          />
+          {tv.missing ? (
+            <p className="text-sm text-muted py-6 text-center">
+              {tv.missing === "feeling"
+                ? "暂无体感问卷数据，请先在右侧提交体感问卷"
+                : "暂无宏观温度数据"}
+            </p>
+          ) : (
+            <DualThermometer macro={tv.macro!} feeling={tv.feeling!} />
+          )}
         </Card>
         <Card>
-          <SectionTitle title="填写你的体感" sub="5 题，10 秒完成，匿名计入大众体感" />
+          <SectionTitle title="填写你的体感" sub="8 项选择，10 秒完成，计入大众体感均值（与下方体感指数同源）" />
           <FeelingSurvey />
         </Card>
       </section>
@@ -56,8 +74,11 @@ export default async function FeelingPage() {
           )}
         </Card>
         <Card>
-          <SectionTitle title="近 12 个月温度走势" />
-          <TempTrendChart data={trend} />
+          <SectionTitle
+            title="近 12 个月宏观温度走势"
+            sub="体感问卷不保留按月历史序列，故此处只绘制真实的宏观温度；当前体感均值以参考线标注"
+          />
+          <TempTrendChart data={trend} feelingRef={tv.feeling} />
         </Card>
       </section>
 
@@ -68,7 +89,7 @@ export default async function FeelingPage() {
         </Card>
         <Card>
           <SectionTitle title="按职业" />
-          <FeelingBar data={feeling.byOccupation.map((x: any) => ({ name: x.bucket, value: x.avgScore }))} color="#2563eb" />
+          <FeelingBar data={feeling.byOccupation.map((x: any) => ({ name: x.bucket, value: x.avgScore }))} color="#1d4ed8" />
         </Card>
         <Card>
           <SectionTitle title="按地区" />

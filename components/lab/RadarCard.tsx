@@ -14,39 +14,96 @@ interface TrendPoint {
   eps: number | null;
 }
 
-/** 财务质量 5 维雷达（全部基于真实财报，归一化口径公开）：
- *  - 成长性：近 8 期营收复合增速（CAGR），[-50%,50%] → [0,100]
- *  - 利润成长：净利 CAGR，同上映射
- *  - 盈利能力：最新毛利率 [0%,60%] → [0,100]
- *  - 股东回报：最新加权 ROE [0%,30%] → [0,100]
- *  - 业绩稳定：ROE 标准差越小越稳，100 - std×5（clamp 0-100）
+/**
+ * 财务质量 5 维雷达（基于真实财报，归一化口径公开）
+ *
+ * 修复的两个口径错误：
+ *
+ * 1. **取错了期**：`/api/stock/finance-trend` 返回的 trend 是**按日期倒序**（index 0 = 最新一期）。
+ *    旧代码 `[...t].reverse().find(...)` 反转后取第一个非空值，拿到的是**最旧一期**。
+ *    表现为贵州茅台显示毛利率 91.5% / ROE 26.1%（那是 2024 三季报），
+ *    而最新一期（2026 中报）实际是 89.6% / 16.8%。
+ *
+ * 2. **拿累计口径当环比/跨期比较**：财报的 revenue / netProfit / roe 都是「年初至今累计」，
+ *    中报(6个月) 与年报(12个月) 不可直接比较。因此：
+ *    - 成长性改为**同口径同比增速**（中报比中报、年报比年报），而不是对累计值做 CAGR；
+ *    - ROE 只在**同类型报告期**之间比较（累计 ROE 的可比口径）。
+ *
+ * 归一化：成长 [-50%,50%]→[0,100]；毛利率 [0,60%]→[0,100]；ROE [0,30%]→[0,100]；稳定性 100−5σ。
  */
-function radarFromTrend(t: TrendPoint[]) {
-  const revs = t.map((p) => p.revenue).filter((v): v is number => v != null && v > 0);
-  const nps = t.map((p) => p.netProfit).filter((v): v is number => v != null && v > 0);
-  const roes = t.map((p) => p.roe).filter((v): v is number => v != null);
-  const gm = [...t].reverse().find((p) => p.grossMargin != null)?.grossMargin ?? null;
-  const roe = [...t].reverse().find((p) => p.roe != null)?.roe ?? null;
+function radarFromTrend(raw: TrendPoint[]) {
+  // 统一按日期倒序（最新在前），不依赖上游返回顺序
+  const t = [...raw].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+  if (!t.length) return null;
+
+  /** 报告期类型：年报 / 中报 / 一季报 / 三季报（决定累计口径是否可比） */
+  const kindOf = (period: string): string => {
+    if (/年报|annual/i.test(period)) return "年报";
+    if (/中报|半年/i.test(period)) return "中报";
+    if (/三季|q3/i.test(period)) return "三季报";
+    return "一季报";
+  };
+  /** 同类型、且早约一年的一期 */
+  const yearAgoOf = (p: TrendPoint): TrendPoint | undefined => {
+    const y = Number(p.date.slice(0, 4)) - 1;
+    return t.find((q) => q.date.startsWith(String(y)) && kindOf(q.period) === kindOf(p.period));
+  };
+  const yoy = (p: TrendPoint, key: "revenue" | "netProfit"): number | null => {
+    const prev = yearAgoOf(p);
+    const a = p[key];
+    const b = prev?.[key];
+    if (a == null || b == null || !(b > 0)) return null;
+    return ((a - b) / b) * 100;
+  };
+
+  const latest = t[0];
+  const gm = latest.grossMargin;
+  const roe = latest.roe;
+
+  const revYoy = yoy(latest, "revenue");
+  const npYoy = yoy(latest, "netProfit");
+
+  // 业绩稳定性：取所有能算出同比的 ROE 同比序列的波动（可比口径）
+  const roeYoySeries = t
+    .map((p) => {
+      const prev = yearAgoOf(p);
+      if (p.roe == null || prev?.roe == null || !(prev.roe > 0)) return null;
+      return ((p.roe - prev.roe) / prev.roe) * 100;
+    })
+    .filter((v): v is number => v != null && Number.isFinite(v));
+  const roeStd =
+    roeYoySeries.length > 1
+      ? Math.sqrt(
+          roeYoySeries.reduce((a, v) => a + (v - roeYoySeries.reduce((x, y) => x + y, 0) / roeYoySeries.length) ** 2, 0) /
+            roeYoySeries.length
+        )
+      : null;
+
   const clamp = (v: number) => Math.max(0, Math.min(100, v));
 
-  const cagr = (arr: number[]) => {
-    if (arr.length < 2) return null;
-    const years = (arr.length - 1) / 2; // 每年 2 期（季报累计）
-    if (years <= 0) return null;
-    return (Math.pow(arr[arr.length - 1] / arr[0], 1 / years) - 1) * 100;
-  };
-  const revCagr = cagr(revs);
-  const npCagr = cagr(nps);
-  const roeStd = roes.length > 1 ? Math.sqrt(roes.reduce((a, v) => a + (v - roes.reduce((x, y) => x + y, 0) / roes.length) ** 2, 0) / roes.length) : null;
-
   const dims = [
-    { name: "成长性\n(营收CAGR)", raw: revCagr, value: revCagr == null ? null : clamp(((revCagr + 50) / 100) * 100), basis: revCagr == null ? "—" : `${revCagr.toFixed(1)}%/半年期` },
-    { name: "利润成长\n(净利CAGR)", raw: npCagr, value: npCagr == null ? null : clamp(((npCagr + 50) / 100) * 100), basis: npCagr == null ? "—" : `${npCagr.toFixed(1)}%/半年期` },
+    {
+      name: "成长性\n(营收同比)",
+      raw: revYoy,
+      value: revYoy == null ? null : clamp(((revYoy + 50) / 100) * 100),
+      basis: revYoy == null ? "—" : `${revYoy >= 0 ? "+" : ""}${revYoy.toFixed(1)}%`,
+    },
+    {
+      name: "利润成长\n(净利同比)",
+      raw: npYoy,
+      value: npYoy == null ? null : clamp(((npYoy + 50) / 100) * 100),
+      basis: npYoy == null ? "—" : `${npYoy >= 0 ? "+" : ""}${npYoy.toFixed(1)}%`,
+    },
     { name: "盈利能力\n(毛利率)", raw: gm, value: gm == null ? null : clamp((gm / 60) * 100), basis: gm == null ? "—" : `${gm.toFixed(1)}%` },
     { name: "股东回报\n(ROE)", raw: roe, value: roe == null ? null : clamp((roe / 30) * 100), basis: roe == null ? "—" : `${roe.toFixed(1)}%` },
-    { name: "业绩稳定\n(ROE波动)", raw: roeStd, value: roeStd == null ? null : clamp(100 - roeStd * 5), basis: roeStd == null ? "—" : `σ=${roeStd.toFixed(1)}` },
+    {
+      name: "业绩稳定\n(ROE同比波动)",
+      raw: roeStd,
+      value: roeStd == null ? null : clamp(100 - Math.abs(roeStd) * 5),
+      basis: roeStd == null ? "—" : `σ=${roeStd.toFixed(1)}%`,
+    },
   ];
-  return dims;
+  return { dims, latest };
 }
 
 export default function RadarCard({ secid, isIndex }: { secid: string; isIndex: boolean }) {
@@ -71,7 +128,8 @@ export default function RadarCard({ secid, isIndex }: { secid: string; isIndex: 
     };
   }, [secid, isIndex]);
 
-  const dims = useMemo(() => (trend ? radarFromTrend(trend) : null), [trend]);
+  const radar = useMemo(() => (trend ? radarFromTrend(trend) : null), [trend]);
+  const dims = radar?.dims ?? null;
 
   const option = useMemo<EChartsOption>(() => {
     if (!dims) return {};
@@ -111,7 +169,7 @@ export default function RadarCard({ secid, isIndex }: { secid: string; isIndex: 
     );
   }
   if (err) return <p className="text-sm text-muted py-8 text-center">{err}</p>;
-  if (!trend || !dims) return <p className="text-sm text-muted py-8 text-center">财报数据加载中…</p>;
+  if (!trend || !dims || !radar) return <p className="text-sm text-muted py-8 text-center">财报数据加载中…</p>;
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
@@ -134,6 +192,10 @@ export default function RadarCard({ secid, isIndex }: { secid: string; isIndex: 
         ))}
         <p className="text-[11px] text-muted pt-1 leading-relaxed">
           评分 = 归一化后的相对刻度（0-100），仅用于教学对比，不构成评级。原始值见右侧灰字。
+        </p>
+        <p className="text-[11px] text-muted leading-relaxed">
+          数据期：<span className="font-mono">{radar.latest.date}</span>（{radar.latest.period}）。
+          财报为<b>年初至今累计</b>口径，成长性与稳定性均按<b>同报告期同比</b>计算，不跨口径比较。
         </p>
       </div>
     </div>

@@ -1,10 +1,10 @@
 import { TRANSFER_CASE } from "@/lib/data/gmrds-deep";
 
 const LAYER_COLORS: Record<string, string> = {
-  "L1 宏观": "#0ea5e9",
-  "L2 行业": "#10b981",
-  "L3 标的": "#ec4899",
-  "C01 决策": "#c8102e",
+  "L1 宏观": "#0284c7",
+  "L2 行业": "#1e8449",
+  "L3 标的": "#be185d",
+  "C01 决策": "#c0392b",
 };
 
 /**
@@ -23,7 +23,7 @@ export default function TransferChain() {
     <figure className="rounded-xl border border-border bg-card p-4 overflow-x-auto">
       <svg viewBox={`0 0 ${width} ${height}`} style={{ minWidth: 620 }} className="w-full h-auto" role="img" aria-label="宏观到决策传导链">
         {TRANSFER_CASE.steps.map((s, i) => {
-          const color = LAYER_COLORS[s.layer] ?? "#64748b";
+          const color = LAYER_COLORS[s.layer] ?? "#6b6862";
           const x = i * (stepW + gap);
           return (
             <g key={s.no}>
@@ -40,8 +40,8 @@ export default function TransferChain() {
               {/* 箭头 */}
               {i < n - 1 && (
                 <g transform={`translate(${x + arrowX}, 70)`}>
-                  <line x1={0} y1={0} x2={gap - 12} y2={0} stroke="#94a3b8" strokeWidth={1.6} />
-                  <polygon points={`${gap - 12},-4 ${gap - 2},0 ${gap - 12},4`} fill="#94a3b8" />
+                  <line x1={0} y1={0} x2={gap - 12} y2={0} stroke="#8a867e" strokeWidth={1.6} />
+                  <polygon points={`${gap - 12},-4 ${gap - 2},0 ${gap - 12},4`} fill="#8a867e" />
                 </g>
               )}
             </g>

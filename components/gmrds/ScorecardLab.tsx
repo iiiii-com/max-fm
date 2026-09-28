@@ -13,7 +13,7 @@ export interface ScoreDef {
   basis: string; // 评分依据
 }
 
-const STAGE_COLORS = ["#0ea5e9", "#10b981", "#ec4899", "#eab308"];
+const STAGE_COLORS = ["#0284c7", "#1e8449", "#be185d", "#a16207"];
 
 function stageOf(no: number) {
   if (no <= 2) return 1;
@@ -39,12 +39,12 @@ export default function ScorecardLab({ defs }: { defs: ScoreDef[] }) {
 
   const totalWeight = defs.reduce((a, d) => a + d.weight, 0);
   const norm = (weighted / totalWeight) * 10 + 50; // 映射到 0-100
-  const stance = norm >= 65 ? { label: "进攻", range: "60-80%", tone: "#d7000b" } : norm >= 45 ? { label: "平衡", range: "40-60%", tone: "#3b82f6" } : { label: "防守", range: "20-40%", tone: "#0aa06e" };
+  const stance = norm >= 65 ? { label: "进攻", range: "60-80%", tone: "#c0392b" } : norm >= 45 ? { label: "平衡", range: "40-60%", tone: "#1d4ed8" } : { label: "防守", range: "20-40%", tone: "#1e8449" };
 
   const radarDims = defs.map((d) => ({ name: d.label.replace("评估", "").replace("判断", "").replace("确认", ""), max: 5 }));
   const radarSeries = [
-    { name: "当前评分", values: defs.map((d) => scores[d.no] ?? 0), color: "#c8102e" },
-    { name: "中性线", values: defs.map(() => 0), color: "#94a3b8" },
+    { name: "当前评分", values: defs.map((d) => scores[d.no] ?? 0), color: "#c0392b" },
+    { name: "中性线", values: defs.map(() => 0), color: "#8a867e" },
   ];
 
   // 评分瀑布：各环节加权贡献（得分 × 权重）
@@ -56,8 +56,8 @@ export default function ScorecardLab({ defs }: { defs: ScoreDef[] }) {
     animation: false,
     grid: { left: 40, right: 30, top: 12, bottom: 24 },
     xAxis: { type: "category", data: contrib.map((c) => c.label), axisLabel: { fontSize: 9 } },
-    yAxis: { type: "value", axisLabel: { fontSize: 9 }, splitLine: { lineStyle: { color: "#eef0ec" } } },
-    tooltip: { trigger: "axis", backgroundColor: "rgba(255,255,255,0.96)", borderColor: "#cbd5e1", textStyle: { color: "#1e293b", fontSize: 11 }, formatter: (p: any) => { const i = Array.isArray(p) ? p[0]?.dataIndex ?? 0 : 0; const c = contrib[i]; return `<b>${c.label}</b><br/>贡献 ${c.v >= 0 ? "+" : ""}${c.v}`; } },
+    yAxis: { type: "value", axisLabel: { fontSize: 9 }, splitLine: { lineStyle: { color: "#f4f3f0" } } },
+    tooltip: { trigger: "axis", backgroundColor: "rgba(255,255,255,0.96)", borderColor: "#e2e0dc", textStyle: { color: "#e2e0dc", fontSize: 11 }, formatter: (p: any) => { const i = Array.isArray(p) ? p[0]?.dataIndex ?? 0 : 0; const c = contrib[i]; return `<b>${c.label}</b><br/>贡献 ${c.v >= 0 ? "+" : ""}${c.v}`; } },
     series: [
       {
         type: "bar",
@@ -68,8 +68,8 @@ export default function ScorecardLab({ defs }: { defs: ScoreDef[] }) {
         barWidth: "55%",
         markLine: {
           silent: true, symbol: "none",
-          lineStyle: { color: "#8b5cf6", width: 1.2 },
-          label: { formatter: `加权总分 ${weighted.toFixed(1)}`, fontSize: 9, color: "#8b5cf6", position: "insideEndTop" },
+          lineStyle: { color: "#7c3aed", width: 1.2 },
+          label: { formatter: `加权总分 ${weighted.toFixed(1)}`, fontSize: 9, color: "#7c3aed", position: "insideEndTop" },
           data: [{ yAxis: 0 }],
         },
       },

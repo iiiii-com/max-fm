@@ -7,7 +7,7 @@ import GovernanceTree from "@/components/gmrds/GovernanceTree";
 
 export const metadata = { title: "治理架构 | 研究体系 GMRDS" };
 
-const STAGE_COLORS = ["#0ea5e9", "#10b981", "#ec4899", "#eab308"];
+const STAGE_COLORS = ["#0284c7", "#1e8449", "#be185d", "#a16207"];
 
 export default function GovernancePage() {
   const academies = GOVERNANCE.filter((g) => g.kind === "academy");
@@ -93,7 +93,7 @@ export default function GovernancePage() {
       </section>
 
       {/* 决策委员会 */}
-      <section className="rounded-xl border p-6" style={{ borderColor: `${committee ? "#c8102e" : ""}55`, background: "#c8102e08" }}>
+      <section className="rounded-xl border p-6" style={{ borderColor: `${committee ? "#c0392b" : ""}55`, background: "#c0392b08" }}>
         <div className="flex items-center gap-2 mb-3">
           <span className="flex items-center justify-center w-9 h-9 rounded-lg bg-primary text-white">
             <Landmark className="w-4.5 h-4.5" />

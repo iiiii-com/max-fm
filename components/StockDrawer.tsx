@@ -107,17 +107,17 @@ export default function StockDrawer({ stock, onClose }: { stock: DrawerStock | n
           type: "candlestick",
           data: ohlc,
           itemStyle: {
-            color: "#dc2626",
-            color0: "#16a34a",
-            borderColor: "#dc2626",
-            borderColor0: "#16a34a",
+            color: "#c0392b",
+            color0: "#1e8449",
+            borderColor: "#c0392b",
+            borderColor0: "#1e8449",
           },
         },
         // 逐根涨跌幅标注（scatter 叠加）
         mkPctLabel({ bars, show: true, fontSize: 8 }),
-        { name: "MA5", type: "line", data: ma(closes, 5), symbol: "none", lineStyle: { width: 1, color: "#f59e0b" } },
-        { name: "MA10", type: "line", data: ma(closes, 10), symbol: "none", lineStyle: { width: 1, color: "#3b82f6" } },
-        { name: "MA20", type: "line", data: ma(closes, 20), symbol: "none", lineStyle: { width: 1, color: "#8b5cf6" } },
+        { name: "MA5", type: "line", data: ma(closes, 5), symbol: "none", lineStyle: { width: 1, color: "#b45309" } },
+        { name: "MA10", type: "line", data: ma(closes, 10), symbol: "none", lineStyle: { width: 1, color: "#1d4ed8" } },
+        { name: "MA20", type: "line", data: ma(closes, 20), symbol: "none", lineStyle: { width: 1, color: "#7c3aed" } },
       ],
     };
   }, [bars]);
@@ -161,8 +161,8 @@ export default function StockDrawer({ stock, onClose }: { stock: DrawerStock | n
                   v == null
                     ? "rgba(128,128,128,0.3)"
                     : v >= 0
-                      ? { type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: "#dc2626" }, { offset: 1, color: "rgba(220,38,38,0.3)" }] }
-                      : { type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: "#16a34a" }, { offset: 1, color: "rgba(22,163,74,0.3)" }] },
+                      ? { type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: "#c0392b" }, { offset: 1, color: "rgba(220,38,38,0.3)" }] }
+                      : { type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: "#1e8449" }, { offset: 1, color: "rgba(22,163,74,0.3)" }] },
               },
             } as any;
           }),

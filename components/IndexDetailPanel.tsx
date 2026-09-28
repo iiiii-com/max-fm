@@ -72,10 +72,10 @@ export default function IndexDetailPanel() {
 
   const cards = d
     ? [
-        ["近 1 年", `${d.yearChg >= 0 ? "+" : ""}${d.yearChg}%`, d.yearChg >= 0 ? "#dc2626" : "#16a34a"],
-        ["近 1 月", `${d.monthChg >= 0 ? "+" : ""}${d.monthChg}%`, d.monthChg >= 0 ? "#dc2626" : "#16a34a"],
-        ["距 250 日线", `${d.vsMa250 >= 0 ? "+" : ""}${d.vsMa250}%`, d.vsMa250 >= 0 ? "#dc2626" : "#16a34a"],
-        ["年化波动", `${d.annVol}%`, "#64748b"],
+        ["近 1 年", `${d.yearChg >= 0 ? "+" : ""}${d.yearChg}%`, d.yearChg >= 0 ? "#c0392b" : "#1e8449"],
+        ["近 1 月", `${d.monthChg >= 0 ? "+" : ""}${d.monthChg}%`, d.monthChg >= 0 ? "#c0392b" : "#1e8449"],
+        ["距 250 日线", `${d.vsMa250 >= 0 ? "+" : ""}${d.vsMa250}%`, d.vsMa250 >= 0 ? "#c0392b" : "#1e8449"],
+        ["年化波动", `${d.annVol}%`, "#6b6862"],
       ]
     : [];
 

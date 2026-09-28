@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { getSession, getUserFromDb } from "@/lib/auth";
 import { getUserAdvice, getUserFeelings, getWatchlist } from "@/lib/data/queries";
 import { Badge, Card, SectionTitle } from "@/components/ui";
-import { fmtDate } from "@/lib/utils";
+import { fmtDateTime } from "@/lib/utils";
 import { bootstrap } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -21,7 +21,8 @@ export default async function AccountPage() {
   ]);
 
   const riskLabel: Record<string, string> = { low: "稳健型", medium: "平衡型", high: "进取型" };
-  const fmtTs = (ts?: number | null) => (ts ? fmtDate(new Date(ts).toISOString()) : "—");
+  // 旧实现走 toISOString()，把原始 ISO 串直接丢进页面（`2026-09-28T04:45:35.295Z`）；现统一格式化
+  const fmtTs = (ts?: number | null) => fmtDateTime(ts);
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-6 space-y-6">
@@ -36,14 +37,19 @@ export default async function AccountPage() {
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <h2 className="font-bold text-lg">{session.name}</h2>
-            {user?.riskLevel && <Badge>{riskLabel[user.riskLevel] ?? "风险测评未完成"}</Badge>}
+            {/* 风险测评状态：已完成才显示风险等级，否则显示「未完成」——旧实现把兜底文案当成了徽标 */}
+            {user?.riskLevel ? (
+              <Badge>{riskLabel[user.riskLevel] ?? user.riskLevel}</Badge>
+            ) : (
+              <Badge tone="gray">未做风险测评</Badge>
+            )}
             <Badge>{session.plan === "pro" ? "Pro 会员" : "免费用户"}</Badge>
           </div>
           <p className="text-sm text-muted mt-0.5 break-all">{session.email}</p>
           <p className="text-xs text-muted mt-1">注册时间：{fmtTs(user?.createdAt)}</p>
         </div>
         <form action="/api/auth/logout" method="POST" className="ml-auto">
-          <button type="submit" className="px-4 py-2 rounded-lg border border-border text-sm hover:border-red-400 hover:text-red-600 transition-colors">
+          <button type="submit" className="px-4 py-1 rounded-lg border border-border text-sm hover:border-red-400 hover:text-red-600 transition-colors">
             退出登录
           </button>
         </form>
@@ -56,10 +62,15 @@ export default async function AccountPage() {
             {advice.slice(0, 8).map((a: any) => (
               <Card key={a.id} className="p-4">
                 <div className="flex items-baseline gap-2 mb-1 flex-wrap">
-                  <span className="font-medium">{a.title || "投资建议"}</span>
+                  <span className="font-medium">{a.riskLevel ? `${a.riskLevel} · 投资建议` : "投资建议"}</span>
                   <span className="text-xs text-muted ml-auto">{fmtTs(a.createdAt)}</span>
                 </div>
-                <p className="text-sm text-muted line-clamp-1">{a.summary}</p>
+                <p className="text-sm text-muted line-clamp-1">
+                  {a.temperatureDiff != null
+                    ? `温差参考 ${Number(a.temperatureDiff) > 0 ? "+" : ""}${Math.round(Number(a.temperatureDiff))}°`
+                    : "生成时无体感问卷数据，无温差参考"}
+                </p>
+                <Link href="/advice" className="text-xs text-primary hover:underline mt-1 inline-block">查看完整报告 →</Link>
               </Card>
             ))}
           </div>
@@ -120,7 +131,11 @@ export default async function AccountPage() {
           </div>
         ) : (
           <Card className="p-4 text-sm text-muted">
-            在 <Link href="/invest" className="text-primary underline">投资分析</Link> 页点击「加入自选」即可收藏标的。
+            {/* 旧文案指向并不存在的「投资分析」页；改为指向真实存在的两个入口，并统一按钮叫法 */}
+            在 <Link href="/stock" className="text-primary underline">个股行情</Link> 或{" "}
+            <Link href="/etf" className="text-primary underline">ETF 专区</Link>{" "}
+            页点击「☆ 加自选」即可收藏标的；板块可在{" "}
+            <Link href="/sector" className="text-primary underline">板块中心</Link> 收藏。
           </Card>
         )}
       </section>

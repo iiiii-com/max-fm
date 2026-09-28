@@ -76,12 +76,12 @@ export default function TechLevels() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           <div className="rounded-lg border border-border/70 bg-card px-3 py-2">
             <p className="text-[10px] text-muted flex items-center gap-1"><TrendingUp className="w-3 h-3" /> 压力位（60 日高）</p>
-            <p className="text-base font-bold font-mono" style={{ color: "#dc2626" }}>{levels.pressure.price.toFixed(2)}</p>
+            <p className="text-base font-bold font-mono" style={{ color: "#c0392b" }}>{levels.pressure.price.toFixed(2)}</p>
             <p className="text-[10px] font-mono text-muted">距现价 {levels.pressure.dist >= 0 ? "+" : ""}{levels.pressure.dist}%</p>
           </div>
           <div className="rounded-lg border border-border/70 bg-card px-3 py-2">
             <p className="text-[10px] text-muted flex items-center gap-1"><TrendingDown className="w-3 h-3" /> 支撑位（60 日低）</p>
-            <p className="text-base font-bold font-mono" style={{ color: "#16a34a" }}>{levels.support.price.toFixed(2)}</p>
+            <p className="text-base font-bold font-mono" style={{ color: "#1e8449" }}>{levels.support.price.toFixed(2)}</p>
             <p className="text-[10px] font-mono text-muted">距现价 {levels.support.dist >= 0 ? "+" : ""}{levels.support.dist}%</p>
           </div>
           <div className="rounded-lg border border-border/70 bg-card px-3 py-2">

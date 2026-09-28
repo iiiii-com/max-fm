@@ -16,7 +16,7 @@ const TOOLS: Array<{ key: AnnotationTool; label: string; title: string }> = [
   { key: "rect", label: "▭ 矩形", title: "绘制矩形区域" },
 ];
 
-const PEN_COLORS = ["#3b82f6", "#dc2626", "#16a34a", "#f59e0b", "#8b5cf6", "#0ea5e9", "#64748b", "#e11d48"];
+const PEN_COLORS = ["#1d4ed8", "#c0392b", "#1e8449", "#b45309", "#7c3aed", "#0284c7", "#6b6862", "#be123c"];
 const PEN_DASHES: Array<{ key: DashType; label: string }> = [
   { key: "solid", label: "—" },
   { key: "dash", label: "┅" },

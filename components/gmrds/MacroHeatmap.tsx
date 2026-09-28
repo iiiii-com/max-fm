@@ -53,7 +53,7 @@ export default function MacroHeatmap() {
         type: "scatter",
         data: [[-0.6, -1.2], [0.6, -1.2], [-0.6, 1.2], [0.6, 1.2], [x, y]],
         symbolSize: [0, 0, 0, 0, 22],
-        itemStyle: { color: isOverheat ? "#d7000b" : isStag ? "#0aa06e" : "#3b82f6", borderColor: "#fff", borderWidth: 2 },
+        itemStyle: { color: isOverheat ? "#c0392b" : isStag ? "#1e8449" : "#1d4ed8", borderColor: "#fff", borderWidth: 2 },
         label: { show: true, formatter: "当前", position: "top", fontSize: 10, fontWeight: 700 },
         markArea: {
           silent: true,
@@ -64,18 +64,18 @@ export default function MacroHeatmap() {
             [{ coord: [0, 0] }, { coord: [1.2, 1.8], name: "过热期\n（高增长·高通胀）" }],
           ],
           itemStyle: { opacity: 0.12 },
-          label: { show: true, fontSize: 9, color: "#64748b" },
+          label: { show: true, fontSize: 9, color: "#6b6862" },
         },
         markLine: {
           silent: true, symbol: "none",
-          lineStyle: { color: "#cbd5e1", width: 0.8 },
+          lineStyle: { color: "#e2e0dc", width: 0.8 },
           data: [{ xAxis: 0 }, { yAxis: 0 }],
         },
       },
     ],
     graphic: [
-      { type: "text", left: "8%", top: "6%", style: { text: `当前宏观阶段：${stage}（评分 ${heat}）`, fontSize: 11, fontWeight: 700, fill: "#64748b" } },
-      { type: "text", right: "6%", bottom: "2%", style: { text: `增长轴=上证近1年 ${growth >= 0 ? "+" : ""}${growth}% · 纵轴=宏观评分（政策温度代理）`, fontSize: 9, fill: "#94a3b8" } },
+      { type: "text", left: "8%", top: "6%", style: { text: `当前宏观阶段：${stage}（评分 ${heat}）`, fontSize: 11, fontWeight: 700, fill: "#6b6862" } },
+      { type: "text", right: "6%", bottom: "2%", style: { text: `增长轴=上证近1年 ${growth >= 0 ? "+" : ""}${growth}% · 纵轴=宏观评分（政策温度代理）`, fontSize: 9, fill: "#8a867e" } },
     ],
   };
 

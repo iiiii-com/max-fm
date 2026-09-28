@@ -21,30 +21,75 @@ export default function BacktestCard({ bars, symbol }: { bars: LabBar[]; symbol:
   const option = useMemo<EChartsOption>(() => {
     if (!result) return {};
     const dates = result.equityCurve.map((p) => p.date);
+    /**
+     * 旧实现直接把「元」口径的 nav / benchmark 画在 80,000–105,000 的价格轴上，
+     * 读者无法从图上判断策略究竟跑赢还是跑输基准。
+     * 现把两条曲线都归一化为「起点 = 100」的净值，口径与站内其它对比图一致；
+     * 原始金额仍在下方统计里给出。
+     */
+    const base = result.equityCurve[0];
+    const scale = (v: number) => (base ? Number(((v / base.nav) * 100).toFixed(2)) : 100);
+    const scaleBench = (v: number) => (base ? Number(((v / base.benchmark) * 100).toFixed(2)) : 100);
+    const navS = result.equityCurve.map((p) => scale(p.nav));
+    const benchS = result.equityCurve.map((p) => scaleBench(p.benchmark));
+    const lastNav = navS[navS.length - 1] ?? 100;
+    const lastBench = benchS[benchS.length - 1] ?? 100;
     return {
       animation: false,
-      tooltip: { trigger: "axis", textStyle: { fontSize: 11 } },
+      tooltip: {
+        trigger: "axis",
+        textStyle: { fontSize: 11 },
+        valueFormatter: (v) => `${v}`,
+      },
       legend: { top: 0, textStyle: { fontSize: 10 }, data: ["策略净值", "买入持有"] },
-      grid: { left: 56, right: 16, top: 30, bottom: 22 },
+      grid: { left: 52, right: 16, top: 30, bottom: 22 },
       xAxis: { type: "category", data: dates, axisLabel: { fontSize: 9 } },
-      yAxis: { type: "value", scale: true, axisLabel: { fontSize: 9 } },
+      yAxis: {
+        type: "value",
+        scale: true,
+        axisLabel: { fontSize: 9, formatter: (v: number) => v.toFixed(0) },
+        name: "净值(起点=100)",
+        nameTextStyle: { fontSize: 9, align: "right" },
+        splitLine: { lineStyle: { color: "rgba(128,128,128,0.18)", type: "dashed" } },
+      },
       series: [
         {
           name: "策略净值",
           type: "line",
           showSymbol: false,
-          data: result.equityCurve.map((p) => p.nav),
-          lineStyle: { width: 1.6, color: "#d7000b" },
-          itemStyle: { color: "#d7000b" },
+          data: navS,
+          lineStyle: { width: 1.6, color: "#c0392b" },
+          itemStyle: { color: "#c0392b" },
           areaStyle: { color: "rgba(215,0,11,0.07)" },
+          markLine: {
+            silent: true,
+            symbol: "none",
+            label: { fontSize: 9 },
+            data: [
+              { yAxis: 100, lineStyle: { color: "#8a867e", width: 0.8, type: "dotted" }, label: { formatter: "起点 100" } },
+            ],
+          },
         },
         {
           name: "买入持有",
           type: "line",
           showSymbol: false,
-          data: result.equityCurve.map((p) => p.benchmark),
-          lineStyle: { width: 1.2, color: "#64748b", type: "dashed" },
-          itemStyle: { color: "#64748b" },
+          data: benchS,
+          lineStyle: { width: 1.2, color: "#6b6862", type: "dashed" },
+          itemStyle: { color: "#6b6862" },
+        },
+      ],
+      // 图下方给一句可读结论：策略 vs 基准
+      graphic: [
+        {
+          type: "text",
+          right: 8,
+          top: 26,
+          style: {
+            text: `策略 ${lastNav.toFixed(1)} vs 基准 ${lastBench.toFixed(1)}（超额 ${(lastNav - lastBench >= 0 ? "+" : "")}${(lastNav - lastBench).toFixed(1)}）`,
+            fill: lastNav >= lastBench ? "#1e8449" : "#c0392b",
+            fontSize: 10,
+          },
         },
       ],
     };
@@ -83,6 +128,14 @@ export default function BacktestCard({ bars, symbol }: { bars: LabBar[]; symbol:
 
       {result && (
         <>
+          {/* 样本量过小时，胜率 / 夏普这类指标没有统计意义，必须先说清楚，而不是把 13% 当结论展示 */}
+          {result.tradeCount < 20 && (
+            <p className="mb-3 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-[11px] leading-relaxed">
+              <b>样本量偏小</b>：本策略在当前样本内仅平仓 {result.tradeCount} 笔
+              {result.tradeCount < 10 && "（不足 10 笔）"}。胜率与夏普在此样本下几乎没有统计意义，
+              请只把结果当作规则行为的演示，<b>不要据此判断策略优劣</b>。
+            </p>
+          )}
           <div className="grid grid-cols-3 md:grid-cols-6 gap-2 mb-4">
             {stat("总收益", `${result.totalRet.toFixed(1)}%`, result.totalRet >= 0 ? "up" : "down")}
             {stat("年化", `${result.annualRet.toFixed(1)}%`, result.annualRet >= 0 ? "up" : "down")}

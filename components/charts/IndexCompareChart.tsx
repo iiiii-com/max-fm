@@ -103,7 +103,7 @@ export default function IndexCompareChart({ indexes }: { indexes: IndexRef[] }) 
       yAxis: {
         type: "value", scale: true,
         axisLabel: { fontSize: 10 },
-        splitLine: { lineStyle: { color: "#292929", type: "dashed" } },
+        splitLine: { lineStyle: { color: "#e2e0dc", type: "dashed" } },
       },
       dataZoom: [
         { type: "inside", start: 0, end: 100 },

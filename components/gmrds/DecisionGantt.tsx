@@ -9,7 +9,7 @@ import { DEPTH_STEPS } from "@/lib/data/gmrds-depth";
 export default function DecisionGantt() {
   const stages = ["宏观研判", "资产与行业", "标的研究", "执行与优化"];
   const stageColor: Record<string, string> = {
-    宏观研判: "#3b82f6", 资产与行业: "#16a34a", 标的研究: "#e11d48", 执行与优化: "#f59e0b",
+    宏观研判: "#1d4ed8", 资产与行业: "#1e8449", 标的研究: "#be123c", 执行与优化: "#b45309",
   };
   // 每环节时间跨度（模拟相对耗时，展示依赖关系）
   const duration = [6, 5, 7, 6, 7, 6, 5, 4, 5, 4, 5];
@@ -23,7 +23,7 @@ export default function DecisionGantt() {
 
   const opt: EChartsOption = {
     animation: false,
-    tooltip: { trigger: "item", backgroundColor: "rgba(255,255,255,0.96)", borderColor: "#cbd5e1", textStyle: { color: "#1e293b", fontSize: 11 }, formatter: (p: any) => { const d = p.data; return `<b>环节 ${d.no} · ${d.title}</b><br/>阶段：${d.stage}<br/>输出作为下一环节输入（数据接力）`; } },
+    tooltip: { trigger: "item", backgroundColor: "rgba(255,255,255,0.96)", borderColor: "#e2e0dc", textStyle: { color: "#e2e0dc", fontSize: 11 }, formatter: (p: any) => { const d = p.data; return `<b>环节 ${d.no} · ${d.title}</b><br/>阶段：${d.stage}<br/>输出作为下一环节输入（数据接力）`; } },
     grid: { left: 90, right: 20, top: 8, bottom: 24 },
     xAxis: { type: "value", min: 0, max: total, axisLabel: { show: false }, splitLine: { show: false } },
     yAxis: { type: "category", data: rows.map((r) => `环节${r.no} ${r.title}`).reverse(), axisLabel: { fontSize: 10 } },
@@ -37,8 +37,8 @@ export default function DecisionGantt() {
         barWidth: 14,
         showBackground: true,
         backgroundStyle: { color: "rgba(148,163,184,0.12)" },
-        itemStyle: { color: (p: any) => stageColor[rows[rows.length - 1 - p.dataIndex].stage] ?? "#94a3b8", borderRadius: 3 },
-        label: { show: true, position: "right", fontSize: 9, color: "#64748b", formatter: (p: any) => rows[rows.length - 1 - p.dataIndex].stage },
+        itemStyle: { color: (p: any) => stageColor[rows[rows.length - 1 - p.dataIndex].stage] ?? "#8a867e", borderRadius: 3 },
+        label: { show: true, position: "right", fontSize: 9, color: "#6b6862", formatter: (p: any) => rows[rows.length - 1 - p.dataIndex].stage },
       },
     ],
     graphic: stages.map((st, i) => ({

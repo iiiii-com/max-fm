@@ -42,9 +42,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="zh-CN" suppressHydrationWarning className={`${geistSans.variable} ${geistMono.variable} ${ibmPlexMono.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-background text-foreground overflow-x-clip">
-        {/* 主题初始化：next/script beforeInteractive 输出到 head，防首屏闪烁且不触发 React 组件内 script 警告 */}
+        {/* 主题初始化：next/script beforeInteractive 输出到 head，防首屏闪烁且不触发 React 组件内 script 警告。
+            默认浅色（机构研究）；只有用户显式存了 dark 才加 .dark。 */}
         <Script id="theme-init" strategy="beforeInteractive">
-          {`try{var t=localStorage.getItem('max-theme');if(t!=='light')document.documentElement.classList.add('dark')}catch(e){}`}
+          {`try{if(localStorage.getItem('max-theme')==='dark')document.documentElement.classList.add('dark')}catch(e){}`}
         </Script>
         {/* 无障碍：键盘用户可跳过导航直达主内容 */}
         <a

@@ -189,7 +189,7 @@ export default async function GmrdsPage() {
         <SectionTitle id="stages" title="四大研究阶段" desc="从环境到决策的传导路径" />
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {FLOW_STAGES.map((s) => (
-            <Card key={s.no} className="p-4 border-l-4" style={{ borderLeftColor: ["#0ea5e9", "#10b981", "#ec4899", "#eab308"][s.no - 1] }}>
+            <Card key={s.no} className="p-4 border-l-4" style={{ borderLeftColor: ["#0284c7", "#1e8449", "#be185d", "#a16207"][s.no - 1] }}>
               <p className="text-[10px] text-muted font-semibold tracking-wider">STAGE {s.no}</p>
               <h3 className="font-bold text-sm mt-0.5">{s.label}</h3>
               <p className="text-xs text-muted mt-1 leading-relaxed">{s.desc}</p>
@@ -206,7 +206,7 @@ export default async function GmrdsPage() {
           <Card className="p-4 sm:p-5">
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2.5">
               {DECISION_FLOW.map((step) => {
-              const stageColor = ["#0ea5e9", "#10b981", "#ec4899", "#eab308"][step.stage - 1];
+              const stageColor = ["#0284c7", "#1e8449", "#be185d", "#a16207"][step.stage - 1];
               return (
                 <div key={step.no} className="relative rounded-lg border border-border p-3 bg-background/60 hover:border-primary/40 transition-colors">
                   <div className="flex items-start gap-2.5">
@@ -322,7 +322,7 @@ export default async function GmrdsPage() {
           <div className="flex items-stretch gap-2 min-w-[760px]">
             {FLOW_STAGES.map((s) => {
               const stageAcademies = ACADEMIES.filter((a) => a.stage === s.no);
-              const color = ["#0ea5e9", "#10b981", "#ec4899", "#eab308"][s.no - 1];
+              const color = ["#0284c7", "#1e8449", "#be185d", "#a16207"][s.no - 1];
               return (
                 <div key={s.no} className="flex-1">
                   <div className="rounded-lg border p-3 h-full" style={{ borderColor: `${color}55`, background: `${color}0d` }}>
@@ -360,7 +360,7 @@ export default async function GmrdsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-2.5">
           {INTEGRATION_PILLARS.map((p, i) => (
             <Card key={p.title} className="p-3.5">
-              <p className="text-[11px] font-black text-white rounded px-1.5 py-0.5 inline-block mb-1.5" style={{ background: ["#0ea5e9", "#10b981", "#ec4899", "#a855f7", "#f59e0b"][i] }}>
+              <p className="text-[11px] font-black text-white rounded px-1.5 py-0.5 inline-block mb-1.5" style={{ background: ["#0284c7", "#1e8449", "#be185d", "#a855f7", "#b45309"][i] }}>
                 {i + 1}
               </p>
               <p className="text-[13px] font-bold leading-tight">{p.title}</p>

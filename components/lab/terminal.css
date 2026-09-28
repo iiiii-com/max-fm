@@ -1,29 +1,36 @@
 /* ============================================================
-   MX//K线实验室 终端视觉系统 —— 复刻 GMT//全球市场终端
-   black bg · amber command bar · hard-edge windows · mono type
+   MX//K线实验室 —— 已并入全站「浅色机构研究」设计系统
    作用域：全部规则限定在 #lab-root 内，不污染站点全局样式
+
+   改版说明：这套原本是一套**独立的深色终端皮肤**（黑底 + 琥珀命令栏），
+   与主站割裂 —— 用户从主站点进 /lab 就像跳到另一个产品。
+   现在把下面这组变量改为引用主站令牌，使其与全站同源；
+   后续若要改主站风格，这里自动跟随，不必再单独维护一套配色。
+   组件结构与交互未动，只换视觉。
    ============================================================ */
 
 #lab-root {
-  --bg: #000000;
-  --bg-panel: #050505;
-  --bg-raise: #0a0a0a;
-  --fg: #d7d7d7;
-  --fg-dim: #8a8a8a;
-  --fg-faint: #5a5a5a;
-  --line: #292929;
-  --line-strong: #3a3a3a;
-  --amber: #f28c00;
-  --amber-dim: #b26a00;
-  --amber-bg: #1a1000;
-  /* 涨跌色（A 股惯例：红涨 / 绿跌 / 灰平） */
-  --up: #ff4d4f;
-  --up-deep: #5a1416;
-  --down: #00c176;
-  --down-deep: #004d30;
-  --flat: #6e6e6e;
-  --cyan: #4dd0e1;
-  --danger: #ff5c8a;
+  /* —— 与主站令牌同源（浅色机构研究）—— */
+  --bg: var(--background, #fbfbfa);
+  --bg-panel: var(--card, #ffffff);
+  --bg-raise: var(--surface, #f4f3f0);
+  --fg: var(--foreground, #1a1a1a);
+  --fg-dim: var(--muted, #6b6862);
+  --fg-faint: #8a867e;
+  --line: var(--border, #e2e0dc);
+  --line-strong: #b8b4ad;
+  /* 命令栏不再用琥珀实心（浅底上大面积橙色过于抢眼），改用墨色 */
+  --amber: var(--primary, #1a1a1a);
+  --amber-dim: #000;
+  --amber-bg: var(--primary-soft, rgba(26, 26, 26, 0.06));
+  /* 涨跌色（A 股惯例：红涨 / 绿跌 / 灰平）——与主站 --up/--down 同值 */
+  --up: var(--up, #c0392b);
+  --up-deep: #f6e3e1;
+  --down: var(--down, #1e8449);
+  --down-deep: #dff0e6;
+  --flat: #8a867e;
+  --cyan: #0284c7;
+  --danger: #be123c;
   --gmt-mono: var(--font-ibm-plex-mono), "IBM Plex Mono", ui-monospace, "PingFang SC",
     "Microsoft YaHei", "Noto Sans CJK SC", Menlo, Consolas, monospace;
   --cmdbar-h: 34px;
@@ -51,7 +58,7 @@
 }
 #lab-root ::selection {
   background: var(--amber);
-  color: #000;
+  color: var(--bg);
 }
 #lab-root button,
 #lab-root input,
@@ -81,7 +88,7 @@
 #lab-root input[type="text"],
 #lab-root select {
   font-size: 10px;
-  background: #000;
+  background: var(--bg-panel);
   color: var(--fg);
   border: 1px solid var(--line-strong);
   padding: 2px 6px;
@@ -132,7 +139,7 @@
 }
 #lab-root .bg-primary {
   background: var(--amber) !important;
-  color: #000 !important;
+  color: var(--bg) !important;
 }
 #lab-root .bg-primary\/10 {
   background: var(--amber-bg) !important;
@@ -151,7 +158,7 @@
   background: var(--line) !important;
 }
 #lab-root .bg-background\/90 {
-  background: rgba(0, 0, 0, 0.9) !important;
+  background: rgba(255, 255, 255, 0.9) !important;
 }
 #lab-root .bg-muted\/30 {
   background: var(--bg-raise) !important;
@@ -159,20 +166,20 @@
 #lab-root .hover\:bg-muted\/30:hover {
   background: var(--bg-raise) !important;
 }
-/* 浅色底徽章/标签 → 深色等效 */
+/* 涨跌徽章：底用极浅的涨/跌色（浅底方案），文字用深涨/跌色保证对比 */
 #lab-root .bg-red-50 {
   background: var(--up-deep) !important;
 }
 #lab-root .bg-red-50.text-red-700,
 #lab-root .bg-red-50.text-red-600 {
-  color: #ff8a8c !important;
+  color: var(--up) !important;
 }
 #lab-root .bg-emerald-50 {
   background: var(--down-deep) !important;
 }
 #lab-root .bg-emerald-50.text-emerald-700,
 #lab-root .bg-emerald-50.text-emerald-600 {
-  color: #4ade80 !important;
+  color: var(--down) !important;
 }
 #lab-root .bg-border\/50,
 #lab-root .bg-border\/60 {
@@ -181,7 +188,7 @@
 #lab-root .ring-1,
 #lab-root .shadow-sm,
 #lab-root .shadow-md {
-  --tw-shadow-color: #000;
+  --tw-shadow-color: rgba(26, 26, 26, 0.12);
 }
 #lab-root .rounded-lg,
 #lab-root .rounded-md,
@@ -211,13 +218,13 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  background: linear-gradient(180deg, #f28c00 0%, #e07f00 100%);
-  color: #000;
+  background: var(--amber);
+  color: var(--bg);
   padding: 0 10px;
   position: sticky;
   top: 0;
   z-index: 200;
-  border-bottom: 1px solid #000;
+  border-bottom: 1px solid var(--line-strong);
 }
 .gmt-cmd-left {
   display: flex;
@@ -248,24 +255,25 @@
 .gmt-cmd-mid::-webkit-scrollbar {
   display: none;
 }
+/* 命令栏现在是墨色实底，按钮需用半透明白做层次；hover/选中反转为「纸底墨字」 */
 .gmt-cmd-btn {
-  border: 1px solid rgba(0, 0, 0, 0.45);
-  color: #000;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: var(--bg);
   font-weight: 600;
   font-size: 10px;
   padding: 1px 7px;
-  background: rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.12);
   white-space: nowrap;
 }
 .gmt-cmd-btn:hover {
-  background: #000;
+  background: var(--bg);
   color: var(--amber);
-  border-color: #000;
+  border-color: var(--bg);
 }
 .gmt-cmd-btn[aria-pressed="true"] {
-  background: #000;
+  background: var(--bg);
   color: var(--amber);
-  border-color: #000;
+  border-color: var(--bg);
 }
 .gmt-cmd-right {
   margin-left: auto;
@@ -274,8 +282,9 @@
   gap: 12px;
   white-space: nowrap;
 }
+/* 模式徽章贴在墨色命令栏上，用纸色反白以获得对比 */
 .gmt-mode-badge {
-  background: #000;
+  background: var(--bg);
   color: var(--amber);
   font-weight: 700;
   font-size: 10px;
@@ -402,7 +411,7 @@
 .gmt-tb-btn[aria-pressed="true"],
 .gmt-tb-btn.on {
   background: var(--amber);
-  color: #000;
+  color: var(--bg);
   border-color: var(--amber);
   font-weight: 700;
 }
@@ -481,12 +490,14 @@
 .gmt-widget.zoomed {
   z-index: 300;
 }
+/* 面板标题条：浅色方案下用次级面 + 深色标题，聚焦时才反转为墨色反白。
+   （原为 `background:#000`，是"比面板更深的抬升条"；浅底上应反过来用浅面） */
 .gmt-w-head {
   flex: 0 0 22px;
   display: flex;
   align-items: center;
   gap: 6px;
-  background: #000;
+  background: var(--bg-raise);
   border-bottom: 1px solid var(--line-strong);
   padding: 0 4px 0 8px;
   font-size: 10px;
@@ -495,15 +506,15 @@
 .gmt-widget.focused .gmt-w-head,
 .gmt-widget.dragging .gmt-w-head {
   background: var(--amber);
-  color: #000;
+  color: var(--bg);
 }
 .gmt-w-num {
-  color: var(--amber);
+  color: var(--fg-faint);
   font-weight: 700;
 }
 .gmt-widget.focused .gmt-w-num,
 .gmt-widget.dragging .gmt-w-num {
-  color: #000;
+  color: var(--bg);
 }
 .gmt-w-title {
   font-weight: 600;
@@ -519,7 +530,7 @@
   white-space: nowrap;
 }
 .gmt-widget.focused .gmt-w-asof {
-  color: #000;
+  color: var(--bg);
 }
 .gmt-w-btn {
   border: none;
@@ -534,7 +545,7 @@
   background: var(--line);
 }
 .gmt-widget.focused .gmt-w-btn:hover {
-  color: #000;
+  color: var(--bg);
   background: rgba(0, 0, 0, 0.2);
 }
 .gmt-w-drag {
@@ -621,7 +632,7 @@
 }
 .gmt-chip.on {
   background: var(--amber);
-  color: #000;
+  color: var(--bg);
   border-color: var(--amber);
   font-weight: 700;
 }
@@ -630,7 +641,7 @@
   color: var(--amber);
 }
 .gmt-chip.on:hover {
-  color: #000;
+  color: var(--bg);
 }
 .gmt-search {
   flex: 1;
@@ -650,12 +661,13 @@
   text-align: right;
   white-space: nowrap;
 }
+/* 粘性表头：浅面 + 深字 + 墨色表头文字（原来为黑底琥珀字） */
 .gmt-table th {
-  color: var(--amber);
+  color: var(--fg);
   text-align: left;
   position: sticky;
   top: 0;
-  background: #000;
+  background: var(--bg-raise);
   font-weight: 600;
   z-index: 2;
 }
@@ -701,11 +713,19 @@
   padding: 3px 8px;
   border-top: 1px solid var(--line);
 }
+/* 图例色带：跌(深绿) → 中性(灰) → 涨(深红)，白底上用中间调，两端用深色保证可辨 */
 .gmt-legend-bar {
   width: 110px;
   height: 8px;
   border: 1px solid var(--line-strong);
-  background: linear-gradient(90deg, #004d30 0%, #0b2a1b 25%, #141414 50%, #2a0b0c 75%, #5a1416 100%);
+  background: linear-gradient(
+    90deg,
+    var(--down-deep) 0%,
+    var(--down) 20%,
+    var(--flat) 50%,
+    var(--up) 80%,
+    var(--up-deep) 100%
+  );
 }
 .gmt-empty {
   color: var(--fg-faint);
@@ -734,9 +754,9 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 10px;
-  background: #000;
+  background: var(--amber);
   border-bottom: 1px solid var(--line-strong);
-  color: var(--amber);
+  color: var(--bg);
   font-size: 11px;
   font-weight: 700;
 }
@@ -796,9 +816,9 @@
   align-items: center;
   justify-content: space-between;
   padding: 8px 12px;
-  background: #000;
+  background: var(--amber);
   border-bottom: 1px solid var(--line-strong);
-  color: var(--amber);
+  color: var(--bg);
   font-weight: 700;
   font-size: 12px;
 }

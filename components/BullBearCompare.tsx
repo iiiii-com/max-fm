@@ -60,7 +60,7 @@ export default function BullBearCompare() {
           name: "涨跌幅 %",
           nameTextStyle: { fontSize: 10 },
           axisLabel: { fontSize: 9 },
-          splitLine: { lineStyle: { color: "#292929", type: "dashed" } },
+          splitLine: { lineStyle: { color: "#e2e0dc", type: "dashed" } },
         },
         {
           type: "value",
@@ -81,7 +81,7 @@ export default function BullBearCompare() {
           data: all.map((c) => ({
             value: c.changePct,
             itemStyle: {
-              color: c.phase === "bull" ? "#dc2626" : "#16a34a",
+              color: c.phase === "bull" ? "#c0392b" : "#1e8449",
               borderRadius: [2, 2, 0, 0],
             },
           })),
@@ -105,8 +105,8 @@ export default function BullBearCompare() {
           smooth: true,
           showSymbol: true,
           symbolSize: 4,
-          lineStyle: { color: "#f59e0b", width: 1.5 },
-          itemStyle: { color: "#f59e0b" },
+          lineStyle: { color: "#b45309", width: 1.5 },
+          itemStyle: { color: "#b45309" },
         },
       ],
     };

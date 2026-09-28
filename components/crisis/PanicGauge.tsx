@@ -17,9 +17,9 @@ function arc(startDeg: number, endDeg: number): string {
 }
 
 const SEGMENTS = [
-  { from: 180, to: 108, color: "#16a34a" },
-  { from: 108, to: 54, color: "#eab308" },
-  { from: 54, to: 0, color: "#dc2626" },
+  { from: 180, to: 108, color: "#1e8449" },
+  { from: 108, to: 54, color: "#a16207" },
+  { from: 54, to: 0, color: "#c0392b" },
 ];
 
 export default function PanicGauge({ value }: { value: number }) {

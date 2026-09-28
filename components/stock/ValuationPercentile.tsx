@@ -33,19 +33,19 @@ export default function ValuationPercentile({ secid, name }: { secid: string; na
   const cur = d.current?.pe ?? 0;
   const opt: EChartsOption = {
     animation: false,
-    tooltip: { trigger: "axis", backgroundColor: "rgba(255,255,255,0.96)", borderColor: "#cbd5e1", textStyle: { color: "#1e293b", fontSize: 11 }, formatter: (p: any) => { const i = Array.isArray(p) ? p[0]?.dataIndex ?? 0 : 0; const pt = d.series?.[i]; return pt ? `<b>${pt.date}</b><br/>PE(TTM) ${pt.pe}` : ""; } },
+    tooltip: { trigger: "axis", backgroundColor: "rgba(255,255,255,0.96)", borderColor: "#e2e0dc", textStyle: { color: "#e2e0dc", fontSize: 11 }, formatter: (p: any) => { const i = Array.isArray(p) ? p[0]?.dataIndex ?? 0 : 0; const pt = d.series?.[i]; return pt ? `<b>${pt.date}</b><br/>PE(TTM) ${pt.pe}` : ""; } },
     grid: { left: 46, right: 16, top: 30, bottom: 26 },
     xAxis: { type: "category", data: d.series?.map((p) => p.date) ?? [], axisLabel: { fontSize: 8, interval: Math.floor((d.series?.length ?? 1) / 5) } },
-    yAxis: { type: "value", scale: true, axisLabel: { fontSize: 9 }, splitLine: { lineStyle: { color: "#292929", type: "dashed" } } },
+    yAxis: { type: "value", scale: true, axisLabel: { fontSize: 9 }, splitLine: { lineStyle: { color: "#e2e0dc", type: "dashed" } } },
     series: [
       {
-        name: "PE(TTM)", type: "line", data: d.series?.map((p) => p.pe) ?? [], showSymbol: false, lineStyle: { width: 1.4, color: "#3b82f6" },
+        name: "PE(TTM)", type: "line", data: d.series?.map((p) => p.pe) ?? [], showSymbol: false, lineStyle: { width: 1.4, color: "#1d4ed8" },
         areaStyle: { color: "rgba(59,130,246,0.08)" },
         markLine: {
           silent: true, symbol: "none",
           data: [
-            { yAxis: s.avg, lineStyle: { color: "#f59e0b", width: 0.8, type: "dashed" }, label: { formatter: `均值 ${s.avg}`, fontSize: 8, color: "#d97706", position: "insideEndTop" } },
-            { yAxis: cur, lineStyle: { color: "#d7000b", width: 1 }, label: { formatter: `当前 ${cur}`, fontSize: 9, color: "#d7000b", position: "insideEndTop" } },
+            { yAxis: s.avg, lineStyle: { color: "#b45309", width: 0.8, type: "dashed" }, label: { formatter: `均值 ${s.avg}`, fontSize: 8, color: "#d97706", position: "insideEndTop" } },
+            { yAxis: cur, lineStyle: { color: "#c0392b", width: 1 }, label: { formatter: `当前 ${cur}`, fontSize: 9, color: "#c0392b", position: "insideEndTop" } },
           ],
         },
       },

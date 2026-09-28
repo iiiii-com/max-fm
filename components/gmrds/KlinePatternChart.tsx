@@ -52,8 +52,8 @@ export default function KlinePatternChart({
         trigger: "axis",
         axisPointer: { type: "cross" },
         backgroundColor: "rgba(255,255,255,0.96)",
-        borderColor: "#cbd5e1",
-        textStyle: { color: "#1e293b", fontSize: 12 },
+        borderColor: "#e2e0dc",
+        textStyle: { color: "#e2e0dc", fontSize: 12 },
         formatter: (params: any) => {
           const arr = Array.isArray(params) ? params : [params];
           const i = arr[0]?.dataIndex ?? 0;
@@ -61,7 +61,7 @@ export default function KlinePatternChart({
           if (!b) return "";
           const prev = i > 0 ? bars[i - 1].close : b.open;
           const pct = prev ? ((b.close - prev) / prev) * 100 : 0;
-          const col = b.close >= prev ? "#d7000b" : "#0aa06e";
+          const col = b.close >= prev ? "#c0392b" : "#1e8449";
           return `<b>${b.date}</b>  <span style="color:${col}">${pct >= 0 ? "+" : ""}${pct.toFixed(2)}%</span><br/>开 ${b.open}　收 ${b.close}<br/>高 ${b.high}　低 ${b.low}`;
         },
       },
@@ -81,7 +81,7 @@ export default function KlinePatternChart({
       yAxis: {
         scale: true,
         axisLabel: { fontSize: 10 },
-        splitLine: { lineStyle: { color: "#eef0ec" } },
+        splitLine: { lineStyle: { color: "#f4f3f0" } },
       },
       dataZoom: [
         { type: "inside", start: 0, end: 100 },
@@ -92,11 +92,11 @@ export default function KlinePatternChart({
           name: "K线",
           type: "candlestick",
           data: ohlc,
-          itemStyle: { color: "#d7000b", color0: "#0aa06e", borderColor: "#d7000b", borderColor0: "#0aa06e" },
+          itemStyle: { color: "#c0392b", color0: "#1e8449", borderColor: "#c0392b", borderColor0: "#1e8449" },
         },
         mkPctSeries({ bars, show: true, position: "top", fontSize: 9, maxVisible: 60, keep: 60 }),
-        { name: "MA20", type: "line", data: ma(20), smooth: true, showSymbol: false, lineStyle: { width: 1, color: "#3b82f6" } },
-        { name: "MA60", type: "line", data: ma(60), smooth: true, showSymbol: false, lineStyle: { width: 1, color: "#8b5cf6" } },
+        { name: "MA20", type: "line", data: ma(20), smooth: true, showSymbol: false, lineStyle: { width: 1, color: "#1d4ed8" } },
+        { name: "MA60", type: "line", data: ma(60), smooth: true, showSymbol: false, lineStyle: { width: 1, color: "#7c3aed" } },
         {
           name: "买卖点",
           type: "scatter",
@@ -104,9 +104,9 @@ export default function KlinePatternChart({
             const b = bars.find((x) => x.date === m.date);
             return {
               value: [m.date, b ? b.high * 1.01 : 0],
-              label: { show: true, formatter: m.label, position: "top", fontSize: 10, fontWeight: 700, color: m.type === "buy" ? "#d7000b" : m.type === "sell" ? "#0aa06e" : "#f59e0b" },
+              label: { show: true, formatter: m.label, position: "top", fontSize: 10, fontWeight: 700, color: m.type === "buy" ? "#c0392b" : m.type === "sell" ? "#1e8449" : "#b45309" },
               itemStyle: {
-                color: m.type === "buy" ? "#d7000b" : m.type === "sell" ? "#0aa06e" : "#f59e0b",
+                color: m.type === "buy" ? "#c0392b" : m.type === "sell" ? "#1e8449" : "#b45309",
                 borderColor: "#fff", borderWidth: 1.5,
               },
             };

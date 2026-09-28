@@ -28,8 +28,8 @@ import type { DrawerStock } from "@/components/StockDrawer";
 interface SectorLeader {
   name: string;
   secid: string;
-  pct: number;
-  mainNet: number;
+  /** 涨跌幅 %；东财列表接口内联返回，缺失时为 null */
+  pct: number | null;
 }
 
 interface SectorRow {
@@ -40,6 +40,10 @@ interface SectorRow {
   mainNetIn: number;
   mainPct: number;
   amount: number;
+  up?: number;
+  down?: number;
+  /** 0=母板块，2/3=东财 Ⅱ/Ⅲ 细分分册 */
+  tier?: number;
   leader?: SectorLeader | null;
 }
 
@@ -59,6 +63,13 @@ interface Northbound {
   stopped?: boolean; // 2024-08 起停止实时披露：true 时显示说明而非误导性 0
 }
 
+interface BoardUniverse {
+  total: number;
+  returned: number;
+  deduped: number;
+  note: string;
+}
+
 function fmtMoney(n: number) {
   if (Math.abs(n) >= 1e8) return `${(n / 1e8).toFixed(2)}亿`;
   if (Math.abs(n) >= 1e4) return `${(n / 1e4).toFixed(0)}万`;
@@ -69,30 +80,39 @@ export default function MarketDashboard() {
   const { items, toggle, has } = useWatchlist();
   const { refreshKey } = useRefresh();
   const [sectors, setSectors] = useState<SectorRow[]>([]);
+  const [universe, setUniverse] = useState<BoardUniverse | null>(null);
   const [north, setNorth] = useState<Northbound | null>(null);
   const [err, setErr] = useState("");
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [view, setView] = useState<"table" | "bar">("table");
+  // 排名表默认按主力净流入**降序**（榜单语义 = 最强在前）
   const [sortKey, setSortKey] = useState<"changePct" | "mainNetIn" | "amount" | "mainPct">("mainNetIn");
-  const [sortDir, setSortDir] = useState<1 | -1>(-1);
+  const [sortDir, setSortDir] = useState<1 | -1>(1);
+  // 默认隐藏东财 Ⅱ/Ⅲ 细分分册：它们与母板块是同一批股票的子集，混排会重复计算
+  const [hideSubtier, setHideSubtier] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [detailMap, setDetailMap] = useState<Record<string, SectorStock[]>>({});
   const [detailLoading, setDetailLoading] = useState<string | null>(null);
   const [drawer, setDrawer] = useState<DrawerStock | null>(null);
+  const [toast, setToast] = useState("");
 
   const load = async () => {
     setRefreshing(true);
     try {
-      const res = await fetch("/api/sector/board?top=30&leaders=1", { cache: "no-store" });
+      const res = await fetch("/api/sector/board?top=60", { cache: "no-store" });
       const j = await res.json();
       if (j?.ok) {
         setSectors(j.list || []);
+        setUniverse(j.universe ?? null);
         setNorth(j.northbound);
+        setErr("");
       } else setErr(j?.error ?? "加载失败");
     } catch {
       setErr("资金流数据暂不可用");
     } finally {
       setRefreshing(false);
+      setLoading(false);
     }
   };
 
@@ -100,6 +120,12 @@ export default function MarketDashboard() {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshKey]);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(""), 2200);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   const loadDetail = async (code: string) => {
     if (detailMap[code]) return;
@@ -127,19 +153,26 @@ export default function MarketDashboard() {
   const stockWatch = items.filter((i) => i.kind === "stock" || i.kind === "index" || i.kind === "etf");
   const sectorWatch = items.filter((i) => i.kind === "sector");
 
+  const visibleSectors = useMemo(
+    () => (hideSubtier ? sectors.filter((s) => !s.tier) : sectors),
+    [sectors, hideSubtier]
+  );
+
   const sortedSectors = useMemo(() => {
-    return [...sectors].sort((a, b) => {
+    return [...visibleSectors].sort((a, b) => {
       const va = a[sortKey] ?? 0;
       const vb = b[sortKey] ?? 0;
+      // sortDir=1 → 降序（vb - va），sortDir=-1 → 升序
       return (vb - va) * sortDir;
     });
-  }, [sectors, sortKey, sortDir]);
+  }, [visibleSectors, sortKey, sortDir]);
 
+  // 排名类指标首次点击一律降序（最强在前），二次点击才反转
   const toggleSort = (key: "changePct" | "mainNetIn" | "amount" | "mainPct") => {
     if (sortKey === key) setSortDir((d) => (d === 1 ? -1 : 1));
     else {
       setSortKey(key);
-      setSortDir(key === "changePct" ? -1 : -1);
+      setSortDir(1);
     }
   };
 
@@ -147,15 +180,17 @@ export default function MarketDashboard() {
     <button
       onClick={() => toggleSort(k)}
       className={`inline-flex items-center gap-1 hover:text-foreground transition-colors ${className}`}
-      title="点击排序"
+      title="点击排序（首次点击为降序）"
     >
       {children}
-      <span className="text-[9px] opacity-70">{sortKey === k ? (sortDir === -1 ? "↓" : "↑") : "↕"}</span>
+      <span className="text-[9px] opacity-70" aria-hidden>{sortKey === k ? (sortDir === 1 ? "↓" : "↑") : "↕"}</span>
+      {sortKey === k && <span className="sr-only">{sortDir === 1 ? "当前降序" : "当前升序"}</span>}
     </button>
   );
 
   const barOption = useMemo<EChartsOption>(() => {
-    const vals = sectors.map((s) => s.mainNetIn / 1e8);
+    const rows = sortedSectors;
+    const vals = rows.map((s) => s.mainNetIn / 1e8);
     const hasNeg = vals.some((v) => v < 0);
     const min = Math.min(0, ...vals);
     const max = Math.max(0, ...vals);
@@ -166,8 +201,8 @@ export default function MarketDashboard() {
         axisPointer: { type: "shadow" },
         formatter: (params: any) => {
           const p = params?.[0];
-          if (!p || !sectors[p.dataIndex]) return "";
-          const s = sectors[p.dataIndex];
+          if (!p || !rows[p.dataIndex]) return "";
+          const s = rows[p.dataIndex];
           return `${s.name}<br/>主力净流入：${s.mainNetIn >= 0 ? "+" : ""}${fmtMoney(s.mainNetIn)}<br/>涨跌幅：${s.changePct >= 0 ? "+" : ""}${s.changePct.toFixed(2)}%`;
         },
       },
@@ -180,7 +215,7 @@ export default function MarketDashboard() {
       },
       yAxis: {
         type: "category",
-        data: sectors.map((s) => s.name),
+        data: rows.map((s) => s.name),
         inverse: true,
         axisTick: { show: false },
         axisLabel: { fontSize: 11 },
@@ -192,12 +227,14 @@ export default function MarketDashboard() {
           data: vals.map((v) => ({
             value: Number(v.toFixed(2)),
             itemStyle: {
-              borderRadius: [0, 3, 3, 0],
+              borderRadius: v >= 0 ? [0, 3, 3, 0] : [3, 0, 0, 3],
               color:
                 v >= 0
-                  ? { type: "linear", x: 0, y: 0, x2: 1, y2: 0, colorStops: [{ offset: 0, color: "rgba(220,38,38,0.3)" }, { offset: 1, color: "#dc2626" }] }
-                  : { type: "linear", x: 0, y: 0, x2: 1, y2: 0, colorStops: [{ offset: 0, color: "rgba(22,163,74,0.3)" }, { offset: 1, color: "#16a34a" }] },
+                  ? { type: "linear", x: 0, y: 0, x2: 1, y2: 0, colorStops: [{ offset: 0, color: "rgba(220,38,38,0.3)" }, { offset: 1, color: "#c0392b" }] }
+                  : { type: "linear", x: 0, y: 0, x2: 1, y2: 0, colorStops: [{ offset: 0, color: "#1e8449" }, { offset: 1, color: "rgba(22,163,74,0.3)" }] },
             },
+            // 负值标签放左侧、正值放右侧，避免与柱体/坐标轴重叠
+            label: { position: v >= 0 ? ("right" as const) : ("left" as const) },
           })),
           label: {
             show: true,
@@ -209,13 +246,13 @@ export default function MarketDashboard() {
         },
       ],
     };
-  }, [sectors]);
+  }, [sortedSectors]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
       <div className="card p-4 lg:col-span-2">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-bold">板块资金流 Top 30</h2>
+        <div className="flex items-center justify-between mb-1 gap-2 flex-wrap">
+          <h2 className="font-bold">板块资金流排名</h2>
           <div className="flex items-center gap-2">
             <div className="flex rounded-md border border-border overflow-hidden text-xs">
               <button
@@ -236,18 +273,37 @@ export default function MarketDashboard() {
             </button>
           </div>
         </div>
+        <p className="text-[11px] text-muted mb-3 leading-relaxed">
+          东财行业板块共 {universe?.total ?? "—"} 个，本表取主力净流入前 {universe?.returned ?? "—"} 个
+          {universe && universe.deduped < universe.returned && `，跨层级去重后显示 ${universe.deduped} 个`}。
+          板块间存在父子层级与 Ⅱ/Ⅲ 分册，<span className="font-medium text-foreground">不可跨板块求和</span>。
+        </p>
+        <div className="flex items-center gap-3 mb-3 flex-wrap">
+          <label className="inline-flex items-center gap-1.5 text-[11px] text-muted cursor-pointer">
+            <input
+              type="checkbox"
+              checked={hideSubtier}
+              onChange={(e) => setHideSubtier(e.target.checked)}
+              className="accent-[var(--color-primary)]"
+            />
+            隐藏 Ⅱ/Ⅲ 细分分册
+          </label>
+          <span className="text-[11px] text-muted">当前显示 {visibleSectors.length} 个板块</span>
+        </div>
         {err && <ErrorState message={err} onRetry={load} compact />}
 
-        {view === "bar" ? (
-          sectors.length ? (
-            <EChart option={barOption} height={Math.max(480, sectors.length * 20 + 60)} />
+        {loading ? (
+          <LoadingRegion rows={8} />
+        ) : view === "bar" ? (
+          sortedSectors.length ? (
+            <EChart option={barOption} height={Math.max(480, sortedSectors.length * 20 + 60)} />
           ) : (
             <EmptyState title="暂无板块资金数据" hint="可点击上方「刷新」重新拉取" />
           )
-        ) : (
+        ) : sortedSectors.length ? (
           <CollapsibleOnMobile collapsedHeight={520} moreLabel="展开全部板块">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm table-stripe">
+            <table className="w-full min-w-[560px] text-sm table-stripe">
               <thead>
                 <tr className="text-xs text-muted border-b border-border">
                   <th scope="col" className="text-left py-2 pr-2">板块</th>
@@ -255,7 +311,7 @@ export default function MarketDashboard() {
                   <th scope="col" className="text-right px-2"><SortTh k="mainNetIn">主力净流入</SortTh></th>
                   <th scope="col" className="text-right px-2 hidden sm:table-cell"><SortTh k="mainPct">净占比</SortTh></th>
                   <th scope="col" className="text-right px-2 hidden md:table-cell"><SortTh k="amount">成交额</SortTh></th>
-                  <th scope="col" className="text-left px-2 hidden lg:table-cell">龙头</th>
+                  <th scope="col" className="text-left px-2 hidden lg:table-cell">领涨股</th>
                   <th scope="col" className="text-right pl-2"></th>
                 </tr>
               </thead>
@@ -267,6 +323,10 @@ export default function MarketDashboard() {
                     index={i}
                     has={has}
                     toggle={toggle}
+                    onToggleStar={() => {
+                      toggle({ secid: s.code, code: s.code, name: s.name, kind: "sector" });
+                      setToast(has(s.code) ? `已移出「${s.name}」自选` : `已加入「${s.name}」自选`);
+                    }}
                     expanded={expanded === s.code}
                     detailLoading={detailLoading === s.code}
                     details={detailMap[s.code]}
@@ -278,13 +338,18 @@ export default function MarketDashboard() {
             </table>
           </div>
           </CollapsibleOnMobile>
+        ) : (
+          <EmptyState title="暂无板块资金数据" hint="可点击上方「刷新」重新拉取" />
         )}
       </div>
 
       <div className="space-y-4">
         {north && (
           <div className="card p-4">
-            <h3 className="font-bold text-sm mb-2">北向资金（{north.date}）</h3>
+            {/* 2024-08 起交易所停止披露北向净买入，此处只展示「披露状态」，不把今天日期挂在陈旧数据上 */}
+            <h3 className="font-bold text-sm mb-2">
+              北向资金{north.stopped ? "" : `（${north.date || "—"}）`}
+            </h3>
             {north.stopped ? (
               <p className="text-xs text-muted leading-relaxed">
                 沪深交易所自 2024 年 8 月 18 日起<span className="font-medium text-foreground">停止实时披露北向净买入金额</span>
@@ -310,7 +375,7 @@ export default function MarketDashboard() {
                 <div key={w.secid} className="flex items-center gap-2 text-xs">
                   <Link href={`/stock?q=${encodeURIComponent(w.name)}`} className="font-medium hover:text-primary flex-1">{w.name}</Link>
                   <span className="text-[10px] text-muted font-mono">{w.code}</span>
-                  <button onClick={() => toggle(w)} className="text-muted hover:text-red-500">×</button>
+                  <button onClick={() => toggle(w)} className="text-muted hover:text-red-500" aria-label={`移出「${w.name}」自选`}>×</button>
                 </div>
               ))}
             </div>
@@ -323,8 +388,8 @@ export default function MarketDashboard() {
             <div className="flex flex-wrap gap-2">
               {sectorWatch.map((w) => (
                 <span key={w.secid} className="inline-flex items-center gap-1 text-xs rounded-md border border-border px-2 py-1">
-                  <Link href={`/stock?q=${encodeURIComponent(w.name)}`} className="hover:text-primary">{w.name}</Link>
-                  <button onClick={() => toggle(w)} className="text-muted hover:text-red-500">×</button>
+                  <Link href={`/sector?bk=${w.code}`} className="hover:text-primary">{w.name}</Link>
+                  <button onClick={() => toggle(w)} className="text-muted hover:text-red-500" aria-label={`移出「${w.name}」自选`}>×</button>
                 </span>
               ))}
             </div>
@@ -340,6 +405,12 @@ export default function MarketDashboard() {
         </div>
       </div>
 
+      {toast && (
+        <div role="status" aria-live="polite" className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 rounded-md bg-foreground text-background px-3 py-1.5 text-xs shadow-lg">
+          {toast}
+        </div>
+      )}
+
       {/* 仅在真正打开抽屉时才挂载：StockDrawer 无条件挂载会立刻触发其动态导入，
           连带把 EChart → ECharts（263KB）拉进首屏，使按需加载形同虚设 */}
       {drawer && <StockDrawer stock={drawer} onClose={() => setDrawer(null)} />}
@@ -352,6 +423,7 @@ function SectorRowComp({
   index,
   has,
   toggle,
+  onToggleStar,
   expanded,
   detailLoading,
   details,
@@ -362,6 +434,7 @@ function SectorRowComp({
   index: number;
   has: (code: string) => boolean;
   toggle: (w: WatchItem) => void;
+  onToggleStar: () => void;
   expanded: boolean;
   detailLoading: boolean;
   details?: SectorStock[];
@@ -381,10 +454,13 @@ function SectorRowComp({
             >
               {s.name}
             </Link>
+            {s.tier ? (
+              <span className="text-[9px] text-muted border border-border/60 rounded px-1" title="东财细分分册，与母板块成分重叠">分册</span>
+            ) : null}
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                toggle({ secid: s.code, code: s.code, name: s.name, kind: "sector" });
+                onToggleStar();
               }}
               className={`text-[10px] ${has(s.code) ? "text-red-500" : "text-muted hover:text-primary"}`}
               title="自选板块"
@@ -393,13 +469,13 @@ function SectorRowComp({
             >
               {has(s.code) ? "★" : "☆"}
             </button>
-            <span className={`text-[10px] text-muted transition-transform ${expanded ? "rotate-90" : ""}`}>▸</span>
+            <span className={`text-[10px] text-muted transition-transform ${expanded ? "rotate-90" : ""}`} aria-hidden>▸</span>
           </div>
         </th>
-        <td className={`text-right px-2 font-mono ${s.changePct >= 0 ? "up" : "down"}`}>{s.changePct >= 0 ? "+" : ""}{s.changePct.toFixed(2)}%</td>
-        <td className={`text-right px-2 font-mono font-medium ${s.mainNetIn >= 0 ? "up" : "down"}`}>{fmtMoney(s.mainNetIn)}</td>
-        <td className="text-right px-2 font-mono hidden sm:table-cell text-muted">{s.mainPct.toFixed(2)}%</td>
-        <td className="text-right px-2 font-mono hidden md:table-cell text-muted">{s.amount >= 1e8 ? `${(s.amount / 1e8).toFixed(1)}亿` : fmtMoney(s.amount)}</td>
+        <td className={`num text-right px-2 font-mono ${s.changePct >= 0 ? "up" : "down"}`}>{s.changePct >= 0 ? "+" : ""}{s.changePct.toFixed(2)}%</td>
+        <td className={`num text-right px-2 font-mono font-medium ${s.mainNetIn >= 0 ? "up" : "down"}`}>{s.mainNetIn >= 0 ? "+" : ""}{fmtMoney(s.mainNetIn)}</td>
+        <td className="num text-right px-2 font-mono hidden sm:table-cell text-muted">{s.mainPct.toFixed(2)}%</td>
+        <td className="num text-right px-2 font-mono hidden md:table-cell text-muted">{s.amount >= 1e8 ? `${(s.amount / 1e8).toFixed(1)}亿` : fmtMoney(s.amount)}</td>
         <td className="px-2 hidden lg:table-cell">
           {s.leader ? (
             <button
@@ -408,12 +484,14 @@ function SectorRowComp({
                 onOpenDrawer({ name: s.leader!.name, secid: s.leader!.secid });
               }}
               className="text-left hover:text-primary"
-              title="查看龙头详情"
+              title="板块内当日涨幅第一的个股"
             >
               <span className="text-xs font-medium">{s.leader.name}</span>
-              <span className={`block text-[10px] font-mono ${s.leader.pct >= 0 ? "up" : "down"}`}>
-                {s.leader.pct >= 0 ? "+" : ""}{s.leader.pct.toFixed(2)}% · {fmtMoney(s.leader.mainNet)}
-              </span>
+              {s.leader.pct != null && (
+                <span className={`block text-[10px] font-mono ${s.leader.pct >= 0 ? "up" : "down"}`}>
+                  {s.leader.pct >= 0 ? "+" : ""}{s.leader.pct.toFixed(2)}%
+                </span>
+              )}
             </button>
           ) : (
             <span className="text-xs text-muted">—</span>
@@ -435,7 +513,7 @@ function SectorRowComp({
       {expanded && (
         <tr className="border-b border-border/50">
           <td colSpan={7} className="py-2 pl-8 pr-2">
-            <p className="text-[10px] text-muted mb-1.5">板块个股主力净流入 Top10（点击个股进入分析页）</p>
+            <p className="text-[10px] text-muted mb-1.5">板块成分股主力净流入 Top10（点击个股进入分析页）</p>
             {detailLoading ? (
               <LoadingRegion rows={3} />
             ) : details && details.length ? (
@@ -450,7 +528,7 @@ function SectorRowComp({
                     <span className="w-4 text-[10px] text-muted font-mono">{i + 1}</span>
                     <span className="font-medium flex-1">{st.name}</span>
                     <span className={`font-mono ${st.pct >= 0 ? "up" : "down"}`}>{st.pct >= 0 ? "+" : ""}{st.pct.toFixed(2)}%</span>
-                    <span className={`font-mono font-medium ${st.mainNet >= 0 ? "up" : "down"}`}>{fmtMoney(st.mainNet)}</span>
+                    <span className={`font-mono font-medium ${st.mainNet >= 0 ? "up" : "down"}`}>{st.mainNet >= 0 ? "+" : ""}{fmtMoney(st.mainNet)}</span>
                   </Link>
                 ))}
               </div>

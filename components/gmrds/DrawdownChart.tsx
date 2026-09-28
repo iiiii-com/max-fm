@@ -31,14 +31,14 @@ export default function DrawdownChart({
       tooltip: {
         trigger: "axis",
         backgroundColor: "rgba(255,255,255,0.96)",
-        borderColor: "#cbd5e1",
-        textStyle: { color: "#1e293b", fontSize: 12 },
+        borderColor: "#e2e0dc",
+        textStyle: { color: "#e2e0dc", fontSize: 12 },
         formatter: (params: any) => {
           const arr = Array.isArray(params) ? params : [params];
           const i = arr[0]?.dataIndex ?? 0;
           const p = ddSeries[i];
           if (!p) return "";
-          return `<b>${p.date}</b><br/>回撤 <b style="color:#d7000b">${p.dd.toFixed(2)}%</b>`;
+          return `<b>${p.date}</b><br/>回撤 <b style="color:#c0392b">${p.dd.toFixed(2)}%</b>`;
         },
       },
       xAxis: {
@@ -49,7 +49,7 @@ export default function DrawdownChart({
       yAxis: {
         type: "value",
         axisLabel: { fontSize: 10, formatter: "{value}%" },
-        splitLine: { lineStyle: { color: "#eef0ec" } },
+        splitLine: { lineStyle: { color: "#f4f3f0" } },
         max: 2,
       },
       dataZoom: [
@@ -62,7 +62,7 @@ export default function DrawdownChart({
           type: "line",
           data: ddSeries.map((d) => d.dd),
           showSymbol: false,
-          lineStyle: { color: "#d7000b", width: 1.2 },
+          lineStyle: { color: "#c0392b", width: 1.2 },
           areaStyle: { color: "rgba(215,0,11,0.12)" },
         },
       ],
@@ -76,7 +76,7 @@ export default function DrawdownChart({
         {stats.map((s) => (
           <span key={s.label} className="inline-flex items-baseline gap-1.5 px-2.5 py-1 rounded-lg border border-border bg-background/60 text-xs">
             <span className="text-muted">{s.label}</span>
-            <b style={{ color: s.tone === "up" ? "#d7000b" : s.tone === "down" ? "#0aa06e" : "var(--foreground)" }}>{s.value}</b>
+            <b style={{ color: s.tone === "up" ? "#c0392b" : s.tone === "down" ? "#1e8449" : "var(--foreground)" }}>{s.value}</b>
           </span>
         ))}
       </div>

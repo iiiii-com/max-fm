@@ -3,6 +3,10 @@
 import { useEffect, useRef } from "react";
 import { echarts, type EChartsOption } from "./echarts";
 import { useTheme } from "@/components/theme-provider";
+import { resolveChartTheme } from "@/lib/charts/theme";
+
+/** 注册到 ECharts 的主题名（内容按当前令牌实时重建） */
+const THEME_NAME = "mx-site";
 
 export default function EChart({
   option,
@@ -35,13 +39,15 @@ export default function EChart({
   // 初始化只需一次；option 更新由下方 effect 处理
   useEffect(() => {
     if (!ref.current) return;
-    // 全站终端风格：图表统一走 ECharts dark 主题（黑底浅字，与终端视觉一致）
-    const useDark = true;
-    const chart = echarts.init(ref.current, useDark ? "dark" : undefined);
+    // 主题按当前 CSS 令牌实时构建，而不是硬编码 ECharts 内置 dark ——
+    // 后者与站点主题脱钩：站点换肤后图表不跟随，切换明暗对图表也无效。
+    // 变量在 effect 内读取，确保拿到的是 .dark 类切换后的生效值。
+    echarts.registerTheme(THEME_NAME, resolveChartTheme());
+    const chart = echarts.init(ref.current, THEME_NAME);
     innerRef.current = chart;
     if (chartRef) chartRef.current = chart;
-    // dark 主题自带深蓝紫画布底，终端风格需要透明以露出卡片底色
-    chart.setOption(useDark ? { backgroundColor: "transparent", ...option } : option);
+    // 画布保持透明，露出卡片底色
+    chart.setOption({ backgroundColor: "transparent", ...option });
     const onResize = () => chart.resize();
     window.addEventListener("resize", onResize);
     if (onDataZoom) chart.on("datazoom", onDataZoom);

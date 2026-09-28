@@ -134,8 +134,8 @@ export function FlowPanel({ data, loading }: { data: FlowPanelData | null; loadi
               borderRadius: [0, 3, 3, 0],
               color:
                 t.value >= 0
-                  ? { type: "linear", x: 0, y: 0, x2: 1, y2: 0, colorStops: [{ offset: 0, color: "rgba(220,38,38,0.35)" }, { offset: 1, color: "#dc2626" }] }
-                  : { type: "linear", x: 0, y: 0, x2: 1, y2: 0, colorStops: [{ offset: 0, color: "rgba(22,163,74,0.35)" }, { offset: 1, color: "#16a34a" }] },
+                  ? { type: "linear", x: 0, y: 0, x2: 1, y2: 0, colorStops: [{ offset: 0, color: "rgba(220,38,38,0.35)" }, { offset: 1, color: "#c0392b" }] }
+                  : { type: "linear", x: 0, y: 0, x2: 1, y2: 0, colorStops: [{ offset: 0, color: "rgba(22,163,74,0.35)" }, { offset: 1, color: "#1e8449" }] },
             },
           })),
           label: {
@@ -164,8 +164,8 @@ export function FlowPanel({ data, loading }: { data: FlowPanelData | null; loadi
           label: { show: false },
           emphasis: { label: { show: true, fontSize: 11, fontWeight: "bold" } },
           data: [
-            { name: "主力净流入", value: Math.abs(Number(main.toFixed(2))), itemStyle: { color: main >= 0 ? "#dc2626" : "#16a34a" } },
-            { name: "散户净流入", value: Math.abs(Number(retail.toFixed(2))), itemStyle: { color: retail >= 0 ? "#dc2626" : "#16a34a" } },
+            { name: "主力净流入", value: Math.abs(Number(main.toFixed(2))), itemStyle: { color: main >= 0 ? "#c0392b" : "#1e8449" } },
+            { name: "散户净流入", value: Math.abs(Number(retail.toFixed(2))), itemStyle: { color: retail >= 0 ? "#c0392b" : "#1e8449" } },
           ],
         },
       ],

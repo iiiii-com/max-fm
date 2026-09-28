@@ -35,8 +35,8 @@ export default function RadarChart({
       tooltip: {
         trigger: "item",
         backgroundColor: "rgba(255,255,255,0.96)",
-        borderColor: "#cbd5e1",
-        textStyle: { color: "#1e293b", fontSize: 12 },
+        borderColor: "#e2e0dc",
+        textStyle: { color: "#e2e0dc", fontSize: 12 },
       },
       legend: {
         bottom: 0,

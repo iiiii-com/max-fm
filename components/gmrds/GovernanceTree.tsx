@@ -1,8 +1,8 @@
 import { GOVERNANCE } from "@/lib/data/gmrds-deep";
 import { FLOW_STAGES } from "@/lib/data/gmrds";
 
-const STAGE_COLORS = ["#0ea5e9", "#10b981", "#ec4899", "#eab308"];
-const COMMITTEE_COLOR = "#c8102e";
+const STAGE_COLORS = ["#0284c7", "#1e8449", "#be185d", "#a16207"];
+const COMMITTEE_COLOR = "#c0392b";
 
 /**
  * 双层级治理架构 · 树状图

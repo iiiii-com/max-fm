@@ -3,16 +3,38 @@
 import { useMemo, useState } from "react";
 import EChart from "./EChart";
 import ChartToolbar, { downloadCSV, type ChartType, type ChartRange } from "./ChartToolbar";
+import { useChartPrefs } from "./chart-prefs";
+import { ANIM_DURATION } from "@/lib/charts/theme";
 import type { EChartsOption } from "echarts";
 
 const r1 = (v: number) => Math.round(v * 100) / 100;
 
 export default function IndicatorLine({
-  title, unit, data, color = "#2563eb",
-}: { title: string; unit: string; data: Array<{ date: string; value: number }>; color?: string }) {
-  const [type, setType] = useState<ChartType>("line");
-  const [range, setRange] = useState<ChartRange>(36);
-  const [log, setLog] = useState(false);
+  title, unit, data, color = "#1d4ed8", hideToolbar,
+}: {
+  title: string; unit: string; data: Array<{ date: string; value: number }>;
+  color?: string;
+  /** 由外层提供全局控制条时隐藏本地图形工具条（避免一页出现几十个重复控件） */
+  hideToolbar?: boolean;
+}) {
+  const shared = useChartPrefs();
+  const [localType, setLocalType] = useState<ChartType>("line");
+  const [localRange, setLocalRange] = useState<ChartRange>(36);
+  const [localLog, setLocalLog] = useState(false);
+
+  // 有全局控制条时订阅共享偏好，否则退回本卡状态（单图页面行为不变）
+  const type = shared ? shared.prefs.type : localType;
+  const range = shared ? shared.prefs.range : localRange;
+  const log = shared ? shared.prefs.log : localLog;
+  const setLocal = (p: { type?: ChartType; range?: ChartRange; log?: boolean }) => {
+    if (p.type != null) setLocalType(p.type);
+    if (p.range != null) setLocalRange(p.range);
+    if (p.log != null) setLocalLog(p.log);
+  };
+  const onToolbar = (p: { type: ChartType; range: ChartRange; log: boolean }) => {
+    if (shared) shared.set(p);
+    else setLocal(p);
+  };
 
   const sliced = useMemo(() => (range === 0 ? data : data.slice(-range)), [data, range]);
   const vals = sliced.map((d) => d.value);
@@ -33,14 +55,14 @@ export default function IndicatorLine({
           const prev = idx > 0 ? vals[idx - 1] : null;
           const dt = sliced[idx]?.date ?? "";
           const mom = prev != null ? r1(cur - prev) : null;
-          return `<b>${dt}</b><br/>${cur} ${unit}${mom != null ? `<br/><span style="color:#8a8a8a">环比 ${mom >= 0 ? "+" : ""}${mom} ${unit}</span>` : ""}`;
+          return `<b>${dt}</b><br/>${cur} ${unit}${mom != null ? `<br/><span style="color:#6b6862">环比 ${mom >= 0 ? "+" : ""}${mom} ${unit}</span>` : ""}`;
         },
       },
       grid: { left: 48, right: 16, top: 48, bottom: 28 },
       xAxis: { type: "category", data: sliced.map((d) => d.date), axisLabel: { fontSize: 10 } },
       yAxis: {
         type: log && canLog ? "log" : "value", scale: true,
-        splitLine: { lineStyle: { color: "#292929", type: "dashed" } },
+        splitLine: { lineStyle: { color: "#e2e0dc", type: "dashed" } },
       },
       series: [{
         name: title || "指标", type: seriesType, data: vals, smooth: true, showSymbol: false,
@@ -78,49 +100,64 @@ export default function IndicatorLine({
 
   return (
     <div>
-      <div className="flex justify-end mb-1">
-        <ChartToolbar
-          type={type} setType={setType}
-          range={range} setRange={setRange}
-          log={log} setLog={setLog} canLog={canLog}
-          onExport={() => downloadCSV(`${title || "indicator"}.csv`, ["date", "value"], sliced.map((d) => [d.date, d.value]))}
-        />
-      </div>
+      {!hideToolbar && (
+        <div className="flex justify-end mb-1">
+          <ChartToolbar
+            type={type} setType={(t) => onToolbar({ type: t, range, log })}
+            range={range} setRange={(r) => onToolbar({ type, range: r, log })}
+            log={log} setLog={(l) => onToolbar({ type, range, log: l })} canLog={canLog}
+            onExport={() => downloadCSV(`${title || "indicator"}.csv`, ["date", "value"], sliced.map((d) => [d.date, d.value]))}
+          />
+        </div>
+      )}
       <EChart option={option} height={280} />
     </div>
   );
 }
 
-export function TrendCard({ title, value, unit, yoy, mom, data, color, note, source }: {
+export function TrendCard({ title, value, unit, yoy, mom, changeUnit, hideToolbar, data, color, note, source }: {
   title: string; value: number; unit: string; yoy?: number | null; mom?: number | null;
+  /** 同比/环比变动的单位（"个百分点" / "%" / "点"），由调用方按指标性质声明 */
+  changeUnit?: string;
+  /** 隐藏本卡工具条（外层已提供全局控制条时用） */
+  hideToolbar?: boolean;
   data: Array<{ date: string; value: number }>; color?: string; note?: string; source?: string;
 }) {
-  const win = data.slice(-36);
-  const vals = win.map((d) => d.value);
+  const shared = useChartPrefs();
+  // 区间摘要必须跟随全局周期，否则「统一看 60 期」时卡片上仍写「近 36 期」
+  const range = shared ? shared.prefs.range : 36;
+  const win = range === 0 ? data : data.slice(-range);
+  const spanLabel = range === 0 ? `全部 ${data.length} 期` : `近 ${range} 期`;
+  const vals = win.map((d) => d.value).filter((v) => Number.isFinite(v));
   const min = vals.length ? Math.min(...vals) : 0;
   const max = vals.length ? Math.max(...vals) : 0;
-  const minD = vals.length ? win[vals.indexOf(min)]?.date : "";
-  const maxD = vals.length ? win[vals.indexOf(max)]?.date : "";
-  const tag = (v?: number | null, suffix = "pct") =>
-    v == null ? null : `${v >= 0 ? "+" : ""}${v}${suffix}`;
+  const minD = vals.length ? (win.find((d) => d.value === min)?.date ?? "") : "";
+  const maxD = vals.length ? (win.find((d) => d.value === max)?.date ?? "") : "";
+  // 数值统一保留 2 位：上游 GDP 季度值形如 4.6666666666666665，直接渲染会把浮点噪声暴露给用户
+  const n2 = (v: number) => Number(v.toFixed(2));
+  const cu = changeUnit ?? "个百分点";
+  const tag = (v?: number | null) =>
+    v == null ? null : `${v >= 0 ? "+" : ""}${n2(v)}${cu === "%" ? "%" : " " + cu}`;
+  // 季度类指标的 date 文本形如 "2023-Q3"；若上游混入小数（如 2023-Q3.6666…）只保留季度标记
+  const cleanDate = (s: string) => (/^[\d]{4}(-\d{2}(-\d{2})?|Q[1-4])$/.test(s) ? s : s.split(/[.,]/)[0]);
   return (
     <div className="card p-4">
       <div className="flex items-baseline justify-between mb-1">
         <p className="text-sm text-muted">{title}</p>
         <div className="flex items-center gap-2 shrink-0">
           {yoy != null && (
-            <span title="同比变化（百分点）" className={`text-xs font-mono ${yoy >= 0 ? "up" : "down"}`}>同比 {tag(yoy)}</span>
+            <span title={`同比变化（${cu}）`} className={`text-xs font-mono ${yoy >= 0 ? "up" : "down"}`}>同比 {tag(yoy)}</span>
           )}
           {mom != null && (
-            <span title="环比变化（百分点）" className={`text-xs font-mono ${mom >= 0 ? "up" : "down"}`}>环比 {tag(mom)}</span>
+            <span title={`环比变化（${cu}）`} className={`text-xs font-mono ${mom >= 0 ? "up" : "down"}`}>环比 {tag(mom)}</span>
           )}
         </div>
       </div>
       <p className="text-2xl font-bold font-mono mb-1">{value}<span className="text-sm font-normal text-muted ml-1">{unit}</span></p>
       <p className="text-[11px] text-muted mb-2 truncate">
-        近 36 期区间 {min}（{minD}）— {max}（{maxD}）{note ? ` · ${note}` : ""}{source ? ` · ${source}` : ""}
+        {spanLabel}区间 {n2(min)}（{cleanDate(minD)}）— {n2(max)}（{cleanDate(maxD)}）{note ? ` · ${note}` : ""}{source ? ` · ${source}` : ""}
       </p>
-      <IndicatorLine title="" unit={unit} data={data} color={color} />
+      <IndicatorLine title="" unit={unit} data={data} color={color} hideToolbar={hideToolbar || !!shared} />
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { DATA_LAYERS } from "@/lib/data/gmrds-deep";
 
-const LAYER_COLORS: Record<string, string> = { L1: "#0ea5e9", L2: "#10b981", L3: "#ec4899" };
+const LAYER_COLORS: Record<string, string> = { L1: "#0284c7", L2: "#1e8449", L3: "#be185d" };
 const LAYER_NAMES: Record<string, string> = { L1: "宏观层", L2: "行业层", L3: "标的层" };
 
 /**
@@ -55,10 +55,10 @@ export default function DataLayersDiagram() {
           const cx = left + boxW / 2;
           return (
             <g key={`arrow-${i}`}>
-              <line x1={cx} y1={y1} x2={cx} y2={y1 + gap - 12} stroke="#94a3b8" strokeWidth={1.4} />
-              <polygon points={`${cx - 5},${y2 - 6} ${cx + 5},${y2 - 6} ${cx},${y2 + 4}`} fill="#94a3b8" />
+              <line x1={cx} y1={y1} x2={cx} y2={y1 + gap - 12} stroke="#8a867e" strokeWidth={1.4} />
+              <polygon points={`${cx - 5},${y2 - 6} ${cx + 5},${y2 - 6} ${cx},${y2 + 4}`} fill="#8a867e" />
               <text x={cx + 10} y={(y1 + y2) / 2} fontSize={8.5} fill="var(--muted)">传导 ↓</text>
-              <line x1={cx + 56} y1={y2 - 8} x2={cx + 56} y2={y1 + 8} stroke="#cbd5e1" strokeWidth={1} strokeDasharray="3 3" />
+              <line x1={cx + 56} y1={y2 - 8} x2={cx + 56} y2={y1 + 8} stroke="#e2e0dc" strokeWidth={1} strokeDasharray="3 3" />
               <text x={cx + 64} y={(y1 + y2) / 2} fontSize={8.5} fill="var(--muted)" opacity={0.7}>校验 ↑</text>
             </g>
           );

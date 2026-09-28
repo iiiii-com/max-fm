@@ -19,8 +19,8 @@ export interface LabMark {
   label: string; // 形态名/信号来源
 }
 
-const UP_C = "#d7000b"; // 涨=红（A股惯例）
-const DOWN_C = "#0aa06e"; // 跌=绿
+const UP_C = "#c0392b"; // 涨=红（A股惯例）
+const DOWN_C = "#1e8449"; // 跌=绿
 
 type SubIndicator = "none" | "macd" | "kdj" | "rsi";
 
@@ -108,8 +108,8 @@ export default function KlineLab({
             symbol: m.type === "buy" ? "triangle" : "pin",
             symbolSize: m.type === "buy" ? 10 : 12,
             symbolRotate: m.type === "buy" ? 0 : 180,
-            itemStyle: { color: m.type === "buy" ? "#16a34a" : UP_C },
-            label: { show: m.type === "sell", formatter: m.label, fontSize: 9, position: "top", color: "#d7000b" },
+            itemStyle: { color: m.type === "buy" ? "#1e8449" : UP_C },
+            label: { show: m.type === "sell", formatter: m.label, fontSize: 9, position: "top", color: "#c0392b" },
           }))
       : [];
 
@@ -167,35 +167,35 @@ export default function KlineLab({
         mkPctSeries({ bars: visible, show: true, position: "top", fontSize: 9, maxVisible: 60, keep: 60 }),
         ...(showMA
           ? ([
-              { name: "MA5", type: "line", data: ma5, symbol: "none", lineStyle: { width: 1, color: "#f59e0b" } },
-              { name: "MA10", type: "line", data: ma10, symbol: "none", lineStyle: { width: 1, color: "#3b82f6" } },
-              { name: "MA20", type: "line", data: ma20, symbol: "none", lineStyle: { width: 1, color: "#8b5cf6" } },
-              { name: "MA60", type: "line", data: ma60, symbol: "none", lineStyle: { width: 1.2, color: "#64748b" } },
+              { name: "MA5", type: "line", data: ma5, symbol: "none", lineStyle: { width: 1, color: "#b45309" } },
+              { name: "MA10", type: "line", data: ma10, symbol: "none", lineStyle: { width: 1, color: "#1d4ed8" } },
+              { name: "MA20", type: "line", data: ma20, symbol: "none", lineStyle: { width: 1, color: "#7c3aed" } },
+              { name: "MA60", type: "line", data: ma60, symbol: "none", lineStyle: { width: 1.2, color: "#6b6862" } },
             ] as any[])
           : []),
         ...(showBOLL
           ? ([
               { name: "BOLL上轨", type: "line", data: bl!.upper, symbol: "none", lineStyle: { width: 1, color: "rgba(128,128,128,0.5)" } },
-              { name: "BOLL中轨", type: "line", data: bl!.mid, symbol: "none", lineStyle: { width: 1, color: "#f59e0b", type: "dashed" } },
+              { name: "BOLL中轨", type: "line", data: bl!.mid, symbol: "none", lineStyle: { width: 1, color: "#b45309", type: "dashed" } },
               { name: "BOLL下轨", type: "line", data: bl!.lower, symbol: "none", lineStyle: { width: 1, color: "rgba(128,128,128,0.5)" } },
             ] as any[])
           : []),
         ...(macdRes
           ? ([
               { name: "MACD", type: "bar", xAxisIndex: 2, yAxisIndex: 2, data: macdRes.hist.map((h) => ({ value: h, itemStyle: { color: (h ?? 0) >= 0 ? UP_C : DOWN_C } })) },
-              { name: "DIF", type: "line", xAxisIndex: 2, yAxisIndex: 2, data: macdRes.dif, symbol: "none", lineStyle: { width: 1, color: "#f59e0b" } },
-              { name: "DEA", type: "line", xAxisIndex: 2, yAxisIndex: 2, data: macdRes.dea, symbol: "none", lineStyle: { width: 1, color: "#3b82f6" } },
+              { name: "DIF", type: "line", xAxisIndex: 2, yAxisIndex: 2, data: macdRes.dif, symbol: "none", lineStyle: { width: 1, color: "#b45309" } },
+              { name: "DEA", type: "line", xAxisIndex: 2, yAxisIndex: 2, data: macdRes.dea, symbol: "none", lineStyle: { width: 1, color: "#1d4ed8" } },
             ] as any[])
           : []),
         ...(kdjRes
           ? ([
-              { name: "KDJ", type: "line", xAxisIndex: 2, yAxisIndex: 2, data: kdjRes.k, symbol: "none", lineStyle: { width: 1, color: "#f59e0b" } },
-              { name: "D", type: "line", xAxisIndex: 2, yAxisIndex: 2, data: kdjRes.d, symbol: "none", lineStyle: { width: 1, color: "#3b82f6" } },
-              { name: "J", type: "line", xAxisIndex: 2, yAxisIndex: 2, data: kdjRes.j, symbol: "none", lineStyle: { width: 1, color: "#8b5cf6" } },
+              { name: "KDJ", type: "line", xAxisIndex: 2, yAxisIndex: 2, data: kdjRes.k, symbol: "none", lineStyle: { width: 1, color: "#b45309" } },
+              { name: "D", type: "line", xAxisIndex: 2, yAxisIndex: 2, data: kdjRes.d, symbol: "none", lineStyle: { width: 1, color: "#1d4ed8" } },
+              { name: "J", type: "line", xAxisIndex: 2, yAxisIndex: 2, data: kdjRes.j, symbol: "none", lineStyle: { width: 1, color: "#7c3aed" } },
             ] as any[])
           : []),
         ...(rsiRes
-          ? ([{ name: "RSI(14)", type: "line", xAxisIndex: 2, yAxisIndex: 2, data: rsiRes, symbol: "none", lineStyle: { width: 1.2, color: "#f59e0b" }, markLine: { silent: true, data: [{ yAxis: 70, lineStyle: { color: "rgba(215,0,11,0.3)", type: "dashed" } }, { yAxis: 30, lineStyle: { color: "rgba(10,160,110,0.3)", type: "dashed" } }] } }] as any[])
+          ? ([{ name: "RSI(14)", type: "line", xAxisIndex: 2, yAxisIndex: 2, data: rsiRes, symbol: "none", lineStyle: { width: 1.2, color: "#b45309" }, markLine: { silent: true, data: [{ yAxis: 70, lineStyle: { color: "rgba(215,0,11,0.3)", type: "dashed" } }, { yAxis: 30, lineStyle: { color: "rgba(10,160,110,0.3)", type: "dashed" } }] } }] as any[])
           : []),
       ],
       graphic: replay

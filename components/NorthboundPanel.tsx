@@ -98,8 +98,8 @@ export default function NorthboundPanel() {
               borderRadius: [1, 1, 0, 0],
               color:
                 r.value >= 0
-                  ? { type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: "#dc2626" }, { offset: 1, color: "rgba(220,38,38,0.3)" }] }
-                  : { type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: "#16a34a" }, { offset: 1, color: "rgba(22,163,74,0.3)" }] },
+                  ? { type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: "#c0392b" }, { offset: 1, color: "rgba(220,38,38,0.3)" }] }
+                  : { type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: "#1e8449" }, { offset: 1, color: "rgba(22,163,74,0.3)" }] },
             },
           })),
         },

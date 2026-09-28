@@ -144,7 +144,7 @@ export default function BatchScanner() {
                 <tr key={r.secid} className="border-b border-border/40 last:border-0 hover:bg-muted/10 cursor-pointer" onClick={() => (window.location.href = `/stock/${encodeURIComponent(r.secid)}`)}>
                   <td className="py-1.5 px-3 font-medium">{r.name}</td>
                   <td className="py-1.5 px-3 font-mono">{r.price?.toFixed(2) ?? "—"}</td>
-                  <td className="py-1.5 px-3 font-mono font-bold" style={{ color: r.changePct == null ? "#64748b" : r.changePct >= 0 ? "#dc2626" : "#16a34a" }}>
+                  <td className="py-1.5 px-3 font-mono font-bold" style={{ color: r.changePct == null ? "#6b6862" : r.changePct >= 0 ? "#c0392b" : "#1e8449" }}>
                     {r.changePct == null ? "—" : `${r.changePct >= 0 ? "+" : ""}${r.changePct.toFixed(2)}%`}
                   </td>
                   <td className="py-1.5 px-3 font-mono">{r.pe?.toFixed(1) ?? "—"}</td>
@@ -152,7 +152,7 @@ export default function BatchScanner() {
                     <span className={`px-1.5 py-0.5 rounded text-[11px] font-bold ${r.signalCount > 0 ? "bg-primary/10 text-primary" : "text-muted"}`}>{r.signalCount}</span>
                   </td>
                   <td className="py-1.5 px-3 text-xs">{r.lastSignal}</td>
-                  <td className="py-1.5 px-3 text-xs font-bold" style={{ color: r.tone === "red" ? "#dc2626" : r.tone === "green" ? "#16a34a" : "#64748b" }}>{r.verdict}</td>
+                  <td className="py-1.5 px-3 text-xs font-bold" style={{ color: r.tone === "red" ? "#c0392b" : r.tone === "green" ? "#1e8449" : "#6b6862" }}>{r.verdict}</td>
                 </tr>
               ))}
             </tbody>

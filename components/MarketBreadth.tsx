@@ -8,7 +8,8 @@ interface Breadth {
   down: number;
   flat: number;
   upRatio: number;
-  amount: number;
+  /** 两市合计成交额（亿元）；取不到时为 null */
+  amountYi: number | null;
   stage: string;
 }
 
@@ -33,7 +34,7 @@ export default function MarketBreadth() {
     return () => { cancelled = true; clearInterval(t); };
   }, []);
 
-  const stageColor = d?.stage === "偏热" ? "#dc2626" : d?.stage === "偏冷" ? "#16a34a" : "#64748b";
+  const stageColor = d?.stage === "偏热" ? "#c0392b" : d?.stage === "偏冷" ? "#1e8449" : "#6b6862";
   const upRatio = d?.upRatio ?? 50;
 
   return (
@@ -51,7 +52,7 @@ export default function MarketBreadth() {
               市场{d.stage}
             </span>
             <div className="flex-1 h-2.5 rounded-full bg-muted/40 overflow-hidden">
-              <div className="h-full rounded-full transition-all" style={{ width: `${upRatio}%`, background: "linear-gradient(90deg,#16a34a,#f59e0b,#dc2626)" }} />
+              <div className="h-full rounded-full transition-all" style={{ width: `${upRatio}%`, background: "linear-gradient(90deg,#1e8449,#b45309,#c0392b)" }} />
             </div>
             <span className="text-[11px] font-mono text-muted shrink-0">上涨占比 {upRatio}%</span>
           </div>
@@ -60,11 +61,11 @@ export default function MarketBreadth() {
           <div className="grid grid-cols-3 gap-2">
             <div className="rounded-lg border border-border/70 px-3 py-2 text-center">
               <p className="text-[10px] text-muted">上涨</p>
-              <p className="text-lg font-bold font-mono" style={{ color: "#dc2626" }}>{d.up}</p>
+              <p className="text-lg font-bold font-mono" style={{ color: "#c0392b" }}>{d.up}</p>
             </div>
             <div className="rounded-lg border border-border/70 px-3 py-2 text-center">
               <p className="text-[10px] text-muted">下跌</p>
-              <p className="text-lg font-bold font-mono" style={{ color: "#16a34a" }}>{d.down}</p>
+              <p className="text-lg font-bold font-mono" style={{ color: "#1e8449" }}>{d.down}</p>
             </div>
             <div className="rounded-lg border border-border/70 px-3 py-2 text-center">
               <p className="text-[10px] text-muted">平盘</p>
@@ -73,7 +74,7 @@ export default function MarketBreadth() {
           </div>
 
           <div className="flex items-center justify-between text-[11px] text-muted">
-            <span className="flex items-center gap-1"><Minus className="w-3 h-3" /> 两市成交 {d.amount} 万亿</span>
+            <span className="flex items-center gap-1"><Minus className="w-3 h-3" /> 两市成交 {d.amountYi == null ? "—" : (d.amountYi / 10000).toFixed(2)} 万亿</span>
             <span>红绿比 {d.up}:{d.down}</span>
           </div>
         </div>

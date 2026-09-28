@@ -22,6 +22,8 @@ interface MacroIndex {
 export default function MacroGaugeCard() {
   const [macro, setMacro] = useState<MacroCtx | null>(null);
   const [idx, setIdx] = useState<MacroIndex | null>(null);
+  const [stale, setStale] = useState(false);
+  const [asOf, setAsOf] = useState("");
   const [err, setErr] = useState("");
 
   useEffect(() => {
@@ -33,6 +35,8 @@ export default function MacroGaugeCard() {
         if (j?.ok) {
           setMacro(j.macro);
           setIdx(j.index);
+          setStale(!!j.stale);
+          setAsOf(j.asOf ?? "");
         } else setErr("宏观数据加载失败");
       })
       .catch(() => !cancelled && setErr("宏观数据加载失败"));
@@ -40,7 +44,7 @@ export default function MacroGaugeCard() {
   }, []);
 
   const scoreColor =
-    macro?.score == null ? "#64748b" : macro.score >= 60 ? "#dc2626" : macro.score >= 45 ? "#64748b" : "#16a34a";
+    macro?.score == null ? "#6b6862" : macro.score >= 60 ? "#c0392b" : macro.score >= 45 ? "#6b6862" : "#1e8449";
 
   return (
     <figure>
@@ -72,6 +76,11 @@ export default function MacroGaugeCard() {
                 <span className="ml-2 text-xs font-normal text-muted">{macro.equityPref}</span>
               </p>
               <p className="text-xs text-muted mt-1 leading-relaxed">{macro.summary}</p>
+              {stale ? (
+                <p className="mt-1.5 rounded border border-amber-300 bg-amber-50 px-1.5 py-1 text-[10px] leading-snug text-amber-900" role="status">
+                  <b>数据已降级</b>：实时源不可达，读数取自 {asOf} 快照，非当前值
+                </p>
+              ) : null}
               <div className="flex items-center gap-3 mt-2 text-[11px] text-muted flex-wrap">
                 <span className="flex items-center gap-1"><Thermometer className="w-3 h-3" /> 年化波动 {idx?.annVol?.toFixed(1)}%</span>
                 <span className="flex items-center gap-1"><TrendingUp className="w-3 h-3" /> 近 1 年 {idx?.yearChg != null && idx.yearChg >= 0 ? "+" : ""}{idx?.yearChg?.toFixed(1)}%</span>

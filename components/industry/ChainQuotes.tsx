@@ -73,7 +73,7 @@ export default function ChainQuotes({ companies }: { companies: string[] }) {
                 <span className="text-xs truncate">{r.name}</span>
                 <span className="ml-auto text-xs font-mono font-bold">{r.price?.toFixed(2) ?? "—"}</span>
                 {r.changePct != null ? (
-                  <span className="text-[10px] font-mono" style={{ color: r.changePct >= 0 ? "#dc2626" : "#16a34a" }}>
+                  <span className="text-[10px] font-mono" style={{ color: r.changePct >= 0 ? "#c0392b" : "#1e8449" }}>
                     {r.changePct >= 0 ? "+" : ""}{r.changePct.toFixed(2)}%
                   </span>
                 ) : null}

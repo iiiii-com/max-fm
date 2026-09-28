@@ -56,7 +56,7 @@ export default function ChainEcosystem({ height = 520 }: { height?: number }) {
         links: edges,
         label: { show: true, position: "bottom", fontSize: 10 },
         lineStyle: { color: "source", curveness: 0.18, opacity: 0.5 },
-        itemStyle: { color: "#c8102e", borderColor: "#fff", borderWidth: 1 },
+        itemStyle: { color: "#c0392b", borderColor: "#fff", borderWidth: 1 },
         emphasis: { focus: "adjacency", itemStyle: { color: "#f0abfc" } },
         force: { repulsion: 420, edgeLength: 110, gravity: 0.08 },
       }],

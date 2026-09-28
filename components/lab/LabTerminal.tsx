@@ -496,7 +496,7 @@ export default function LabTerminal() {
             layout={layout.radar} editing={editing} focused={focused === "radar"} zoomed={zoomed === "radar"}
             desktop={desktop} containerW={containerW} geometry={grid.geometry}
             onFocus={grid.setFocused} onAction={onCardAction} onMove={(id, x, y) => grid.update(id, { x, y })} onResize={(id, w, h) => grid.update(id, { w, h })}
-            note={<>数据源：东方财富 F10 主要财务指标（近 8 期财报）。归一化口径：CAGR [-50%,50%]→[0,100]，毛利率 [0,60%]→[0,100]，ROE [0,30%]→[0,100]，稳定性=100−5σ。教学对比用途，不构成评级。</>}
+            note={<>数据源：东方财富 F10 主要财务指标（近 8 期财报）。财报为年初至今累计口径，成长性与稳定性按<b>同报告期同比</b>计算（中报比中报、年报比年报），不跨口径比较。归一化口径：同比增速 [-50%,50%]→[0,100]，毛利率 [0,60%]→[0,100]，ROE [0,30%]→[0,100]，稳定性=100−5σ。教学对比用途，不构成评级。</>}
           >
             <RadarCard secid={symbol.secid} isIndex={isIndex} />
           </GmtCard>

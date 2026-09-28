@@ -68,7 +68,7 @@ export default function CityGraphBoard() {
           borderColor: "#fff",
           borderWidth: selected?.name === n.name ? 2 : 1,
         },
-        label: { show: true, fontSize: 10, color: "#64748b", position: "bottom", distance: 4 },
+        label: { show: true, fontSize: 10, color: "#6b6862", position: "bottom", distance: 4 },
         emphasis: { label: { show: true, fontSize: 13, fontWeight: "bold", color: INDUSTRY_COLORS[n.cat] } },
         tooltip: {
           formatter: () =>
@@ -81,7 +81,7 @@ export default function CityGraphBoard() {
     const graphLinks = visibleEdges.map((e) => ({
       source: e.source,
       target: e.target,
-      lineStyle: { width: 1.5, color: "#94a3b8", opacity: 0.55, curveness: 0.08 },
+      lineStyle: { width: 1.5, color: "#8a867e", opacity: 0.55, curveness: 0.08 },
     }));
     const gNodes = graphNodes as any[];
     return {
@@ -108,7 +108,7 @@ export default function CityGraphBoard() {
           },
           label: { show: true },
           emphasis: { focus: "adjacency", lineStyle: { width: 2.5, opacity: 0.9 } },
-          lineStyle: { color: "#94a3b8", opacity: 0.55, curveness: 0.08 },
+          lineStyle: { color: "#8a867e", opacity: 0.55, curveness: 0.08 },
           animationDurationUpdate: 300,
         },
       ],

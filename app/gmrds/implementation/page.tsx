@@ -6,7 +6,7 @@ import { ROADMAP } from "@/lib/data/gmrds";
 
 export const metadata = { title: "实施路线图 | 研究体系 GMRDS" };
 
-const PHASE_COLORS = ["#0ea5e9", "#8b5cf6", "#c8102e"];
+const PHASE_COLORS = ["#0284c7", "#7c3aed", "#c0392b"];
 
 export default function ImplementationPage() {
   return (

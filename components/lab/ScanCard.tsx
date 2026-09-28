@@ -22,17 +22,22 @@ export default function ScanCard({ bars }: { bars: LabBar[] }) {
         {recent.length ? (
           <div className="rounded-md border border-border divide-y divide-border/50 max-h-[320px] overflow-y-auto">
             {recent.map((s, i) => (
-              <div key={`${s.index}-${s.source}-${i}`} className="flex items-center gap-2 px-3 py-1.5 text-xs">
-                <span className="font-mono text-muted shrink-0 w-20">{s.date}</span>
-                <span
-                  className={`px-1.5 py-0.5 rounded text-[11px] font-medium shrink-0 ${
-                    s.type === "buy" ? "bg-down/10 text-down" : "bg-primary-soft text-primary"
-                  }`}
-                >
-                  {s.type === "buy" ? "买点" : "卖点"}
-                </span>
-                <span className="font-medium shrink-0 w-10">{s.source}</span>
-                <span className="text-muted truncate" title={s.detail}>{s.detail}</span>
+              /* 旧实现把明细放在单行 flex 里并加 truncate，模块窄时整条判定被截成
+                 「MA…」「DIF(…」——而明细里的具体数值正是这个模块的全部价值。
+                 改为两行布局：第一行日期/买卖点/指标族，第二行完整判定（可换行不截断）。 */
+              <div key={`${s.index}-${s.source}-${i}`} className="px-3 py-1.5 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-muted shrink-0 w-[86px]">{s.date}</span>
+                  <span
+                    className={`px-1.5 py-0.5 rounded text-[11px] font-medium shrink-0 ${
+                      s.type === "buy" ? "bg-down/10 text-down" : "bg-primary-soft text-primary"
+                    }`}
+                  >
+                    {s.type === "buy" ? "买点" : "卖点"}
+                  </span>
+                  <span className="font-medium shrink-0">{s.source}</span>
+                </div>
+                <div className="text-muted mt-0.5 pl-[94px] break-words leading-snug">{s.detail}</div>
               </div>
             ))}
           </div>

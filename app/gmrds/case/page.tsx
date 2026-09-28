@@ -82,7 +82,7 @@ export default function TransferCasePage() {
             <div key={s.no} className="flex gap-3">
               <div className="flex flex-col items-center">
                 <span className="flex items-center justify-center w-7 h-7 rounded-full text-[11px] font-bold text-white shrink-0"
-                  style={{ background: s.layer.startsWith("L1") ? "#0ea5e9" : s.layer.startsWith("L2") ? "#10b981" : s.layer.startsWith("L3") ? "#ec4899" : "#c8102e" }}>
+                  style={{ background: s.layer.startsWith("L1") ? "#0284c7" : s.layer.startsWith("L2") ? "#1e8449" : s.layer.startsWith("L3") ? "#be185d" : "#c0392b" }}>
                   {s.no}
                 </span>
                 {i < TRANSFER_CASE.steps.length - 1 && <div className="w-px flex-1 bg-border my-1" />}

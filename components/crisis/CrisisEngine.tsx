@@ -67,9 +67,9 @@ const STAGE_TIPS: Record<string, StageTip[]> = {
 
 /** 市场情绪刻度（贪婪 ↔ 恐慌）：按阶段状态映射，纯展示增强 */
 const SENTIMENT_LEVEL: Record<Regime, { label: string; pct: number; color: string }> = {
-  crash: { label: "恐慌", pct: 86, color: "#dc2626" },
-  rally: { label: "贪婪", pct: 24, color: "#c8102e" },
-  range: { label: "中性", pct: 55, color: "#6b7280" },
+  crash: { label: "恐慌", pct: 86, color: "#c0392b" },
+  rally: { label: "贪婪", pct: 24, color: "#c0392b" },
+  range: { label: "中性", pct: 55, color: "#6b6862" },
 };
 
 /** 未配置策略的阶段：按市场状态给通用纪律 */
@@ -111,7 +111,7 @@ function hasOHLC(bars: Bar[]): boolean {
   return bars.length > 0 && bars[0].open != null && bars[0].high != null && bars[0].low != null;
 }
 
-const CANDLE_UP = "#c8102e";
+const CANDLE_UP = "#c0392b";
 const CANDLE_DOWN = "#0f8a5f";
 
 /**
@@ -146,7 +146,7 @@ function mkCandleOption(bars: Bar[], opts: { markData?: any[]; markArea?: any[];
       {
         type: "value", scale: true, gridIndex: 0,
         axisLabel: { fontSize: 10 },
-        splitLine: { lineStyle: { color: "#292929", type: "dashed" } },
+        splitLine: { lineStyle: { color: "#e2e0dc", type: "dashed" } },
       },
       { type: "value", gridIndex: 1, axisLabel: { fontSize: 9 }, splitLine: { show: false } },
     ],
@@ -385,8 +385,8 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
     if (dates.includes(cur)) {
       markData.push({
         xAxis: cur,
-        lineStyle: { color: "#dc2626", width: 2 },
-        label: { formatter: "当前节点", color: "#dc2626", fontSize: 11, position: "insideEndTop" },
+        lineStyle: { color: "#c0392b", width: 2 },
+        label: { formatter: "当前节点", color: "#c0392b", fontSize: 11, position: "insideEndTop" },
       });
     }
     for (const n of crisis.nodes) {
@@ -431,7 +431,7 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
       },
       yAxis: {
         type: "value", scale: true,
-        splitLine: { lineStyle: { color: "#292929", type: "dashed" } },
+        splitLine: { lineStyle: { color: "#e2e0dc", type: "dashed" } },
         axisLabel: { fontSize: 9 },
       },
       series: [{
@@ -440,8 +440,8 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
         data: vixFiltered.map((v) => v.value),
         showSymbol: false,
         connectNulls: false,
-        lineStyle: { color: "#dc2626", width: 1.5 },
-        itemStyle: { color: "#dc2626" },
+        lineStyle: { color: "#c0392b", width: 1.5 },
+        itemStyle: { color: "#c0392b" },
         areaStyle: {
           color: {
             type: "linear", x: 0, y: 0, x2: 0, y2: 1,
@@ -583,10 +583,10 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
     if (!playerStageNav?.length) return {};
     const dates = playerStageNav.map((h) => h.date);
     const seriesData: Array<{ name: string; data: number[]; color: string; dash?: boolean }> = [
-      { name: "你", data: [], color: "#dc2626" },
-      { name: "全程重仓", data: [], color: "#16a34a" },
+      { name: "你", data: [], color: "#c0392b" },
+      { name: "全程重仓", data: [], color: "#1e8449" },
       { name: "全程半仓", data: [], color: "#d97706" },
-      { name: "全程清仓", data: [], color: "#6b7280", dash: true },
+      { name: "全程清仓", data: [], color: "#6b6862", dash: true },
     ];
     const path = (stance: InvestorMove["stance"]) => {
       let nav = CAPITAL;
@@ -613,7 +613,7 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
       xAxis: { type: "category", data: dates, axisLabel: { fontSize: 9, rotate: 30 } },
       yAxis: {
         type: "value", scale: true,
-        splitLine: { lineStyle: { color: "#292929", type: "dashed" } },
+        splitLine: { lineStyle: { color: "#e2e0dc", type: "dashed" } },
       },
       series: seriesData.map((s) => ({
         name: s.name, type: "line" as const, data: s.data, smooth: true,
@@ -648,12 +648,12 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
       xAxis: { type: "category", data: dates, axisLabel: { fontSize: 9, rotate: 30 } },
       yAxis: {
         type: "value", scale: true, axisLabel: { fontSize: 9 },
-        splitLine: { lineStyle: { color: "#292929", type: "dashed" } },
+        splitLine: { lineStyle: { color: "#e2e0dc", type: "dashed" } },
       },
       series: [
-        { name: "你", type: "line", data: player, smooth: true, symbol: "circle", symbolSize: 5, lineStyle: { color: "#c8102e", width: 2 }, itemStyle: { color: "#c8102e" } },
-        { name: "全程重仓", type: "line", data: bench("buy"), smooth: true, showSymbol: false, lineStyle: { color: "#16a34a", width: 1.5 }, itemStyle: { color: "#16a34a" } },
-        { name: "全程清仓", type: "line", data: bench("cut"), smooth: true, showSymbol: false, lineStyle: { color: "#6b7280", width: 1.5, type: "dashed" }, itemStyle: { color: "#6b7280" } },
+        { name: "你", type: "line", data: player, smooth: true, symbol: "circle", symbolSize: 5, lineStyle: { color: "#c0392b", width: 2 }, itemStyle: { color: "#c0392b" } },
+        { name: "全程重仓", type: "line", data: bench("buy"), smooth: true, showSymbol: false, lineStyle: { color: "#1e8449", width: 1.5 }, itemStyle: { color: "#1e8449" } },
+        { name: "全程清仓", type: "line", data: bench("cut"), smooth: true, showSymbol: false, lineStyle: { color: "#6b6862", width: 1.5, type: "dashed" }, itemStyle: { color: "#6b6862" } },
       ],
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -693,7 +693,7 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
           show: true,
           formatter: m.t.event.length > 9 ? `${m.t.event.slice(0, 9)}…` : m.t.event,
           fontSize: 9,
-          color: up ? "#c8102e" : "#0f8a5f",
+          color: up ? "#c0392b" : "#0f8a5f",
           position: "insideEndTop",
         },
       });
@@ -835,23 +835,23 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
       xAxis: { type: "category", data: dates, axisLabel: { fontSize: 9, rotate: 30 } },
       yAxis: {
         type: "value", scale: true,
-        splitLine: { lineStyle: { color: "#292929", type: "dashed" } },
+        splitLine: { lineStyle: { color: "#e2e0dc", type: "dashed" } },
       },
       series: [
         {
           name: "你", type: "line", data: player, smooth: true,
           symbol: "circle", symbolSize: 5,
-          lineStyle: { color: "#dc2626", width: 2 }, itemStyle: { color: "#dc2626" },
+          lineStyle: { color: "#c0392b", width: 2 }, itemStyle: { color: "#c0392b" },
         },
         {
           name: "指数", type: "line", data: index, smooth: true,
           symbol: "circle", symbolSize: 5,
-          lineStyle: { color: "#2563eb", width: 2 }, itemStyle: { color: "#2563eb" },
+          lineStyle: { color: "#1d4ed8", width: 2 }, itemStyle: { color: "#1d4ed8" },
         },
         {
           name: "巴菲特式", type: "line", data: buffett, smooth: true,
           symbol: "circle", symbolSize: 5,
-          lineStyle: { color: "#6b7280", width: 2, type: "dashed" }, itemStyle: { color: "#6b7280" },
+          lineStyle: { color: "#6b6862", width: 2, type: "dashed" }, itemStyle: { color: "#6b6862" },
         },
       ],
     };
@@ -1318,7 +1318,7 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
                         <span className="text-[10px] font-semibold" style={{ color: s.color }}>{s.label} {s.pct}</span>
                         <span className="text-[10px] text-muted">恐慌</span>
                       </div>
-                      <div className="relative h-1.5 rounded-full" style={{ background: "linear-gradient(to right, #c8102e, #292929 50%, #dc2626)" }}>
+                      <div className="relative h-1.5 rounded-full" style={{ background: "linear-gradient(to right, #c0392b, #e2e0dc 50%, #c0392b)" }}>
                         <span
                           className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full border-2 border-white shadow-sm transition-all duration-300"
                           style={{ left: `${s.pct}%`, background: s.color, transform: "translate(-50%, -50%)" }}

@@ -29,8 +29,8 @@ export default function MarketCompareChart({ cn, us, title = "近 5 年年度涨
         trigger: "axis",
         axisPointer: { type: "shadow" },
         backgroundColor: "rgba(255,255,255,0.96)",
-        borderColor: "#cbd5e1",
-        textStyle: { color: "#1e293b", fontSize: 12 },
+        borderColor: "#e2e0dc",
+        textStyle: { color: "#e2e0dc", fontSize: 12 },
         formatter: (params: any) => {
           const arr = Array.isArray(params) ? params : [params];
           const y = arr[0]?.axisValue ?? "";
@@ -49,7 +49,7 @@ export default function MarketCompareChart({ cn, us, title = "近 5 年年度涨
       yAxis: {
         type: "value",
         axisLabel: { fontSize: 10, formatter: "{value}%" },
-        splitLine: { lineStyle: { color: "#292929", type: "dashed" } },
+        splitLine: { lineStyle: { color: "#e2e0dc", type: "dashed" } },
       },
       series: [
         {
@@ -58,7 +58,7 @@ export default function MarketCompareChart({ cn, us, title = "近 5 年年度涨
           data: cn.map((d) => d.pct),
           barWidth: "32%",
           itemStyle: {
-            color: (p: any) => (p.value >= 0 ? "#dc2626" : "#16a34a"),
+            color: (p: any) => (p.value >= 0 ? "#c0392b" : "#1e8449"),
             borderRadius: [3, 3, 0, 0],
           },
           label: { show: true, position: "top", fontSize: 10, color: "#334155", formatter: (p: any) => `${p.value.toFixed(1)}%` },
@@ -69,10 +69,10 @@ export default function MarketCompareChart({ cn, us, title = "近 5 年年度涨
           data: us.map((d) => d.pct),
           barWidth: "32%",
           itemStyle: {
-            color: (p: any) => (p.value >= 0 ? "#3b82f6" : "#64748b"),
+            color: (p: any) => (p.value >= 0 ? "#1d4ed8" : "#6b6862"),
             borderRadius: [3, 3, 0, 0],
           },
-          label: { show: true, position: "bottom", fontSize: 10, color: "#64748b", formatter: (p: any) => `${p.value.toFixed(1)}%` },
+          label: { show: true, position: "bottom", fontSize: 10, color: "#6b6862", formatter: (p: any) => `${p.value.toFixed(1)}%` },
         },
       ],
     };
