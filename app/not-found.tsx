@@ -39,7 +39,7 @@ export default function NotFound() {
           <Link
             key={l.href}
             href={l.href}
-            className="rounded-lg border border-border bg-card px-4 py-3 hover:border-primary/50 hover:shadow-sm transition-all"
+            className="rounded-lg border border-border bg-card px-4 py-3 hover:border-primary/50 transition-colors"
           >
             <p className="text-sm font-bold">{l.title}</p>
             <p className="text-xs text-muted mt-1">{l.desc}</p>

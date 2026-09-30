@@ -127,7 +127,7 @@ export default function CrisisTab() {
               <button
                 key={c.id}
                 onClick={() => setSelectedId(c.id)}
-                className="text-left card p-5 hover:shadow-md hover:border-primary/40 transition-all"
+                className="text-left card p-5 hover:border-primary/40 transition-colors"
               >
                 <div className="flex items-center justify-between gap-2 mb-2">
                   <h3 className="font-bold text-sm leading-snug">{c.title}</h3>

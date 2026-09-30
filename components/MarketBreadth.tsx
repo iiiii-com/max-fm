@@ -52,7 +52,7 @@ export default function MarketBreadth() {
               市场{d.stage}
             </span>
             <div className="flex-1 h-2.5 rounded-full bg-muted/40 overflow-hidden">
-              <div className="h-full rounded-full transition-all" style={{ width: `${upRatio}%`, background: "linear-gradient(90deg,#1e8449,#b45309,#c0392b)" }} />
+              <div className="h-full rounded-full transition-colors" style={{ width: `${upRatio}%`, background: "linear-gradient(90deg,#1e8449,#b45309,#c0392b)" }} />
             </div>
             <span className="text-[11px] font-mono text-muted shrink-0">上涨占比 {upRatio}%</span>
           </div>

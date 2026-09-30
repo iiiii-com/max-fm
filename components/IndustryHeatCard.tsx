@@ -78,7 +78,7 @@ export default function IndustryHeatCard({
   }, [name]);
 
   const inner = (
-    <Card className="hover:shadow-md hover:border-primary/40 transition-all h-full">
+    <Card className=" hover:border-primary/40 transition-colors h-full">
       <div className="flex items-center justify-between mb-2">
         <Badge tone={name.includes("AI") || name.includes("半导体") ? "amber" : "red"}>{name}</Badge>
         <span className="text-xs text-muted">更新于 {fmtDate(updatedAt ? new Date(updatedAt).toLocaleDateString("zh-CN") : "—")}</span>

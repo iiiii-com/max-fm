@@ -180,7 +180,7 @@ export default function RadarCard({ secid, isIndex }: { secid: string; isIndex: 
             <span className="text-muted w-24 shrink-0 whitespace-pre-line leading-tight">{d.name.replace("\n", " ")}</span>
             <div className="flex-1 h-2 rounded-full bg-border/60 overflow-hidden">
               <div
-                className="h-full rounded-full bg-primary/80 transition-all"
+                className="h-full rounded-full bg-primary/80 transition-colors"
                 style={{ width: `${d.value ?? 0}%` }}
               />
             </div>

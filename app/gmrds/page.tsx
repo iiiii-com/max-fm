@@ -264,7 +264,7 @@ export default async function GmrdsPage() {
             const stageLabel = FLOW_STAGES[a.stage - 1].label;
             return (
               <Link key={a.slug} href={`/gmrds/${a.slug}`} className="group">
-                <Card className="h-full p-4 transition-all group-hover:border-primary/40 group-hover:shadow-sm">
+                <Card className="h-full p-4 transition-all group-hover:border-primary/40 group-">
                   <div className="flex items-center gap-2.5 mb-2.5">
                     <span className="flex items-center justify-center w-9 h-9 rounded-lg text-white shrink-0" style={{ background: a.tone }}>
                       <Icon className="w-4.5 h-4.5" />
@@ -291,7 +291,7 @@ export default async function GmrdsPage() {
             const CIcon = ICONS[c.icon] ?? Globe;
             return (
               <Link key={c.slug} href={`/gmrds/${c.slug}`} className="group">
-                <Card className="h-full p-4 border-dashed transition-all group-hover:border-primary/60 group-hover:shadow-sm" style={{ borderColor: `${c.tone}66` }}>
+                <Card className="h-full p-4 border-dashed transition-all group-hover:border-primary/60 group-" style={{ borderColor: `${c.tone}66` }}>
                   <div className="flex items-center gap-2.5 mb-2.5">
                     <span className="flex items-center justify-center w-9 h-9 rounded-lg text-white shrink-0" style={{ background: c.tone }}>
                       <CIcon className="w-4.5 h-4.5" />

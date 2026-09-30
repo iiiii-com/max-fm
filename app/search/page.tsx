@@ -40,7 +40,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
           <div className="grid grid-cols-1 gap-3">
             {results.articles.map((a: any) => (
               <Link key={a.id} href={`/article/${a.slug}`}>
-                <Card className="hover:shadow-md transition-shadow">
+                <Card className=" transition-shadow">
                   <div className="flex items-center gap-2 mb-1">
                     <Badge>{a.type}</Badge>
                     <span className="text-xs text-muted">{fmtDate(a.publishDate)}</span>
@@ -60,7 +60,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
           <div className="grid grid-cols-1 gap-3">
             {results.policies.map((p: any) => (
               <Link key={p.id} href={`/policy/${p.id}`}>
-                <Card className="hover:shadow-md transition-shadow">
+                <Card className=" transition-shadow">
                   <div className="flex items-center gap-2 mb-1">
                     <Badge tone="amber">{p.category || "政策"}</Badge>
                     <span className="text-xs text-muted">{fmtDate(p.publishDate)}</span>
@@ -79,7 +79,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {results.indicators.map((x: any) => (
               <Link key={x.id} href="/macro">
-                <Card className="hover:shadow-md transition-shadow">
+                <Card className=" transition-shadow">
                   <p className="font-bold">{x.name}</p>
                   <p className="text-sm text-muted mt-1">最新值：{x.value ?? "—"} {x.unit ?? ""}（{x.date}）</p>
                 </Card>
@@ -95,7 +95,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {results.chains.map((c: any) => (
               <Link key={c.id} href="/industry">
-                <Card className="hover:shadow-md transition-shadow">
+                <Card className=" transition-shadow">
                   <p className="font-bold">{c.name}</p>
                   <p className="text-sm text-muted mt-1 line-clamp-2">{c.description}</p>
                 </Card>

@@ -1397,7 +1397,7 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
                           key={mv.label}
                           onClick={() => chooseMove(mi)}
                           disabled={revealedHere}
-                          className={`text-left rounded-lg border p-3 transition-all ${
+                          className={`text-left rounded-lg border p-3 transition-colors ${
                             revealedHere
                               ? chosen || activeByPct
                                 ? `border-2 ${isBest ? "border-down" : "border-primary"} bg-primary/5`
@@ -1406,7 +1406,7 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
                                   : "border-border opacity-60"
                               : activeByPct
                                 ? "border-primary/70 bg-primary/5"
-                                : "border-border hover:border-primary/60 hover:shadow-sm"
+                                : "border-border hover:border-primary/60"
                           }`}
                           style={revealedHere ? { animation: "crisisRevealPop 0.4s ease" } : undefined}
                         >

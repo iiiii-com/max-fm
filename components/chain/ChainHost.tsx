@@ -32,9 +32,10 @@ export default function ChainHost({
   initialChain?: string;
 }) {
   const router = useRouter();
-  const [selected, setSelected] = useState<string | null>(
-    initialChain && getStaticChain(initialChain) ? initialChain : null
-  );
+  // 旧实现用 `initialChain && getStaticChain(initialChain) ? ... : null` 静默丢弃未知 slug，
+  // 于是 DB 里有、STATIC_CHAINS 里没有的 cpo / rare-earth 两��链点卡片**无反应也不报错**
+  // ——URL 已变成 ?chain=cpo，页面却还是列表。这里不再预判，由下面的 current 统一处理。
+  const [selected, setSelected] = useState<string | null>(initialChain ?? null);
 
   const open = (slug: string) => {
     setSelected(slug);
@@ -46,6 +47,34 @@ export default function ChainHost({
   };
 
   const current = selected ? getStaticChain(selected) : undefined;
+
+  if (selected && !current) {
+    // 静默失败改为显式失败：DB 有这条链但静态图谱没有对应数据，
+    // 直接跳到详情页（那里读 DB，节点与代表公司是齐的），而不是留在原地假装没点到。
+    const inDb = dbChains.find((d) => d.slug === selected);
+    return (
+      <div className="card p-6">
+        <p className="text-sm font-bold">「{inDb?.name ?? selected}」暂无静态图谱数据</p>
+        <p className="mt-1 text-xs text-muted leading-relaxed">
+          该链已收录环节与代表公司，但分层图谱尚未整理。可直接查看环节明细。
+        </p>
+        <div className="mt-4 flex gap-2">
+          {inDb ? (
+            <a
+              href={`/industry/${inDb.slug}`}
+              className="px-3 py-1.5 rounded-sm bg-primary text-white text-sm"
+            >
+              查看环节明细
+            </a>
+          ) : null}
+          <button type="button" onClick={back} className="px-3 py-1.5 rounded-sm border border-border text-sm hover:border-primary/60">
+            返回产业链列表
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (current) {
     return <ChainDetail chain={current} onBack={back} />;
   }
@@ -82,7 +111,7 @@ export default function ChainHost({
                 onClick={() => open(c.id)}
                 className="text-left h-full w-full"
               >
-                <div className="card hover:shadow-md hover:border-primary/40 transition-all h-full p-4">
+                <div className="card card-hover h-full p-4">
                   <div className="flex items-center justify-between mb-2">
                     <Badge tone="gray">{c.name}</Badge>
                     <Badge tone={PROSP[c.prosperity]?.tone ?? "gray"}>

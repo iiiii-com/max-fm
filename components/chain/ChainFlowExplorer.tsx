@@ -2,14 +2,19 @@
 
 import { useMemo, useState } from "react";
 import { Layers } from "lucide-react";
-import ChainSchematic, { type FlowNode } from "./ChainSchematic";
+import ChainSwimlane from "./ChainSwimlane";
+import { LEVELS, levelOrder, isRealLevel } from "@/lib/data/chainLevels";
 
 /**
- * 产业链浏览器：链选择（横向 chip）+ 分层流向图
+ * 产业链浏览器：链选择（横向 chip）+ 分层泳道
  *
- * 替换原先「<select> 下拉 + 力导向图」的组合：
- *   - 下拉需两次操作才能切换，chip 一次即可，且当前选中一目了然、可横向扫视；
- *   - 力导向图位置随机漂移，改为弧形流线图后位置固定（详见 ChainFlowArcs 注释）。
+ * 替换原先「<select> 下拉 + 力导向图 / 弧形布线图」的组合：
+ *   - 下拉需两次操作才能切换，chip 一次即可；
+ *   - 力导向图位置随机漂移；
+ *   - 弧形布线图画了 9 条无数据支撑的连线，会断言不存在的供给关系（见 ChainSwimlane 注释）。
+ *
+ * chip 上的角标是**真实环节数**，不再是节点行数 —— 后者包含跨链关联，
+ * 会让这里显示 9 而详情页显示 6。
  */
 export default function ChainFlowExplorer({
   chains,
@@ -24,7 +29,7 @@ export default function ChainFlowExplorer({
     let best = chains[0]?.id ?? "";
     let bestCount = -1;
     for (const c of chains) {
-      const n = nodes.filter((x) => x.chainId === c.id).length;
+      const n = nodes.filter((x) => x.chainId === c.id && isRealLevel(x.level)).length;
       if (n > bestCount) {
         bestCount = n;
         best = c.id;
@@ -37,14 +42,27 @@ export default function ChainFlowExplorer({
 
   const counts = useMemo(() => {
     const m: Record<string, number> = {};
-    for (const n of nodes) if (n.chainId) m[n.chainId] = (m[n.chainId] ?? 0) + 1;
+    for (const n of nodes) {
+      if (!n.chainId || !isRealLevel(n.level)) continue;
+      m[n.chainId] = (m[n.chainId] ?? 0) + 1;
+    }
     return m;
   }, [nodes]);
 
   const current = chains.find((c) => c.id === active);
-  const currentNodes: FlowNode[] = useMemo(
-    () => nodes.filter((n) => n.chainId === active),
+  const currentNodes = useMemo(
+    () => nodes.filter((n) => n.chainId === active && isRealLevel(n.level)),
     [nodes, active]
+  );
+  const bands = useMemo(
+    () =>
+      LEVELS.map((role) => ({
+        role,
+        nodes: [...currentNodes]
+          .sort((a, b) => levelOrder(a.level) - levelOrder(b.level))
+          .filter((n) => n.level === role),
+      })),
+    [currentNodes]
   );
 
   return (
@@ -84,7 +102,7 @@ export default function ChainFlowExplorer({
       </div>
 
       {current ? (
-        <ChainSchematic nodes={currentNodes} title={current.name} />
+        <ChainSwimlane bands={bands} />
       ) : (
         <p className="py-8 text-center text-sm text-muted">请选择一条产业链</p>
       )}

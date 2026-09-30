@@ -9,7 +9,7 @@ export default function BoardCard({
   href: string; title: string; desc: string; icon: ReactNode; index: number; children?: ReactNode;
 }) {
   return (
-    <div className="card p-5 hover:shadow-md hover:border-border-strong transition-all">
+    <div className="card p-5 hover:border-border-strong transition-colors">
       <Link href={href} className="block group">
         <div className="flex items-start gap-3 mb-2">
           <span className="flex items-center justify-center w-9 h-9 rounded-md bg-primary-soft text-primary shrink-0">

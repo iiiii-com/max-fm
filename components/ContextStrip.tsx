@@ -98,7 +98,7 @@ export default function ContextStrip({
           <Link
             key={c.title}
             href={c.href}
-            className="rounded-lg border border-border px-3 py-2 hover:bg-muted/20 hover:shadow-sm transition-all group"
+            className="rounded-lg border border-border px-3 py-2 hover:bg-muted/20 transition-colors group"
           >
             <p className="flex items-center gap-1.5 text-xs font-bold">
               <c.icon className="w-3.5 h-3.5 text-primary" /> {c.title}

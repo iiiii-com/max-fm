@@ -149,7 +149,7 @@ export default async function MacroPage() {
         <SectionTitle title="AI 月度报告" sub="每月自动生成，数据解读 + 趋势研判" extra={<AIFlag />} />
         {monthly ? (
           <Link href={`/article/${monthly.slug}`}>
-            <Card className="hover:shadow-md transition-shadow">
+            <Card className=" transition-shadow">
               <div className="flex items-center gap-2 mb-2">
                 <Badge>月度报告</Badge>
                 <span className="text-xs text-muted">{fmtDate(monthly.publishDate)}</span>

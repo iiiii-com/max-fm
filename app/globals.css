@@ -27,10 +27,13 @@
   --shadow-md: 0 2px 8px rgba(26, 26, 26, 0.08);
   --shadow-lg: 0 8px 24px rgba(26, 26, 26, 0.1);
 
-  /* 2px：1px 微圆角在浅底上会显脏 */
+  /* 圆角：2px。1px 微圆角在浅底上会显脏，4px（Tailwind 默认 rounded）
+     又偏软，与研究类版式的硬朗感不符。显式定义 --radius 让 `rounded`
+     也走同一套值，避免 150 处 rounded 与 366 处 rounded-sm/lg 并存导致漂移。 */
   --radius-sm: 2px;
   --radius-md: 2px;
   --radius-lg: 3px;
+  --radius: 2px;
 }
 
 /* ============ 暗色模式（备用，暂不作为默认） ============ */
@@ -83,6 +86,7 @@
   --radius-sm: var(--radius-sm);
   --radius-md: var(--radius-md);
   --radius-lg: var(--radius-lg);
+  --radius: var(--radius);
   /* 标题衬线：研报 / 公告质感（字面量，避免 @theme 内自引用） */
   --font-serif: "Songti SC", "Noto Serif CJK SC", "Source Han Serif SC", SimSun, Georgia, serif;
   /* 正文用无衬线（原设定把 IBM Plex Mono 放在 sans 首位，导致长段落极难读，
@@ -159,19 +163,21 @@ body {
   }
 }
 
-/* 触控热区：移动端按钮/链接最小 40px 高度 */
-@media (max-width: 767px) {
-  button,
-  a,
-  select,
-  input[type="submit"],
-  [role="button"] {
-    min-height: 40px;
+  /* 触控热区：移动端按钮/链接最小 40px 高度 */
+  @media (max-width: 767px) {
+    button,
+    a,
+    select,
+    input[type="submit"],
+    [role="button"] {
+      min-height: 40px;
+    }
+    /* 此前这里是 border-radius: 8px，导致同一个卡片在桌面 3px、手机 8px。
+       视觉语言跨断点必须一致，触控友好靠 min-height 而不是靠放大圆角。 */
+    .card {
+      border-radius: var(--radius-lg);
+    }
   }
-  .card {
-    border-radius: 8px;
-  }
-}
 
 /* 触摸反馈：按压态统一微压暗 */
 button:active,

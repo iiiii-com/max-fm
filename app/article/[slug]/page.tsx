@@ -38,7 +38,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {others.filter((a: any) => a.slug !== slug).slice(0, 4).map((a: any) => (
             <Link key={a.id} href={`/article/${a.slug}`}>
-              <div className="card p-4 hover:shadow-md transition-shadow h-full">
+              <div className="card p-4 transition-shadow h-full">
                 <h3 className="font-medium text-sm line-clamp-2 leading-snug">{a.title}</h3>
                 <p className="text-xs text-muted mt-2">{fmtDate(a.publishDate)}</p>
               </div>

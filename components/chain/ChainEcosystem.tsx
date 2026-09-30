@@ -3,8 +3,8 @@
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { echarts, type EChartsOption } from "@/components/charts/echarts";
-import { useTheme } from "@/components/theme-provider";
 import { STATIC_CHAINS } from "@/lib/data/chains";
+import { resolveChartTheme, TOOLTIP, ANIM_DURATION, INK, BORDER, signColor } from "@/lib/charts/theme";
 
 const HOT_IDS = [
   "semiconductor", "nev", "ai", "solar", "lowaltitude", "robot", "computing",
@@ -12,15 +12,24 @@ const HOT_IDS = [
   "commercial-space",
 ];
 
+/** 本图只画有跨链关联的节点，因此实际覆盖度低于 HOT_IDS；由调用方标注 */
+export const ECOSYSTEM_COVERAGE = { total: STATIC_CHAINS.length, drawn: HOT_IDS.length };
+
+const THEME_NAME = "mx-site";
+
 export default function ChainEcosystem({ height = 520 }: { height?: number }) {
   const ref = useRef<HTMLDivElement>(null);
   const chartRef = useRef<echarts.ECharts | null>(null);
-  const { theme } = useTheme();
   const router = useRouter();
 
   useEffect(() => {
     if (!ref.current) return;
-    const chart = echarts.init(ref.current, theme === "dark" ? "dark" : undefined);
+    // 与全站其余图表走同一套主题。此前这里是 `theme === "dark" ? "dark" : undefined`，
+    // 即浅色档落回 ECharts 内置默认主题（白底黑边默认样式、默认字号），
+    // tooltip 与卡片、轴标签、图例全都不一致 —— 而 lib/charts/theme.ts
+    // 正是为消灭这个模式才建的。
+    echarts.registerTheme(THEME_NAME, resolveChartTheme());
+    const chart = echarts.init(ref.current, THEME_NAME);
     chartRef.current = chart;
 
     const byId = new Map(STATIC_CHAINS.map((c) => [c.id, c]));
@@ -45,19 +54,32 @@ export default function ChainEcosystem({ height = 520 }: { height?: number }) {
       }
     }
 
+    const esc = (s: unknown) =>
+      String(s ?? "").replace(/[&<>"']/g, (m) =>
+        ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m] as string)
+      );
+
     const option: EChartsOption = {
-      tooltip: { trigger: "item", formatter: (p: any) => `<b>${p.data?.name ?? p.name}</b><br/>点击查看产业链详情` },
+      // 主题已提供轴线/标签/网格/tooltip 基线，这里只补图特有的部分
+      tooltip: {
+        ...TOOLTIP,
+        trigger: "item",
+        // nameOf 未来可能接 DB，formatter 拼 HTML 前必须转义，否则成为注入面
+        formatter: (p: any) => `<b>${esc(p?.data?.name ?? p?.name)}</b><br/><span style="color:var(--muted)">点击查看产业链详情</span>`,
+      },
       series: [{
         type: "graph",
         layout: "force",
         roam: true,
         draggable: true,
+        animationDuration: ANIM_DURATION,
         data: nodes,
         links: edges,
-        label: { show: true, position: "bottom", fontSize: 10 },
-        lineStyle: { color: "source", curveness: 0.18, opacity: 0.5 },
-        itemStyle: { color: "#c0392b", borderColor: "#fff", borderWidth: 1 },
-        emphasis: { focus: "adjacency", itemStyle: { color: "#f0abfc" } },
+        label: { show: true, position: "bottom", fontSize: 10, color: INK },
+        lineStyle: { color: "source", curveness: 0.18, opacity: 0.45, width: 1 },
+        // 描边用分隔线色而非纯白：深色模式下纯白描边会在深底上糊成一团
+        itemStyle: { color: signColor(0, INK), borderColor: BORDER, borderWidth: 1 },
+        emphasis: { focus: "adjacency" },
         force: { repulsion: 420, edgeLength: 110, gravity: 0.08 },
       }],
     };
@@ -73,7 +95,7 @@ export default function ChainEcosystem({ height = 520 }: { height?: number }) {
       chart.dispose();
       chartRef.current = null;
     };
-  }, [theme, router]);
+  }, [router]);
 
   return <div ref={ref} style={{ height, width: "100%" }} />;
 }

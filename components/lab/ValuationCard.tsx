@@ -83,7 +83,7 @@ function Band({
           </div>
         ))}
         <div
-          className="absolute -top-1 -bottom-1 flex flex-col items-center transition-all"
+          className="absolute -top-1 -bottom-1 flex flex-col items-center transition-colors"
           style={{ left: `${pos}%`, transform: "translateX(-50%)" }}
         >
           <div className="w-0.5 h-[calc(100%+8px)] bg-primary rounded-full" />

@@ -138,7 +138,7 @@ export default async function PolicyDetailPage({ params }: { params: Promise<{ i
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {others.filter((o: any) => o.id !== p.id).slice(0, 6).map((o: any) => (
             <Link key={o.id} href={`/policy/${o.id}`}>
-              <Card className="hover:shadow-md transition-shadow h-full">
+              <Card className=" transition-shadow h-full">
                 <h3 className="font-medium text-sm line-clamp-2 leading-snug">{o.title}</h3>
                 <p className="text-xs text-muted mt-2">{fmtDate(o.publishDate)}</p>
               </Card>

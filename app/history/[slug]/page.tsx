@@ -65,7 +65,7 @@ export default async function HistoryDetailPage({ params }: { params: Promise<{ 
           <SectionTitle title={`同类事件 · ${e.category}`} sub="同一类风险的历史参照" />
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {sameCat.map((s: any) => (
-              <Link key={s.id} href={`/history/${s.slug}`} className="hover:shadow-md transition-shadow">
+              <Link key={s.id} href={`/history/${s.slug}`} className=" transition-shadow">
                 <Card className="p-4 h-full">
                   <div className="flex items-center justify-between mb-1">
                     <Badge tone={(CAT_TONE[s.category] ?? "gray") as any}>{s.category}</Badge>

@@ -127,7 +127,7 @@ export default function ChainFlow({ chain }: { chain: StaticChain }) {
                         key={seg.name}
                         type="button"
                         onClick={() => setActive(active === seg ? null : seg)}
-                        className={`w-full text-left border rounded-lg px-3 py-2 transition-all ${
+                        className={`w-full text-left border rounded-lg px-3 py-2 transition-colors ${
                           active === seg
                             ? "border-primary ring-2 ring-primary/20 bg-primary/5"
                             : "border-border hover:border-primary/50 bg-background"

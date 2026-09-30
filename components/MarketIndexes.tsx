@@ -57,7 +57,7 @@ export default async function MarketIndexes() {
             const hhmm = `${String(t.getHours()).padStart(2, "0")}:${String(t.getMinutes()).padStart(2, "0")}`;
             return (
               <Link key={ix.secid} href={`/market?tab=stocks&q=${encodeURIComponent(ix.name)}`}>
-                <div className="card p-4 hover:shadow-md transition-shadow h-full group relative overflow-hidden">
+                <div className="card p-4 transition-shadow h-full group relative overflow-hidden">
                   <div className="flex items-center justify-between">
                     <p className="text-sm text-muted">{q.name}</p>
                     <span className="text-[10px] text-muted font-mono">{q.code}</span>
@@ -132,7 +132,7 @@ export default async function MarketIndexes() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {reviews.map((a: any) => (
               <Link key={a.id} href={`/article/${a.slug}`}>
-                <div className="card p-4 hover:shadow-md transition-shadow h-full">
+                <div className="card p-4 transition-shadow h-full">
                   <div className="flex items-center gap-2 mb-2">
                     <Badge>{a.type === "daily" ? "每日复盘" : "每周周报"}</Badge>
                     <span className="text-xs text-muted ml-auto">{fmtDate(a.publishDate)}</span>

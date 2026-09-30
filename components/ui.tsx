@@ -44,13 +44,17 @@ export function Badge({ children, tone = "red" }: { children: React.ReactNode; t
 
 export function SectionTitle({ title, sub, extra }: { title: string; sub?: string; extra?: React.ReactNode }) {
   return (
-    <div className="flex items-end justify-between mb-4">
+    <div className="flex items-end justify-between gap-4 mb-4">
       <div className="min-w-0">
-        <h2 className="text-xl font-bold leading-tight tracking-tight flex items-center gap-2.5">
-          <span className="w-1 h-[1.15em] rounded-full bg-gradient-to-b from-primary to-primary/30 shrink-0" aria-hidden />
-          {title}
+        <h2 className="text-xl font-bold leading-tight tracking-tight flex items-baseline gap-2.5">
+          {/* 层级标记：实心墨色方块 + 标题下的发丝线延伸。
+              此前是 `rounded-full bg-gradient-to-b from-primary to-primary/30`——
+              两端都是墨色，渐变在视觉上等同于一个实心条，却多了一次无意义的绘制；
+              4px 宽的 rounded-full 更是为做胶囊而做胶囊。 */}
+          <span className="w-1 self-stretch min-h-[1.1em] bg-primary shrink-0 translate-y-[0.12em]" aria-hidden />
+          <span className="rule-strong pb-1.5 flex-1">{title}</span>
         </h2>
-        {sub && <p className="text-sm text-muted mt-1.5 pl-3.5">{sub}</p>}
+        {sub && <p className="text-sm text-muted mt-1.5 pl-3.5 leading-relaxed">{sub}</p>}
       </div>
       {extra}
     </div>

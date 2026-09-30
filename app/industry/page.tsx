@@ -2,7 +2,7 @@
 import { getChains, getChainNodes } from "@/lib/data/queries";
 import { Card, SectionTitle } from "@/components/ui";
 import ChainFlowExplorer from "@/components/chain/ChainFlowExplorer";
-import ChainEcosystem from "@/components/chain/ChainEcosystem";
+import ChainEcosystem, { ECOSYSTEM_COVERAGE } from "@/components/chain/ChainEcosystem";
 import ChainHost from "@/components/chain/ChainHost";
 import { bootstrap } from "@/lib/db";
 
@@ -41,19 +41,33 @@ export default async function IndustryPage({ searchParams }: { searchParams: Pro
         <section className="space-y-8">
           <div>
             <SectionTitle
-              title="产业链布线图"
-              sub="三列对应上游 / 中游 / 下游，连线为层级流向；悬停环节高亮其上下游链路，点击查看说明与相关公司"
+              title="产业链分层"
+              sub="按上游 / 中游 / 下游三层呈现环节与代表公司。环节之间的供应关系需要逐条核实，尚未建立，因此不绘制连线"
             />
-            <Card>
+            <Card className="p-0">
               <ChainFlowExplorer chains={chains} nodes={nodes as any} />
             </Card>
           </div>
-          <div>
-            <SectionTitle title="产业链生态关联图" sub="热门产业链之间的供需与协同关系 · 点击节点打开对应链详情" />
-            <Card>
-              <ChainEcosystem />
-            </Card>
-          </div>
+
+          {/* 跨链关联图：关联关系来自静态图谱且只覆盖部分链条，信息完整度不足以当主视觉，
+              因此放在次要位置并显式标注覆盖度，而不是让读者以为 25 条链都有关系网络。 */}
+          <details className="group">
+            <summary className="cursor-pointer list-none marker:content-[''] flex items-baseline gap-2 py-2">
+              <span className="text-sm font-bold">跨链关联图</span>
+              <span className="text-[11px] text-muted">
+                展开查看 · 数据建设中，当前绘制 {ECOSYSTEM_COVERAGE.drawn} / {ECOSYSTEM_COVERAGE.total} 条链
+              </span>
+              <span className="h-px flex-1 bg-border" aria-hidden />
+            </summary>
+            <div className="pt-2">
+              <Card>
+                <ChainEcosystem />
+              </Card>
+              <p className="mt-2 text-[11px] leading-relaxed text-muted">
+                连线来自静态图谱的人工标注，尚无来源与时点校验；节点可拖拽，点击进入对应产业链。
+              </p>
+            </div>
+          </details>
         </section>
       )}
 

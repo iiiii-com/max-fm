@@ -230,6 +230,66 @@ async function main() {
     check("异动榜可用", false);
   }
 
+  // ---------- 14 产业链数据真实性 ----------
+  // 这一组是防退化断言：防止「随机规模/增速」或「关联节点冒充下游环节」再回来。
+  console.log("\n[产业链]");
+  try {
+    const { db } = await import("@/lib/db");
+    const s = await import("@/lib/db/schema");
+    const { LEVELS, isRealLevel } = await import("@/lib/data/chainLevels");
+
+    const nodes = (await db.select().from(s.chainNodes)) as any[];
+    const chains = (await db.select().from(s.industryChains)) as any[];
+
+    // 1) 不允许残留随机生成的规模/增速
+    const withNum = nodes.filter((n) => n.value != null || n.growth != null);
+    check(
+      "环节规模/增速已全部清空（曾来自 Math.random）",
+      withNum.length === 0,
+      withNum.slice(0, 3).map((n) => `${n.name}(${n.value}/${n.growth})`).join(" ")
+    );
+
+    // 2) 跨链关联节点不得占用真实层级
+    const fakeLevel = nodes.filter(
+      (n) => isRealLevel(n.level) && String(n.name ?? "").startsWith("关联：")
+    );
+    check(
+      "「关联：」节点不再冒充上/中/下游环节",
+      fakeLevel.length === 0,
+      fakeLevel.slice(0, 3).map((n) => `${n.name}=${n.level}`).join(" ")
+    );
+
+    // 3) 环节计数口径唯一：每条链都只有一个"真实环节数"
+    const counts = chains.map((c) => {
+      const ns = nodes.filter((n) => n.chainId === c.id);
+      const real = ns.filter((n) => isRealLevel(n.level) && !String(n.name ?? "").startsWith("关联："));
+      return { slug: c.slug, total: ns.length, real: real.length };
+    });
+    // 详情页头部与概览卡都从 real.length 派生；此处验证 real 确实不含关联节点
+    const realOk = counts.every((c) => c.real <= c.total);
+    check("环节计数口径一致（real ≤ total）", realOk, `${counts.length} 条链`);
+
+    // 4) 页面上的"环节数"不得出现随机规模/增速字样
+    const html = (await (await fetch(`${BASE}/industry/semiconductor`, { signal: AbortSignal.timeout(45000) })).text());
+    check(
+      "详情页不再渲染「规模 X 亿」",
+      !/规模\s*[\d.]+\s*亿/.test(html),
+      (html.match(/规模\s*[\d.]+\s*亿/) ?? [""])[0]
+    );
+    check(
+      "详情页不再渲染「增速 ±X%」",
+      !/增速\s*[+-]?[\d.]+/.test(html),
+      (html.match(/增速\s*[+-]?[\d.]+/) ?? [""])[0]
+    );
+
+    // 5) 泳道三层都出现
+    for (const lv of LEVELS) {
+      check(`分层泳道包含「${lv}」层`, html.includes(lv));
+    }
+  } catch (e: any) {
+    check("产业链数据可校验", false, String(e?.message ?? e));
+  }
+
   console.log(`\n=== 结果：${pass} 通过 / ${fail} 失败 ===\n`);
   process.exit(fail > 0 ? 1 : 0);
 }

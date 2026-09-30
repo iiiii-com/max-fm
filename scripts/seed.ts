@@ -2,6 +2,7 @@ import { bootstrap, db, uid, now } from "../lib/db";
 import { inArray } from "drizzle-orm";
 import { isPg } from "../lib/db";
 import * as s from "../lib/db/schema";
+import { LINK_LEVEL } from "../lib/data/chainLevels";
 
 function mulberry32(a: number) {
   return function () {
@@ -1116,19 +1117,28 @@ async function main() {
     const def = CHAINS.find((x: any) => x.slug === c.slug);
     if (!def) continue;
     for (const n of def.nodes) {
-      const sentiG: Record<string, [number, number]> = { high: [6, 15], medium: [-3, 6], low: [-10, 2] };
-      const [g0, g1] = sentiG[def.sentiment] ?? [0, 5];
       nodeRows.push({
         id: uid("node"), chainId: c.id, name: n.name, level: n.level,
         companies: JSON.stringify(n.companies),
-        value: round1(200 + rng() * 1800),
-        growth: round1(g0 + rng() * (g1 - g0)),
+        // value / growth 曾在此处用 rng() 随机生成（200~2000 亿的"规模"、
+        // 由链级 sentiment 反推区间的"增速"），却在详情页被当作权威数据渲染、
+        // 还带涨跌色。这等于给随机数披上统计口径的外衣。
+        // 现在一律不写：环节的结构与代表公司是真的，数量不是。
+        // 需要真实规模/景气度时，走 metrics 表（要求 source + asOf + unit 三件套齐全）。
+        value: null,
+        growth: null,
         description: (n as any).description ?? `${n.name}是${c.name}的${n.level}环节，${(n.companies ?? []).slice(0, 2).join("、")}等为代表性企业。${NODE_LEVEL_ROLE[n.level] ?? ""}。`,
       });
     }
     for (const tgt of chainLinkTargets[c.slug] ?? []) {
       nodeRows.push({
-        id: uid("node"), chainId: c.id, name: `关联：${tgt}`, level: "下游",
+        id: uid("node"), chainId: c.id, name: `关联：${tgt}`,
+        // 跨链关联不是产业链的"下游"环节。此前硬塞进 level:"下游"，
+        // 后果是图上画出「中游供给消费电子」这类不存在的供给关系，
+        // 且概览卡（已过滤）显示 6 个环节、头部（未过滤）显示 9 个。
+        // 改为独立的「关联」层级：所有消费方按 LEVELS 过滤后自然排除，
+        // 关联关系由 /api 的跨链视图单独表达，不再冒充从属关系。
+        level: LINK_LEVEL,
         companies: JSON.stringify([]), description: `与${tgt}行业存在需求/供给联动。`,
       });
     }
