@@ -15,24 +15,25 @@
  *
  * 运行：npx tsx scripts/import-house-price.ts [--dry]
  */
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { db, uid, bootstrap } from "@/lib/db";
 import * as s from "@/lib/db/schema";
-import { STATIC_REGIONS } from "@/lib/data/regions";
+import {
+  loadHousePriceSnapshot,
+  siteCities,
+  type HousePriceSnapshot,
+} from "@/lib/data/housePriceSnapshot";
 
 const DRY = process.argv.includes("--dry");
 
-/** 站内城市清单（去重、短名） */
-function siteCities(): string[] {
-  return [...new Set(STATIC_REGIONS.flatMap((r) => r.cities.map((c) => c.name)))];
-}
-
 async function main() {
   await bootstrap();
-  const snap = JSON.parse(
-    readFileSync(join(process.cwd(), "data", "snapshots", "house-price-70.json"), "utf8")
-  ) as { period: string; sourceUrl: string; fetchedAt: string; rows: Array<{ city: string; newMom: number; newYoy: number; usedMom: number; usedYoy: number }> };
+  // 读盘与匹配规则统一放在 lib/data/housePriceSnapshot，
+  // 与接口的快照兜底共用同一份实现，避免两处口径漂移。
+  const snap = loadHousePriceSnapshot() as HousePriceSnapshot;
+  if (!snap) {
+    console.error("未找到 data/snapshots/house-price-70.json，请先运行 fetch-house-price-70.ts");
+    process.exit(1);
+  }
 
   const mine = siteCities();
   const official = snap.rows.map((r) => r.city);
