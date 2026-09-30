@@ -17,6 +17,7 @@ import { mkKlineTooltip, mkPctLabel } from "@/lib/data/kline-tooltip";
 import type { Crisis, CrisisStage, InvestorMove, Regime } from "@/lib/data/crisis/types";
 import { STAGE_STRATEGIES } from "@/lib/data/crisis/strategies";
 import type { StageTip as StageStrategy } from "@/lib/data/crisis/strategies";
+import { withInterpretation } from "@/lib/data/crisis/interpretations";
 
 type Phase = "intro" | "playing" | "finished";
 
@@ -223,7 +224,10 @@ interface AccountState {
   path?: Array<{ date: string; nav: number; position: number }>;
 }
 
-export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExit?: () => void }) {
+export default function CrisisEngine({ crisis: crisisRaw, onExit }: { crisis: Crisis; onExit?: () => void }) {
+  // 专业解读补丁层：narrative / 节点 policy / marketNote 在部分场次缺失，
+  // 在此合入。文件内已有内容优先，补丁只填空位。
+  const crisis = useMemo(() => withInterpretation(crisisRaw), [crisisRaw]);
   const [phase, setPhase] = useState<Phase>("intro");
   const [stepIndex, setStepIndex] = useState(0);
   const [quizScore, setQuizScore] = useState({ correct: 0, total: 0 });
