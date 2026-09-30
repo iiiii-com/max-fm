@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import type { EChartsOption } from "@/components/charts/echarts";
 import EChart from "@/components/charts/EChart";
 import { Badge, Card } from "@/components/ui";
+import { CITY_INSIGHTS } from "@/lib/data/cityInsights";
 import {
   buildCityGraphNodes, buildCityGraphEdges, buildCityGraphStats,
   INDUSTRY_CATS, INDUSTRY_COLORS, TIER_ORDER,
@@ -72,7 +73,11 @@ export default function CityGraphBoard() {
         emphasis: { label: { show: true, fontSize: 13, fontWeight: "bold", color: INDUSTRY_COLORS[n.cat] } },
         tooltip: {
           formatter: () =>
-            `<b>${n.name}</b>（${n.province}·${n.zone}）<br/>等级：${n.tier}<br/>主导产业：${n.cat}<br/>支柱：${n.pillars.join("、")}<br/>GDP：${n.gdp}${n.companies.length ? `<br/>代表企业：${n.companies.join("、")}` : ""}`,
+            `<b>${n.name}</b>（${n.province}·${n.zone}）<br/>等级：${n.tier}<br/>主导产业：${n.cat}<br/>支柱：${n.pillars.join("、")}<br/>GDP：${n.gdp}${n.companies.length ? `<br/>代表企业：${n.companies.join("、")}` : ""}` +
+            // 悬停带一句产业判断：图谱上看的是关联，读的是「为什么」
+            (CITY_INSIGHTS[n.name]
+              ? `<br/><span style="color:#888">${CITY_INSIGHTS[n.name]!.character.split(/[。；]/)[0]}。</span>`
+              : ""),
         },
         // 自定义数据供点击
         _data: n,
@@ -178,6 +183,20 @@ export default function CityGraphBoard() {
                 <Badge tone="blue">{selected.zone}</Badge>
               </div>
               <p className="text-xs text-muted mb-3">{selected.province} · GDP {selected.gdp}</p>
+              {/* 解读首段：把「产业结构 → 城市性格」的判断放到图谱节点详情里。
+                  图谱回答「谁和谁相关」，解读回答「为什么是这样」。
+                  仅机制描述，不含统计数值（站内无城市级薪资/收入/房价绝对值数据）。 */}
+              {CITY_INSIGHTS[selected.name] && (
+                <div className="mb-3 rounded-md border-l-2 border-primary/60 bg-primary/[0.04] pl-3 py-2">
+                  <p className="text-[10px] font-bold tracking-[0.2em] text-primary mb-1">产业解读</p>
+                  <p className="text-[13px] leading-relaxed text-foreground/85">
+                    {CITY_INSIGHTS[selected.name]!.industry}
+                  </p>
+                  <p className="text-[11px] text-muted mt-2 leading-relaxed">
+                    适合谁：{CITY_INSIGHTS[selected.name]!.life!.fitFor!.slice(0, 2).join("；")}
+                  </p>
+                </div>
+              )}
               <div className="space-y-3 text-sm">
                 <div>
                   <p className="text-xs font-semibold text-muted mb-1.5">🏭 支柱产业</p>

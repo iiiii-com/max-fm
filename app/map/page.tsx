@@ -1,4 +1,4 @@
-﻿import { getProvinces, getProvinceHistoryAll } from "@/lib/data/queries";
+import { getProvinces, getProvinceHistoryAll } from "@/lib/data/queries";
 import { SectionTitle, Card } from "@/components/ui";
 import ProvinceMap from "@/components/ProvinceMap";
 import CityRankTable, { ProvinceCityPanel } from "@/components/CityRankTable";
@@ -94,7 +94,7 @@ export default async function MapPage() {
       <section>
         <SectionTitle
           title="核心城市产业图谱 · 网络视图"
-          sub="以城市为节点的产业关联图谱：节点大小=产业规模，颜色=产业类型，连线=同产业关联；支持产业/城市等级筛选，点击节点展开产业链关系"
+          sub="以城市为节点的产业关联图谱：节点大小=产业规模，颜色=产业类型，连线=同产业关联；悬停可看城市性格摘要，点击节点展开产业解读与产业链关系"
         />
         <CityGraphBoard />
       </section>
@@ -102,18 +102,18 @@ export default async function MapPage() {
       <section>
         <SectionTitle
           title="核心城市产业图谱 · 地图视图"
-          sub="在全国地图上标注核心城市地理位置（经纬度），点击气泡查看该城市支柱产业、产业优势与代表企业，形成经济产业图谱"
+          sub="在全国地图上标注核心城市地理位置（经纬度），点击气泡查看该城市支柱产业、产业优势、代表企业与产业解读，并可跳转完整解读"
         />
         <CityIndustryMap />
       </section>
 
       <section>
-        <SectionTitle title="代表城市" sub="点击省份查看支柱产业与优势产业城市分布，产业标签可跳转对应产业链" />
+        <SectionTitle title="代表城市" sub="点击省份查看城市分布；每张卡片含产业定位首句与主要取舍，产业标签可跳转对应产业链，点击卡片看完整解读" />
         <ProvinceCityPanel />
       </section>
 
       <section>
-        <SectionTitle title="全国城市 GDP 榜" sub="TOP30 城市 · 2025 年口径预估 · 点击表头排序" />
+        <SectionTitle title="全国城市 GDP 榜" sub="TOP30 城市 · 2025 年口径预估 · 点击表头排序 · 每城附解读摘要" />
         <Card>
           <CityRankTable />
         </Card>

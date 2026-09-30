@@ -6,6 +6,8 @@ import { echarts } from "@/components/charts/echarts";
 import ChinaMap from "@/components/charts/ChinaMap";
 import { Badge, Card } from "@/components/ui";
 import { STATIC_REGIONS } from "@/lib/data/regions";
+import { CITY_INSIGHTS } from "@/lib/data/cityInsights";
+import CityDrawer from "@/components/CityDrawer";
 
 /** 核心城市经纬度（省会/直辖市 + 重点经济城市，公开地理坐标） */
 export const CITY_COORDS: Record<string, [number, number]> = {
@@ -125,6 +127,8 @@ function labelDensity(zoom: number, total: number): number {
 
 export default function CityIndustryMap() {
   const [selected, setSelected] = useState<CityIndustry | null>(null);
+  // 解读抽屉入口：从城市详情卡跳到完整解读
+  const [drawerCity, setDrawerCity] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1.1);
   const chartRef = useRef<echarts.ECharts | null>(null);
   const cities = useMemo(() => buildCityIndustries(), []);
@@ -303,6 +307,29 @@ export default function CityIndustryMap() {
                   </div>
                 )}
               </div>
+              {/* 解读首段：地图给出空间位置，解读给出「为什么是这座城」。
+                  仅机制描述，不含统计数值（站内无城市级薪资/收入/房价绝对值数据）。 */}
+              {CITY_INSIGHTS[selected.name] && (
+                <div className="mt-4 rounded-md border-l-2 border-primary/60 bg-primary/[0.04] pl-3 py-2">
+                  <p className="text-[10px] font-bold tracking-[0.2em] text-primary mb-1">产业解读</p>
+                  <p className="text-[13px] leading-relaxed text-foreground/85">
+                    {CITY_INSIGHTS[selected.name]!.industry}
+                  </p>
+                  <p className="text-[11px] text-muted mt-2 leading-relaxed">
+                    就业门槛：{CITY_INSIGHTS[selected.name]!.jobs!.caveat}
+                  </p>
+                </div>
+              )}
+              {CITY_INSIGHTS[selected.name] && (
+                <p className="mt-3 text-[11px]">
+                  <button
+                    onClick={() => setDrawerCity(selected.name)}
+                    className="text-primary hover:underline"
+                  >
+                    查看完整解读（特点 · 就业 · 收入开支机制 · 优缺点 · 生活质量）→
+                  </button>
+                </p>
+              )}
             </Card>
           ) : (
             <Card className="p-5 text-center text-sm text-muted">
@@ -327,12 +354,19 @@ export default function CityIndustryMap() {
                     {c.pillar.join(" · ")}
                     {c.advantage.length > 0 && ` · 优势：${c.advantage.join("、")}`}
                   </p>
+                  {/* 速览列表也带一句判断，避免只有标签没有信息 */}
+                  {CITY_INSIGHTS[c.name] && (
+                    <p className="text-[10px] text-muted/80 mt-1 leading-relaxed line-clamp-2">
+                      {CITY_INSIGHTS[c.name]!.character.split(/[。；]/)[0]}。
+                    </p>
+                  )}
                 </button>
               ))}
             </div>
           </Card>
         </div>
       </div>
+      <CityDrawer city={drawerCity ? { name: drawerCity } : null} onClose={() => setDrawerCity(null)} />
     </div>
   );
 }

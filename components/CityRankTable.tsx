@@ -6,6 +6,20 @@ import { CITY_RANK, STATIC_REGIONS } from "@/lib/data/regions";
 import { matchChainId } from "@/lib/data/chains";
 import { Badge } from "@/components/ui";
 import CityDrawer from "@/components/CityDrawer";
+import { CITY_INSIGHTS } from "@/lib/data/cityInsights";
+
+/**
+ * 解读摘要：从 cityInsights 取「城市特点」的首句。
+ * 只展示第一句 —— 榜单是扫读场景，塞全文会让表格没法看；
+ * 想读完整解读点进抽屉。
+ * 注意这仍是机制描述，不是统计数值（站内无城市级薪资/收入/房价绝对值数据）。
+ */
+function insightBrief(name: string): string {
+  const t = CITY_INSIGHTS[name]?.character?.trim();
+  if (!t) return "";
+  const first = t.split(/[。；]/).filter(Boolean)[0] ?? "";
+  return (first.length > 34 ? first.slice(0, 34) + "…" : first) + "。";
+}
 
 type SortKey = "rank" | "gdp" | "listed";
 
@@ -71,6 +85,7 @@ export default function CityRankTable() {
               {head("gdp", "GDP", true)}
               {head("listed", "上市公司数", true)}
               <th className="py-2 px-3 font-medium text-left whitespace-nowrap">备注</th>
+              <th className="py-2 px-3 font-medium text-left whitespace-nowrap">解读摘要</th>
             </tr>
           </thead>
           <tbody>
@@ -87,11 +102,17 @@ export default function CityRankTable() {
                 <td className="py-2 px-3 text-right font-mono">{c.gdp}</td>
                 <td className="py-2 px-3 text-right font-mono">{c.listed}</td>
                 <td className="py-2 px-3 text-xs text-muted">{c.note}</td>
+                <td
+                  className="py-2 px-3 text-xs text-muted/90 max-w-[16rem]"
+                  title="来自站内城市解读，仅机制描述，不含统计数值；点击查看完整解读"
+                >
+                  {insightBrief(c.name) || "—"}
+                </td>
               </tr>
             ))}
             {sorted.length === 0 && (
               <tr>
-                <td colSpan={5} className="py-6 text-center text-sm text-muted">未找到匹配城市</td>
+                <td colSpan={6} className="py-6 text-center text-sm text-muted">未找到匹配城市</td>
               </tr>
             )}
           </tbody>
@@ -104,6 +125,8 @@ export default function CityRankTable() {
 
 export function ProvinceCityPanel() {
   const [province, setProvince] = useState<string | null>(null);
+  // 卡片可点开城市解读抽屉（与 CityRankTable 同一入口）
+  const [drawerCity, setDrawerCity] = useState<string | null>(null);
   const region = province ? STATIC_REGIONS.find((r) => r.province === province) : undefined;
 
   const tagHref = (tag: string) => {
@@ -144,7 +167,8 @@ export function ProvinceCityPanel() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {region.cities.map((c) => (
-              <div key={c.name} className="card p-4">
+              <div key={c.name} className="card p-4 hover:border-primary/40 transition-colors cursor-pointer"
+                   onClick={() => setDrawerCity(c.name)}>
                 <div className="flex items-center gap-2 mb-1">
                   <h3 className="font-bold">{c.name}</h3>
                   <span className="text-xs text-muted ml-auto font-mono">{c.gdp}</span>
@@ -176,11 +200,24 @@ export function ProvinceCityPanel() {
                 {c.companies.length > 0 && (
                   <p className="text-[11px] text-muted mt-2">代表企业：{c.companies.join("、")}</p>
                 )}
+                {/* 产业定位首句 + 生活质量取舍首条：让卡片本身有判断而不只是标签。
+                    均为机制描述，不含统计数值。 */}
+                {insightBrief(c.name) && (
+                  <p className="text-[11px] text-muted/90 mt-2 pt-2 border-t border-border/50 leading-relaxed">
+                    {insightBrief(c.name)}
+                  </p>
+                )}
+                {CITY_INSIGHTS[c.name]?.life?.tradeoffs?.[0] && (
+                  <p className="text-[11px] text-amber-600/90 dark:text-amber-400/90 mt-1 leading-relaxed">
+                    取舍：{CITY_INSIGHTS[c.name]!.life!.tradeoffs![0]}
+                  </p>
+                )}
               </div>
             ))}
           </div>
         </>
       )}
+      <CityDrawer city={drawerCity ? { name: drawerCity } : null} onClose={() => setDrawerCity(null)} />
     </div>
   );
 }
