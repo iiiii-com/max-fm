@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Layers } from "lucide-react";
 import ChainSwimlane from "./ChainSwimlane";
 import { LEVELS, levelOrder, isRealLevel } from "@/lib/data/chainLevels";
+import type { ValidMetric } from "@/lib/data/chainMetrics";
 
 /**
  * 产业链浏览器：链选择（横向 chip）+ 分层泳道
@@ -19,9 +20,11 @@ import { LEVELS, levelOrder, isRealLevel } from "@/lib/data/chainLevels";
 export default function ChainFlowExplorer({
   chains,
   nodes,
+  metrics = [],
 }: {
-  chains: Array<{ id: string; name: string }>;
+  chains: Array<{ id: string; name: string; slug?: string | null }>;
   nodes: Array<{ id: string; chainId: string | null; name: string; level?: string | null; description?: string | null; companies?: string | null }>;
+  metrics?: ValidMetric[];
 }) {
   // 默认选中节点最多的一条链：它是内容最丰富、最能说明「产业链长什么样」的样本，
   // 而不是原实现里的「数组第一条」（对用户是随机的）
@@ -102,7 +105,10 @@ export default function ChainFlowExplorer({
       </div>
 
       {current ? (
-        <ChainSwimlane bands={bands} />
+        <ChainSwimlane
+          bands={bands}
+          metrics={current?.slug ? metrics.filter((m) => m.slug === current.slug) : []}
+        />
       ) : (
         <p className="py-8 text-center text-sm text-muted">请选择一条产业链</p>
       )}

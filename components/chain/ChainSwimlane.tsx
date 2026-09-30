@@ -1,5 +1,6 @@
 import { LEVELS, levelOrder, isRealLevel } from "@/lib/data/chainLevels";
 import { safeJsonArray } from "@/lib/utils";
+import { formatMetric, metricAsOfYear, type ValidMetric } from "@/lib/data/chainMetrics";
 
 /**
  * 产业链分层泳道 —— 方向 A 的实现。
@@ -99,18 +100,64 @@ function Band({
 }
 
 /**
+ * 链级已核验指标。
+ *
+ * 视觉上刻意做得比结构性内容更弱：更小字号、更低对比、方括号包裹。
+ * 理由是**注释是注释，不是标题** —— 环节结构是这张图的主体，数字是旁注。
+ *
+ * 零指标时同样要出现：否则"这条链一个可信数字都没有"这件事会被静默隐藏，
+ * 读者只会以为页面上没这回事。诚实的空态必须被设计出来，而不是留白。
+ */
+function MetricStrip({ metrics }: { metrics: ValidMetric[] }) {
+  if (!metrics.length) {
+    return (
+      <div className="mt-4 border-t border-border pt-3">
+        <p className="text-[11px] text-muted">
+          暂无可核验的量化指标：这条链的规模与增速多来自券商测算或企业白皮书，
+          缺乏统一官方口径，因此不展示 —— 留空优于展示一个无法核验的数字。
+        </p>
+      </div>
+    );
+  }
+  return (
+    <div className="mt-4 border-t border-border pt-3">
+      <p className="text-[11px] text-muted mb-2">已核验指标（括号内为统计时点，悬停可见来源与口径）</p>
+      <ul className="flex flex-wrap gap-x-5 gap-y-1.5">
+        {metrics.map((m) => (
+          <li key={`${m.slug}-${m.key}`}>
+            <span className="text-[11px] text-muted">{m.name}</span>
+            <span className="ml-1.5 text-[11px] font-mono tabular-nums text-muted/90">
+              〔{formatMetric(m)} · {metricAsOfYear(m)}〕
+            </span>
+            <span className="sr-only">
+              来源：{m.source}；口径：{m.caliber}
+            </span>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-2 text-[11px] leading-relaxed text-muted">
+        未列出的指标表示暂无可核验的公开口径，刻意留空而非填入估算值。
+      </p>
+    </div>
+  );
+}
+
+/**
  * @param nodes 可传全部节点（含跨链关联），内部会按 LEVELS 过滤并排序
  * @param bands 也可由调用方直接给定分组（详情页已有分组结果，避免重复计算）
  * @param detail 提供后每个节点变为可展开，展开区由调用方渲染（详情页模式）
+ * @param metrics 已通过四件套校验的链级指标
  */
 export default function ChainSwimlane({
   nodes,
   bands,
   detail,
+  metrics = [],
 }: {
   nodes?: SwimNode[];
   bands?: SwimBand[];
   detail?: (n: SwimNode) => React.ReactNode;
+  metrics?: ValidMetric[];
 }) {
   const resolved: SwimBand[] =
     bands ??
@@ -135,6 +182,7 @@ export default function ChainSwimlane({
         供给方向：上游决定成本与产能供给，中游完成加工与性能实现，下游形成需求反馈。
         <span className="ml-1">环节之间的连线需要真实的供应关系数据支撑，当前尚未建立，因此不绘制。</span>
       </p>
+      <MetricStrip metrics={metrics} />
     </div>
   );
 }

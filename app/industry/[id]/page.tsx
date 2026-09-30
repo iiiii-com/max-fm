@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getChainBySlug, getChains, getChainNodes } from "@/lib/data/queries";
+import { getChainBySlug, getChains, getChainNodes, getChainMetrics } from "@/lib/data/queries";
 import { Card, Badge, SectionTitle } from "@/components/ui";
 import ChainSwimlane from "@/components/chain/ChainSwimlane";
 import ChainQuotes from "@/components/industry/ChainQuotes";
@@ -19,6 +19,8 @@ export default async function ChainDetailPage({ params }: { params: Promise<{ id
   const chain = await getChainBySlug(id);
   if (!chain) notFound();
   const [nodesRaw, chains] = await Promise.all([getChainNodes(chain.id), getChains()]);
+  // 只取通过「单位 + 时点 + 来源 + 口径」四件套校验的指标，其余不进 UI
+  const metrics = await getChainMetrics([chain.slug]);
 
   // 单一计数口径：全页所有"环节数"都从 nodes 一处派生。
   // 旧实现概览卡用 realNodes.length（6）、头部用 nodes.length（9），
@@ -41,7 +43,7 @@ export default async function ChainDetailPage({ params }: { params: Promise<{ id
   const overview = [
     { label: "环节总数", value: `${real.length}`, note: LEVELS.map((r) => `${roleCount[r] ?? 0} ${r}`).join(" · ") },
     { label: "代表公司", value: `${companyCount}`, note: "去重后覆盖 A 股与港股" },
-    { label: "链级说明", value: chain.detail ? "已收录" : "—", note: chain.detail ?? "该链规模数据待补充来源" },
+    { label: "已核验指标", value: `${metrics.length}`, note: metrics.length ? "每项均含单位/时点/来源/口径" : "暂无可核验的公开口径" },
     { label: "景气状态", value: SENTIMENT[chain.sentiment] ?? "—", note: "链级定性判断，非测算值" },
   ];
 
@@ -102,6 +104,7 @@ export default async function ChainDetailPage({ params }: { params: Promise<{ id
         <Card className="p-0">
           <ChainSwimlane
             bands={groups}
+            metrics={metrics}
             detail={(n) => {
               const companies = safeJsonArray<string>(n.companies);
               return (

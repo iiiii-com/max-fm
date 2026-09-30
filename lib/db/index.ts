@@ -30,7 +30,7 @@ export const raw: any = boot.raw;
 
 const TABLES = [
   "economic_indicators", "policies", "policy_analyses", "articles", "industry_chains",
-  "chain_nodes", "province_stats", "quotes_cache", "users", "user_advice", "watchlists",
+  "chain_nodes", "chain_metrics", "province_stats", "quotes_cache", "users", "user_advice", "watchlists",
   "feeling_surveys", "feeling_aggregates", "macro_temperature", "temperature_analyses", "task_logs",
   "history_events",
 ];

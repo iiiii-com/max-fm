@@ -1,5 +1,5 @@
 ﻿import BoardTabs from "@/components/BoardTabs";
-import { getChains, getChainNodes } from "@/lib/data/queries";
+import { getChains, getChainNodes, getChainMetrics } from "@/lib/data/queries";
 import { Card, SectionTitle } from "@/components/ui";
 import ChainFlowExplorer from "@/components/chain/ChainFlowExplorer";
 import ChainEcosystem, { ECOSYSTEM_COVERAGE } from "@/components/chain/ChainEcosystem";
@@ -22,6 +22,7 @@ export default async function IndustryPage({ searchParams }: { searchParams: Pro
   await bootstrap();
   const chains = await getChains();
   const nodes = await getChainNodes();
+  const metrics = await getChainMetrics(chains.map((c: any) => c.slug));
 
   const nodeCounts: Record<string, number> = {};
   for (const c of chains) {
@@ -45,7 +46,7 @@ export default async function IndustryPage({ searchParams }: { searchParams: Pro
               sub="按上游 / 中游 / 下游三层呈现环节与代表公司。环节之间的供应关系需要逐条核实，尚未建立，因此不绘制连线"
             />
             <Card className="p-0">
-              <ChainFlowExplorer chains={chains} nodes={nodes as any} />
+              <ChainFlowExplorer chains={chains} nodes={nodes as any} metrics={metrics} />
             </Card>
           </div>
 

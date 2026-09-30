@@ -286,6 +286,59 @@ async function main() {
     for (const lv of LEVELS) {
       check(`分层泳道包含「${lv}」层`, html.includes(lv));
     }
+
+    // 6) 链级说明（industry_chains.detail）不得再出现无源数字。
+    //    旧实现是「市场规模约 1.3 万亿元，国产化率不足 30%」这类句子：
+    //    无时点、无来源、无口径，与已清空的 chain_nodes.value 是同一种病。
+    const NOTE_NUMBER = /\d[\d.,]*\s*(万亿|亿|万|%|GW|万吨|万辆|亿美元|万台|个)/;
+    const withNote = (await db.select().from(s.industryChains)) as any[];
+    const noteOffenders = withNote.filter((c) => c.detail && NOTE_NUMBER.test(String(c.detail)));
+    check(
+      "链级说明无无源数字表述",
+      noteOffenders.length === 0,
+      noteOffenders.slice(0, 2).map((c) => `${c.name}: ${String(c.detail).slice(0, 30)}`).join(" | ")
+    );
+
+    // 7) 产业链指标必须满足「单位 + 时点 + 来源 + 口径」四件套。
+    //    这是防退化断言：防止半年后又往表里塞无源数字。
+    const { validateMetric, METRIC_KEYS, validMetrics } = await import("@/lib/data/chainMetrics");
+    const metrics = (await db.select().from(s.chainMetrics)) as any[];
+    const invalid = metrics.filter((m) => !validateMetric(m).ok);
+    check(
+      "产业链指标全部满足四件套（单位/时点/来源/口径）",
+      invalid.length === 0,
+      invalid.slice(0, 2).map((m) => `${m.slug}/${m.type}: ${validateMetric(m).reason}`).join(" | ")
+    );
+    check(
+      "产业链指标类型均在白名单内",
+      metrics.every((m) => m.type && m.type in METRIC_KEYS),
+      `types=${[...new Set(metrics.map((m) => m.type))].join(",")}`
+    );
+    // 8) 页面必须把「本页所属链」的已核验指标渲染出来，且带上来源
+    //    注意只查本页那条链的指标 —— nev 的指标不该出现在 semiconductor 页
+    if (metrics.length) {
+      const allValid = validMetrics(metrics);
+      const pageValid = allValid.filter((m) => m.slug === "semiconductor");
+      const missingOnPage = pageValid.filter((m) => !html.includes(m.name));
+      check(
+        "本页链的已核验指标全部渲染到页面",
+        missingOnPage.length === 0,
+        `本页应有 ${pageValid.length} 条` + (missingOnPage.length ? `，缺：${missingOnPage.map((m) => m.name).join(", ")}` : "")
+      );
+      // 反向断言：别把别的链的数字混进来
+      const foreign = allValid.filter((m) => m.slug !== "semiconductor" && html.includes(m.name));
+      check(
+        "未把其他产业链的指标混入本页",
+        foreign.length === 0,
+        foreign.slice(0, 2).map((m) => m.name).join(" | ")
+      );
+      const firstValid = pageValid[0];
+      check(
+        "指标来源随页面提供（可核验）",
+        !firstValid || html.includes(firstValid.source.split(" ·")[0]),
+        firstValid?.source
+      );
+    }
   } catch (e: any) {
     check("产业链数据可校验", false, String(e?.message ?? e));
   }

@@ -160,6 +160,26 @@ export const policyAnalyses = t("policy_analyses");
 export const articles = t("articles");
 export const industryChains = t("industry_chains");
 export const chainNodes = t("chain_nodes");
+/**
+ * 产业链量化指标（唯一允许存放"环节数字"的表）。
+ *
+ * 背景：chain_nodes 曾在 seed 阶段用 rng() 生成 value / growth，
+ * 当作权威数据渲染并带涨跌色，已清空并停止写入。
+ * 真实数字统一放这里，且必须满足 `isValidMetric` 的三件套约束。
+ *
+ * 复用通用列，无�� schema 迁移：
+ *   slug      → 产业链 slug
+ *   type      → metric_key（market_size / localization_rate / output …）
+ *   name      → 指标显示名
+ *   value     → 数值
+ *   unit      → 单位（"亿元" / "%" / "亿块" / "万辆"）
+ *   date      → 统计时点（"2024" / "2024-06"）
+ *   source    → 来源名称（"国家统计局" / "中国汽车工业协会" …）
+ *   sourceUrl → 来源链接
+ *   detail    → 口径说明（"含进口 / 不含出口"这类必须写清楚）
+ *   createdAt → 入库时间
+ */
+export const chainMetrics = t("chain_metrics");
 export const provinceStats = t("province_stats");
 export const quotesCache = t("quotes_cache");
 export const users = t("users");
@@ -178,6 +198,7 @@ export type PolicyAnalysis = typeof policyAnalyses.$inferSelect;
 export type Article = typeof articles.$inferSelect;
 export type IndustryChain = typeof industryChains.$inferSelect;
 export type ChainNode = typeof chainNodes.$inferSelect;
+export type ChainMetric = typeof chainMetrics.$inferSelect;
 export type ProvinceStat = typeof provinceStats.$inferSelect;
 export type Quote = typeof quotesCache.$inferSelect;
 export type User = typeof users.$inferSelect;

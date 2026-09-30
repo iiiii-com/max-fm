@@ -1,6 +1,7 @@
-﻿import { db, parseJson } from "@/lib/db";
+import { db, parseJson } from "@/lib/db";
 import * as s from "@/lib/db/schema";
-import { eq, desc, asc, and, like } from "drizzle-orm";
+import { eq, desc, asc, and, like, inArray } from "drizzle-orm";
+import { validMetrics } from "@/lib/data/chainMetrics";
 
 export const CATEGORY_COLORS: Record<string, string> = {
   物价: "#dc2626", 景气: "#ea580c", 货币: "#2563eb", 外贸: "#0d9488",
@@ -78,6 +79,20 @@ export async function getChains() {
 export async function getChainNodes(chainId?: string) {
   const q = db.select().from(s.chainNodes);
   return chainId ? q.where(eq(s.chainNodes.chainId, chainId)) : q;
+}
+
+/**
+ * 某条链的**已核验**量化指标。
+ *
+ * 关键：这里返回的是 validMetrics() 的结果 —— 不满足「单位 + 时点 + 来源 +
+ * 口径」四件套的行会被直接丢弃，不会出现在页面上。
+ * 也就是说，即使有人绕过 upsert 脚本往表里塞了不完整的行，UI 也渲染不出来。
+ * 这是"少但真"在代码层的落点。
+ */
+export async function getChainMetrics(slugs: string[]) {
+  if (!slugs.length) return [] as ReturnType<typeof import("./chainMetrics").validMetrics>;
+  const rows = (await db.select().from(s.chainMetrics).where(inArray(s.chainMetrics.slug, slugs))) as any[];
+  return validMetrics(rows);
 }
 
 export async function getChainBySlug(slug: string) {
