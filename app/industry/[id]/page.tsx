@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getChainBySlug, getChains, getChainNodes, getChainMetrics } from "@/lib/data/queries";
 import { Card, Badge, SectionTitle } from "@/components/ui";
 import ChainSwimlane from "@/components/chain/ChainSwimlane";
+import ChainInsightPanel from "@/components/chain/ChainInsightPanel";
 import ChainQuotes from "@/components/industry/ChainQuotes";
 import { LEVELS, levelOrder, realNodes } from "@/lib/data/chainLevels";
 import { safeJsonArray } from "@/lib/utils";
@@ -123,6 +124,8 @@ export default async function ChainDetailPage({ params }: { params: Promise<{ id
           />
         </Card>
       </section>
+
+      <ChainInsightPanel slug={chain.slug} />
 
       <section>
         <SectionTitle title="关联产业链" sub="跨链供需联动" />

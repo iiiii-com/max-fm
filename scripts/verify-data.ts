@@ -384,6 +384,52 @@ async function main() {
     check("危机阶段策略可校验", false, String(e?.message ?? e));
   }
 
+  // 产业解读覆盖率：25 条链必须逐条有解读，否则「产业地图内容太少」会重新发生
+  try {
+    const { CHAIN_INSIGHTS: INS } = await import("@/lib/data/chainInsights");
+    const { getChains } = await import("@/lib/data/queries");
+    const { bootstrap } = await import("@/lib/db");
+    await bootstrap();
+    const slugs = (await getChains()).map((c: any) => c.slug as string);
+    const missing = slugs.filter((s: string) => !INS[s]?.economics);
+    check(
+      "每条产业链都有解读与指导",
+      missing.length === 0,
+      missing.length ? `缺 ${missing.length} 条: ${missing.slice(0, 4).join(",")}` : `${slugs.length} 条全覆盖`
+    );
+    const orphan = Object.keys(INS).filter((k) => !slugs.includes(k));
+    check("解读表无孤儿 slug（不会写到已下线产业链）", orphan.length === 0, orphan.join(",") || "无");
+    const thin = Object.entries(INS).filter(
+      ([, v]: any) => v.chokepoints?.length < 2 || v.watch?.length < 3 || v.risks?.length < 2
+    );
+    check(
+      "解读四件套齐全（关键环节≥2 / 关注指标≥3 / 风险≥2）",
+      thin.length === 0,
+      thin.length ? thin.map(([k]) => k).join(",") : "全部完整"
+    );
+    // 解读里的 chokepoints 必须是本链真实存在的环节名，否则是凭空写的
+    const { getChainNodes } = await import("@/lib/data/queries");
+    const chains = await getChains();
+    const bogus: string[] = [];
+    for (const c of chains as any[]) {
+      const ins = INS[c.slug];
+      if (!ins) continue;
+      const names = new Set(
+        (await getChainNodes(c.id)).map((n: any) => n.name as string)
+      );
+      for (const kp of ins.chokepoints) {
+        if (!names.has(kp)) bogus.push(`${c.slug}/${kp}`);
+      }
+    }
+    check(
+      "解读引用的关键环节在泳道中真实存在",
+      bogus.length === 0,
+      bogus.length ? bogus.slice(0, 3).join(" | ") : "全部对得上"
+    );
+  } catch (e: any) {
+    check("产业解读可校验", false, String(e?.message ?? e));
+  }
+
   console.log(`\n=== 结果：${pass} 通过 / ${fail} 失败 ===\n`);
   process.exit(fail > 0 ? 1 : 0);
 }
