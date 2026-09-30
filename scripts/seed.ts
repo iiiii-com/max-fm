@@ -1042,24 +1042,36 @@ async function main() {
     }
   }
 
-  const provRows: any[] = [];
-  for (const [prov, meta] of Object.entries(PROVINCES)) {
-    for (let year = 2025; year >= 2018; year--) {
-      const back = 2025 - year;
-      const gdp = round1((meta.gdp2025 / Math.pow(1 + meta.growth / 100, back)) * (0.96 + rng() * 0.06));
-      const growth = round1(meta.growth - back * 0.25 + (rng() - 0.5) * 1.2);
-      const pop = round2(meta.pop * (1 + back * 0.004));
-      provRows.push({
-        id: uid("prov"), province: prov, year,
-        gdp, growth: Math.max(0.5, growth),
-        perCapitaGdp: round1(gdp / pop),
-        population: pop,
-        fiscalRevenue: round1(gdp * (0.08 + rng() * 0.03)),
-        trade: round1(gdp * (0.25 + rng() * 0.4)),
-        updatedAt: ts,
-      });
-    }
+const provRows: any[] = [];
+for (const [prov, meta] of Object.entries(PROVINCES)) {
+  for (let year = 2025; year >= 2018; year--) {
+    const back = 2025 - year;
+    // ⚠ 历史年份的 gdp / growth 是**推算值**，不是逐年统计年鉴的真实数值：
+    //   以 2025 基值按增长率倒推，再叠加 ±3% 随机扰动。
+    //   随机扰动的目的是让曲线看起来平滑自然，但它使历史序列不具备逐年可核验性。
+    //   页面与回归脚本均已标注「推算值」口径。若要逐年真实值，
+    //   必须逐年录入统计年鉴数据，不能靠倒推 + 噪声。
+    const gdp = round1((meta.gdp2025 / Math.pow(1 + meta.growth / 100, back)) * (0.96 + rng() * 0.06));
+    const growth = round1(meta.growth - back * 0.25 + (rng() - 0.5) * 1.2);
+    const pop = round2(meta.pop * (1 + back * 0.004));
+    provRows.push({
+      id: uid("prov"), province: prov, year,
+      gdp, growth: Math.max(0.5, growth),
+      perCapitaGdp: round1(gdp / pop),
+      population: pop,
+      // 🚫 不再生成 fiscalRevenue / trade。
+      //   这两个字段此前是 gdp * (0.08 + rng()*0.03) 与 gdp * (0.25 + rng()*0.4) ——
+      //   **纯随机数**，却在 /map 上以「进出口」「财政收入」的名义展示成省级统计数据。
+      //   后果是排名完全失真：随机数把广东（真实外贸依存度全国前列）排到第 31 位，
+      //   把甘肃、山西、青海等内陆省份排到前列。
+      //   与 chain_nodes.value / growth 是同一类造假，此处一并清除。
+      //   没有可核验的逐年公开数据，就留空 —— 页面已按「取不到即不展示」处理。
+      fiscalRevenue: null,
+      trade: null,
+      updatedAt: ts,
+    });
   }
+}
   if (provRows.length) await db.insert(s.provinceStats).values(provRows).onConflictDoNothing();
 
   const polRows = POLICIES.map((p: any, idx: any) => ({

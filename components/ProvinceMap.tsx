@@ -1,31 +1,59 @@
-﻿"use client";
+"use client";
 
 import { useMemo, useState } from "react";
 import ChinaMap from "./charts/ChinaMap";
 import { fmt } from "@/lib/utils";
 
+
+/**
+ * 可切换指标。
+ *
+ * ⚠ 进出口与财政收入**已下线**：seed.ts 此前用
+ *   trade = gdp * (0.25 + rng()*0.4)、fiscalRevenue = gdp * (0.08 + rng()*0.03)
+ * 生成，即纯随机数，却以省级统计的名义展示。随机数把广东排到外贸依存度第 31 位、
+ * 甘肃排到第 2 位，排名完全失真。已由 scripts/fix-province-fake-data.ts 置空。
+ * 在有可核验的逐年公开数据之前，这两个维度不再出现 ——
+ * 数字看起来精确比没有数字更危险。
+ *
+ * 「占全国 X 成」这类比例同理不做：分母（全国 GDP）站内没有，不能用 31 省加总代替。
+ */
 const METRICS = [
   { key: "gdp", label: "GDP 总量", unit: "万亿", color: ["#fde8e8", "#c0392b"] },
   { key: "growth", label: "GDP 同比", unit: "%", color: ["#dbeafe", "#1d4ed8"] },
   { key: "perCapitaGdp", label: "人均 GDP", unit: "万", color: ["#d1fae5", "#047857"] },
-  { key: "trade", label: "进出口", unit: "万亿", color: ["#fef3c7", "#b45309"] },
   { key: "population", label: "人口", unit: "亿", color: ["#fae8ff", "#a21caf"] },
-  { key: "fiscalRevenue", label: "财政收入", unit: "万亿", color: ["#e0f2fe", "#0369a1"] },
+  // GDP 占比：分母是 31 省合计（与分子同源同口径），不是全国 GDP。
+  // 用于看集中度，与「占全国 X 成」是两回事，标签已写明。
+  { key: "gdpShare", label: "占 31 省合计", unit: "%", color: ["#e0e7ff", "#4338ca"] },
 ] as const;
 
 type MetricKey = (typeof METRICS)[number]["key"];
-type Row = { name: string; year?: number; gdp: number; growth: number; perCapitaGdp: number; population: number; trade: number; fiscalRevenue: number };
+type Row = { name: string; year?: number; gdp: number; growth: number; perCapitaGdp: number; population: number };
+
+/** 取指标值；派生指标现算，取不到返回 null（不做除零兜底成 0） */
+function metricValue(d: Row, key: MetricKey, ctx?: { totalGdp: number }): number | null {
+  if (key === "gdpShare") {
+    const t = ctx?.totalGdp ?? 0;
+    return t > 0 ? (d.gdp / t) * 100 : null;
+  }
+  return d[key] ?? null;
+}
+
+/** 数字格式化：null 显示为「—」而不是 0，避免把「无数据」读成「真的是 0」 */
+const fmtV = (v: number | null | undefined, d = 2) =>
+  v === null || v === undefined || Number.isNaN(v) ? "—" : fmt(Math.round(v * 100) / 100, d);
 
 const RANK_LABEL: Record<number, string> = { 0: "🥇", 1: "🥈", 2: "🥉" };
 
 function ProvinceDetail({ name, history }: { name: string; history: Row[] }) {
-  const [seriesKey, setSeriesKey] = useState<"gdp" | "population" | "fiscalRevenue" | "growth">("gdp");
+  // 财政收入序列已下线（seed 中为随机数），走势图改用人均 GDP
+  const [seriesKey, setSeriesKey] = useState<"gdp" | "population" | "perCapitaGdp" | "growth">("gdp");
 
   const years = history.map((h) => h.year ?? 0);
   const first = years[0];
   const last = years[years.length - 1];
 
-  const rankOf = (year: number, key: "gdp" | "population" | "fiscalRevenue" | "growth") =>
+  const rankOf = (year: number, key: "gdp" | "population" | "perCapitaGdp" | "growth") =>
     [...history]
       .filter((h) => h.year === year)
       .sort((a, b) => (b[key] ?? 0) - (a[key] ?? 0))
@@ -39,7 +67,7 @@ function ProvinceDetail({ name, history }: { name: string; history: Row[] }) {
     const METAS: Record<string, { label: string; unit: string; color: string }> = {
       gdp: { label: "GDP 总量", unit: "万亿", color: "#c0392b" },
       population: { label: "人口", unit: "亿", color: "#a21caf" },
-      fiscalRevenue: { label: "财政收入", unit: "万亿", color: "#0369a1" },
+      perCapitaGdp: { label: "人均 GDP", unit: "万", color: "#047857" },
       growth: { label: "GDP 同比", unit: "%", color: "#1d4ed8" },
     };
     const m = METAS[seriesKey];
@@ -72,13 +100,13 @@ function ProvinceDetail({ name, history }: { name: string; history: Row[] }) {
         </button>
       </div>
       <div className="flex flex-wrap gap-2">
-        {(["gdp", "population", "fiscalRevenue", "growth"] as const).map((k) => (
+        {(["gdp", "population", "perCapitaGdp", "growth"] as const).map((k) => (
           <button
             key={k}
             onClick={() => setSeriesKey(k)}
             className={`px-2.5 py-1 rounded-md text-xs border transition-colors ${seriesKey === k ? "bg-primary text-white border-primary" : "border-border hover:border-primary/50"}`}
           >
-            {k === "gdp" ? "GDP" : k === "population" ? "人口" : k === "fiscalRevenue" ? "财政" : "增速"}
+            {k === "gdp" ? "GDP" : k === "population" ? "人口" : k === "perCapitaGdp" ? "人均" : "增速"}
           </button>
         ))}
       </div>
@@ -105,12 +133,15 @@ export default function ProvinceMap({ data, history }: { data: Row[]; history: R
     setSelected(match?.name ?? null);
   };
 
+  // 31 省 GDP 合计，作为「占 31 省合计」的分母（与分子同源同口径，非全国 GDP）
+  const totalGdp = useMemo(() => data.reduce((a, d) => a + (d.gdp || 0), 0), [data]);
+
   const mapData = useMemo(() => {
     const m = METRICS.find((x) => x.key === metric)!;
-    const vals = data.map((d) => d[metric]).filter((v) => v !== undefined && !Number.isNaN(v));
+    const vals = data.map((d) => metricValue(d, metric)).filter((v): v is number => v !== null && !Number.isNaN(v));
     const min = vals.length ? Math.min(...vals) : 0;
     const max = vals.length ? Math.max(...vals) : 0;
-    const ranking = [...data].sort((a, b) => (b[metric] ?? 0) - (a[metric] ?? 0));
+    const ranking = [...data].sort((a, b) => (metricValue(b, metric, { totalGdp }) ?? 0) - (metricValue(a, metric, { totalGdp }) ?? 0));
     const rankOf = (name: string) => ranking.findIndex((d) => d.name === name) + 1;
     const option = {
       title: { text: m.label, left: 12, top: 6, textStyle: { fontSize: 14, fontWeight: 600 } },
@@ -118,15 +149,14 @@ export default function ProvinceMap({ data, history }: { data: Row[]; history: R
         formatter: (p: any) => {
           const row = data.find((d) => d.name === p.name);
           if (!row) return p.name;
-          const val = row[metric];
+          const val = metricValue(row, metric, { totalGdp });
           const r = rankOf(row.name);
           return [
             `<b>${p.name}</b>　全国第 ${r} 名`,
-            `<b>${m.label}：${fmt(val)} ${m.unit}</b>`,
+            `<b>${m.label}：${fmtV(val)} ${m.unit}</b>`,
             `GDP：${fmt(row.gdp)} 万亿 · 同比：${fmt(row.growth)}%`,
             `人均：${fmt(row.perCapitaGdp)} 万 · 人口：${fmt(row.population)} 亿`,
-            `财政：${fmt(row.fiscalRevenue)} 万亿 · 外贸：${fmt(row.trade)} 万亿`,
-            `<span style="color:#888">点击查看 2018-2025 走势</span>`,
+            `<span style="color:#888">点击查看 2018-2025 走势（历史年份为推算值）</span>`,
           ].join("<br/>");
         },
       },
@@ -141,15 +171,15 @@ export default function ProvinceMap({ data, history }: { data: Row[]; history: R
         label: { show: false, fontSize: 10 },
         emphasis: { label: { show: true, fontWeight: 600 }, itemStyle: { areaColor: "#f0abfc" } },
         itemStyle: { borderColor: "#fff", borderWidth: 0.8 },
-        data: data.map((d) => ({ name: d.name, value: d[metric] })),
+        data: data.map((d) => ({ name: d.name, value: metricValue(d, metric, { totalGdp }) })),
       }],
     };
     return option;
-  }, [metric, data]);
+  }, [metric, data, totalGdp]);
 
   const sorted = useMemo(
-    () => [...data].sort((a, b) => (b[sortKey] ?? 0) - (a[sortKey] ?? 0)),
-    [data, sortKey]
+    () => [...data].sort((a, b) => (metricValue(b, sortKey, { totalGdp }) ?? 0) - (metricValue(a, sortKey, { totalGdp }) ?? 0)),
+    [data, sortKey, totalGdp]
   );
 
   const selectedHistory = useMemo(
@@ -159,7 +189,7 @@ export default function ProvinceMap({ data, history }: { data: Row[]; history: R
 
   const cell = (d: any, k: MetricKey, unit: string) => (
     <td className={`py-2 px-3 text-right font-mono ${k === sortKey ? "bg-primary/10 rounded" : ""}`}>
-      {fmt(d[k])}{unit}
+      {fmtV(metricValue(d, k, { totalGdp }))}{unit}
     </td>
   );
 
@@ -218,9 +248,8 @@ export default function ProvinceMap({ data, history }: { data: Row[]; history: R
                     {cell(d, "gdp", " 万亿")}
                     {cell(d, "growth", "%")}
                     {cell(d, "perCapitaGdp", " 万")}
-                    {cell(d, "trade", " 万亿")}
+                    {cell(d, "gdpShare", "%")}
                     {cell(d, "population", " 亿")}
-                    {cell(d, "fiscalRevenue", " 万亿")}
                   </tr>
                 ))}
               </tbody>

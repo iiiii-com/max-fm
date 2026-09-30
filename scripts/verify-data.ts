@@ -430,6 +430,50 @@ async function main() {
     check("产业解读可校验", false, String(e?.message ?? e));
   }
 
+  // 省级经济数据防造假断言。
+  // 背景：seed.ts 曾用 rng() 生成 trade = gdp×(0.25+rng()×0.4) 与
+  // fiscalRevenue = gdp×(0.08+rng()×0.03)，以省级统计的名义展示在 /map。
+  // 随机数让外贸依存度排名与真实完全相反（广东垫底、甘肃第二），
+  // 比缺数据危险得多。已置空，这里断言它们不会回来。
+  try {
+    const { getProvinces } = await import("@/lib/data/queries");
+    const { bootstrap } = await import("@/lib/db");
+    const { regionCoverage, regionOf, shortProvinceName } = await import("@/lib/data/provinceRegions");
+    await bootstrap();
+    const ps = (await getProvinces()) as any[];
+
+    const fakeTrade = ps.filter((r) => r.trade != null);
+    const fakeFiscal = ps.filter((r) => r.fiscalRevenue != null);
+    check(
+      "省级进出口已下线（seed 曾为随机数）",
+      fakeTrade.length === 0,
+      fakeTrade.length ? `${fakeTrade.length} 行仍有值` : "全部为空"
+    );
+    check(
+      "省级财政收入已下线（seed 曾为随机数）",
+      fakeFiscal.length === 0,
+      fakeFiscal.length ? `${fakeFiscal.length} 行仍有值` : "全部为空"
+    );
+
+    const cov = regionCoverage();
+    check("四大区域恰好覆盖 31 省且无重复", cov.ok, `${cov.unique}/${cov.total}`);
+    const unmatched = [...new Set(ps.filter((r) => !regionOf(shortProvinceName(r.province))).map((r) => r.province))];
+    check("每省都能归入四大区域之一", unmatched.length === 0, unmatched.join(",") || "全部归类");
+
+    // perCapitaGdp 必须与 gdp/pop 自洽 —— 防止再次出现单位错误
+    const y = ps.filter((r) => r.year === 2025);
+    const drift = y.filter(
+      (r) => r.population > 0 && Math.abs(r.perCapitaGdp - r.gdp / r.population) / (r.gdp / r.population) > 0.05
+    );
+    check(
+      "人均 GDP 与 GDP÷人口 自洽（单位无错）",
+      drift.length === 0,
+      drift.length ? drift.map((r) => r.province).join(",") : `${y.length} 省偏差均 <5%`
+    );
+  } catch (e: any) {
+    check("省级经济数据可校验", false, String(e?.message ?? e));
+  }
+
   console.log(`\n=== 结果：${pass} 通过 / ${fail} 失败 ===\n`);
   process.exit(fail > 0 ? 1 : 0);
 }
