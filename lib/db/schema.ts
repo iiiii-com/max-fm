@@ -78,6 +78,17 @@ const t = (name: string) =>
     n: pgInteger("n"),
     linkId: pgText("link_id"),
     connectedTo: pgText("connected_to"),
+    // city_house_price（70 城商品住宅销售价格指数，国家统计局月度发布）
+    // t() 会同时走 pg / sqlite 两个分支，TS 静态检查两处都必须声明，否则
+    // pg 分支缺列会报 `Property 'city' does not exist`（即使运行时用的是 sqlite）。
+    // 全部是**指数**不是价格：newMom/usedMom 为上月=100，newYoy/usedYoy 为上年同月=100。
+    city: pgText("city"),
+    period: pgText("period"),
+    newMom: pgReal("new_mom"),
+    newYoy: pgReal("new_yoy"),
+    usedMom: pgReal("used_mom"),
+    usedYoy: pgReal("used_yoy"),
+    fetchedAt: pgInteger("fetched_at"),
   }) : sqliteTable(name, {
     id: text("id").primaryKey(),
     uid: text("uid"),
@@ -152,6 +163,16 @@ const t = (name: string) =>
     n: integer("n"),
     linkId: text("link_id"),
     connectedTo: text("connected_to"),
+    // city_house_price（70 城商品住宅销售价格指数，国家统计局月度发布）
+    // 全部是**指数**不是价格：newMom/usedMom 为上月=100，newYoy/usedYoy 为上年同月=100。
+    city: text("city"),
+    period: text("period"),
+    newMom: real("new_mom"),
+    newYoy: real("new_yoy"),
+    usedMom: real("used_mom"),
+    usedYoy: real("used_yoy"),
+    fetchedAt: integer("fetched_at"),
+    // source_url 已在上方公用列集合中定义（line 109），此处不重复声明
   }));
 
 export const economicIndicators = t("economic_indicators");
@@ -180,6 +201,23 @@ export const chainNodes = t("chain_nodes");
  *   createdAt → 入库时间
  */
 export const chainMetrics = t("chain_metrics");
+/**
+ * 70 城商品住宅销售价格指数（国家统计局月度发布）。
+ *
+ * city 为主键（站内 67 城的短名，不是统计局的 70 城标准名 —— 匹配见
+ * scripts/import-house-price.ts）。不匹配的 12 城不入库，页面显式说明原因。
+ *
+ * 口径（官方注释，页面必须同屏展示，不能只给数字）：
+ *   - 调查范围：各城市的市辖区，**不包括县**
+ *   - 新建商品住宅：全面调查，基础数据为当地房地产管理部门网签数据
+ *   - 二手住宅：重点调查 + 典型调查，数据来自经纪机构上报与调查员实地采价
+ *   - 2026 年 1 月起以 2025 年为新一轮对比基期
+ *
+ * 指数含义（基期=100，不是价格本身）：
+ *   newMom / usedMom → 上月 = 100，环比涨跌
+ *   newYoy / usedYoy → 上年同月 = 100，同比涨跌
+ */
+export const cityHousePrice = t("city_house_price");
 export const provinceStats = t("province_stats");
 export const quotesCache = t("quotes_cache");
 export const users = t("users");
@@ -200,6 +238,7 @@ export type IndustryChain = typeof industryChains.$inferSelect;
 export type ChainNode = typeof chainNodes.$inferSelect;
 export type ChainMetric = typeof chainMetrics.$inferSelect;
 export type ProvinceStat = typeof provinceStats.$inferSelect;
+export type CityHousePrice = typeof cityHousePrice.$inferSelect;
 export type Quote = typeof quotesCache.$inferSelect;
 export type User = typeof users.$inferSelect;
 export type UserAdvice = typeof userAdvice.$inferSelect;

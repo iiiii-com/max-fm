@@ -1,0 +1,497 @@
+{
+  "period": "2026年8月",
+  "sourceUrl": "https://www.stats.gov.cn/sj/zxfb/202609/t20260915_1965304.html",
+  "fetchedAt": "2026-09-30T08:10:39.085Z",
+  "rows": [
+    {
+      "city": "北京",
+      "newMom": 99.8,
+      "newYoy": 97.7,
+      "usedMom": 99.9,
+      "usedYoy": 96.5
+    },
+    {
+      "city": "唐山",
+      "newMom": 99.6,
+      "newYoy": 94.1,
+      "usedMom": 99.4,
+      "usedYoy": 92.6
+    },
+    {
+      "city": "天津",
+      "newMom": 99.8,
+      "newYoy": 95.9,
+      "usedMom": 99.5,
+      "usedYoy": 94.4
+    },
+    {
+      "city": "秦皇岛",
+      "newMom": 99.5,
+      "newYoy": 94.9,
+      "usedMom": 99.5,
+      "usedYoy": 92.9
+    },
+    {
+      "city": "石家庄",
+      "newMom": 99.4,
+      "newYoy": 95.7,
+      "usedMom": 99.7,
+      "usedYoy": 95.1
+    },
+    {
+      "city": "包头",
+      "newMom": 99.5,
+      "newYoy": 93.2,
+      "usedMom": 99.4,
+      "usedYoy": 92.8
+    },
+    {
+      "city": "太原",
+      "newMom": 99.8,
+      "newYoy": 98.2,
+      "usedMom": 99.4,
+      "usedYoy": 94.5
+    },
+    {
+      "city": "丹东",
+      "newMom": 99.7,
+      "newYoy": 97.4,
+      "usedMom": 99.6,
+      "usedYoy": 97.3
+    },
+    {
+      "city": "呼和浩特",
+      "newMom": 99.7,
+      "newYoy": 96.3,
+      "usedMom": 99.4,
+      "usedYoy": 94.1
+    },
+    {
+      "city": "锦州",
+      "newMom": 99.9,
+      "newYoy": 97.3,
+      "usedMom": 99.7,
+      "usedYoy": 97.1
+    },
+    {
+      "city": "沈阳",
+      "newMom": 100.2,
+      "newYoy": 100.3,
+      "usedMom": 100,
+      "usedYoy": 99.1
+    },
+    {
+      "city": "吉林",
+      "newMom": 100,
+      "newYoy": 98.4,
+      "usedMom": 99.7,
+      "usedYoy": 96.1
+    },
+    {
+      "city": "大连",
+      "newMom": 100.1,
+      "newYoy": 100.3,
+      "usedMom": 100,
+      "usedYoy": 97.1
+    },
+    {
+      "city": "牡丹江",
+      "newMom": 99.7,
+      "newYoy": 97.9,
+      "usedMom": 99.8,
+      "usedYoy": 97.2
+    },
+    {
+      "city": "长春",
+      "newMom": 99.6,
+      "newYoy": 99.1,
+      "usedMom": 99.6,
+      "usedYoy": 96.2
+    },
+    {
+      "city": "无锡",
+      "newMom": 100.4,
+      "newYoy": 97.4,
+      "usedMom": 99.9,
+      "usedYoy": 96.1
+    },
+    {
+      "city": "哈尔滨",
+      "newMom": 99.8,
+      "newYoy": 97.5,
+      "usedMom": 99.9,
+      "usedYoy": 95.8
+    },
+    {
+      "city": "徐州",
+      "newMom": 100.3,
+      "newYoy": 96.8,
+      "usedMom": 99.8,
+      "usedYoy": 96
+    },
+    {
+      "city": "上海",
+      "newMom": 100.4,
+      "newYoy": 103,
+      "usedMom": 100.3,
+      "usedYoy": 99.2
+    },
+    {
+      "city": "扬州",
+      "newMom": 99.6,
+      "newYoy": 96.4,
+      "usedMom": 100.2,
+      "usedYoy": 92.9
+    },
+    {
+      "city": "南京",
+      "newMom": 99.9,
+      "newYoy": 98.7,
+      "usedMom": 99.8,
+      "usedYoy": 95.2
+    },
+    {
+      "city": "温州",
+      "newMom": 99.7,
+      "newYoy": 96.2,
+      "usedMom": 99.8,
+      "usedYoy": 94.7
+    },
+    {
+      "city": "杭州",
+      "newMom": 100.2,
+      "newYoy": 102.2,
+      "usedMom": 99.8,
+      "usedYoy": 96.5
+    },
+    {
+      "city": "金华",
+      "newMom": 99.8,
+      "newYoy": 95.7,
+      "usedMom": 99.7,
+      "usedYoy": 94.7
+    },
+    {
+      "city": "宁波",
+      "newMom": 100.1,
+      "newYoy": 99.2,
+      "usedMom": 100,
+      "usedYoy": 97.3
+    },
+    {
+      "city": "蚌埠",
+      "newMom": 99.8,
+      "newYoy": 96.6,
+      "usedMom": 99.6,
+      "usedYoy": 95.8
+    },
+    {
+      "city": "合肥",
+      "newMom": 100.1,
+      "newYoy": 100.1,
+      "usedMom": 100,
+      "usedYoy": 96.2
+    },
+    {
+      "city": "安庆",
+      "newMom": 99.5,
+      "newYoy": 95.2,
+      "usedMom": 99.7,
+      "usedYoy": 95.8
+    },
+    {
+      "city": "福州",
+      "newMom": 100,
+      "newYoy": 94.7,
+      "usedMom": 99.8,
+      "usedYoy": 95.2
+    },
+    {
+      "city": "泉州",
+      "newMom": 99.8,
+      "newYoy": 96.3,
+      "usedMom": 99.5,
+      "usedYoy": 95.6
+    },
+    {
+      "city": "厦门",
+      "newMom": 100.1,
+      "newYoy": 98.6,
+      "usedMom": 99.4,
+      "usedYoy": 95.2
+    },
+    {
+      "city": "九江",
+      "newMom": 99.8,
+      "newYoy": 94.5,
+      "usedMom": 99.8,
+      "usedYoy": 92.6
+    },
+    {
+      "city": "南昌",
+      "newMom": 99.7,
+      "newYoy": 96,
+      "usedMom": 99.8,
+      "usedYoy": 94.2
+    },
+    {
+      "city": "赣州",
+      "newMom": 99.7,
+      "newYoy": 95.8,
+      "usedMom": 99.4,
+      "usedYoy": 93.7
+    },
+    {
+      "city": "济南",
+      "newMom": 99.8,
+      "newYoy": 96.7,
+      "usedMom": 99.4,
+      "usedYoy": 94.8
+    },
+    {
+      "city": "烟台",
+      "newMom": 99.9,
+      "newYoy": 97.6,
+      "usedMom": 99.8,
+      "usedYoy": 95.1
+    },
+    {
+      "city": "青岛",
+      "newMom": 100,
+      "newYoy": 98.4,
+      "usedMom": 99.8,
+      "usedYoy": 94.6
+    },
+    {
+      "city": "济宁",
+      "newMom": 99.9,
+      "newYoy": 96.3,
+      "usedMom": 99.6,
+      "usedYoy": 95
+    },
+    {
+      "city": "郑州",
+      "newMom": 99.6,
+      "newYoy": 95.1,
+      "usedMom": 99.7,
+      "usedYoy": 94.7
+    },
+    {
+      "city": "洛阳",
+      "newMom": 99.4,
+      "newYoy": 93.7,
+      "usedMom": 99.3,
+      "usedYoy": 93.8
+    },
+    {
+      "city": "武汉",
+      "newMom": 99.9,
+      "newYoy": 98.3,
+      "usedMom": 99.8,
+      "usedYoy": 93.7
+    },
+    {
+      "city": "平顶山",
+      "newMom": 99.6,
+      "newYoy": 96.9,
+      "usedMom": 99.7,
+      "usedYoy": 92.6
+    },
+    {
+      "city": "长沙",
+      "newMom": 100,
+      "newYoy": 95.9,
+      "usedMom": 99.8,
+      "usedYoy": 94
+    },
+    {
+      "city": "宜昌",
+      "newMom": 99.9,
+      "newYoy": 98.9,
+      "usedMom": 99.8,
+      "usedYoy": 96.3
+    },
+    {
+      "city": "广州",
+      "newMom": 100.1,
+      "newYoy": 98.1,
+      "usedMom": 100,
+      "usedYoy": 96.2
+    },
+    {
+      "city": "襄阳",
+      "newMom": 99.7,
+      "newYoy": 94.6,
+      "usedMom": 99.6,
+      "usedYoy": 93.3
+    },
+    {
+      "city": "深圳",
+      "newMom": 100.2,
+      "newYoy": 97.7,
+      "usedMom": 100.1,
+      "usedYoy": 97.3
+    },
+    {
+      "city": "岳阳",
+      "newMom": 99.7,
+      "newYoy": 95,
+      "usedMom": 99.5,
+      "usedYoy": 94
+    },
+    {
+      "city": "南宁",
+      "newMom": 100.2,
+      "newYoy": 96.4,
+      "usedMom": 99.8,
+      "usedYoy": 93.8
+    },
+    {
+      "city": "常德",
+      "newMom": 99.6,
+      "newYoy": 94.2,
+      "usedMom": 99.5,
+      "usedYoy": 93.2
+    },
+    {
+      "city": "海口",
+      "newMom": 99.2,
+      "newYoy": 94.9,
+      "usedMom": 99,
+      "usedYoy": 92.7
+    },
+    {
+      "city": "韶关",
+      "newMom": 99.7,
+      "newYoy": 96.4,
+      "usedMom": 99.6,
+      "usedYoy": 94
+    },
+    {
+      "city": "重庆",
+      "newMom": 100,
+      "newYoy": 96.9,
+      "usedMom": 99.6,
+      "usedYoy": 95.9
+    },
+    {
+      "city": "湛江",
+      "newMom": 99.8,
+      "newYoy": 94.7,
+      "usedMom": 99.3,
+      "usedYoy": 93.6
+    },
+    {
+      "city": "成都",
+      "newMom": 99.9,
+      "newYoy": 95,
+      "usedMom": 99.6,
+      "usedYoy": 94.2
+    },
+    {
+      "city": "惠州",
+      "newMom": 100.2,
+      "newYoy": 96.2,
+      "usedMom": 99.9,
+      "usedYoy": 94.8
+    },
+    {
+      "city": "贵阳",
+      "newMom": 99.6,
+      "newYoy": 96.7,
+      "usedMom": 99.5,
+      "usedYoy": 94.8
+    },
+    {
+      "city": "桂林",
+      "newMom": 99.7,
+      "newYoy": 94.2,
+      "usedMom": 99.7,
+      "usedYoy": 93.5
+    },
+    {
+      "city": "昆明",
+      "newMom": 99.9,
+      "newYoy": 94.8,
+      "usedMom": 99.6,
+      "usedYoy": 93.1
+    },
+    {
+      "city": "北海",
+      "newMom": 99.4,
+      "newYoy": 93.8,
+      "usedMom": 99.6,
+      "usedYoy": 93.4
+    },
+    {
+      "city": "西安",
+      "newMom": 99.6,
+      "newYoy": 94.6,
+      "usedMom": 99.7,
+      "usedYoy": 94
+    },
+    {
+      "city": "三亚",
+      "newMom": 100,
+      "newYoy": 98.3,
+      "usedMom": 99.7,
+      "usedYoy": 93.2
+    },
+    {
+      "city": "兰州",
+      "newMom": 99.8,
+      "newYoy": 96.5,
+      "usedMom": 99.7,
+      "usedYoy": 95.7
+    },
+    {
+      "city": "泸州",
+      "newMom": 99.4,
+      "newYoy": 92.3,
+      "usedMom": 99.4,
+      "usedYoy": 91
+    },
+    {
+      "city": "西宁",
+      "newMom": 99.8,
+      "newYoy": 95.2,
+      "usedMom": 99.6,
+      "usedYoy": 97.1
+    },
+    {
+      "city": "南充",
+      "newMom": 99.7,
+      "newYoy": 96.5,
+      "usedMom": 99.6,
+      "usedYoy": 94.5
+    },
+    {
+      "city": "银川",
+      "newMom": 100.1,
+      "newYoy": 98.7,
+      "usedMom": 99.8,
+      "usedYoy": 94.4
+    },
+    {
+      "city": "遵义",
+      "newMom": 99.8,
+      "newYoy": 96,
+      "usedMom": 99.7,
+      "usedYoy": 94.5
+    },
+    {
+      "city": "乌鲁木齐",
+      "newMom": 100.1,
+      "newYoy": 98.9,
+      "usedMom": 99.9,
+      "usedYoy": 95.5
+    },
+    {
+      "city": "大理",
+      "newMom": 99.9,
+      "newYoy": 97.6,
+      "usedMom": 99.6,
+      "usedYoy": 93.2
+    }
+  ]
+}
