@@ -15,6 +15,8 @@ import BullBearPosition from "./BullBearPosition";
 import { mkMainAxis, mkSubAxis } from "@/lib/data/axis";
 import { mkKlineTooltip, mkPctLabel } from "@/lib/data/kline-tooltip";
 import type { Crisis, CrisisStage, InvestorMove, Regime } from "@/lib/data/crisis/types";
+import { STAGE_STRATEGIES } from "@/lib/data/crisis/strategies";
+import type { StageTip as StageStrategy } from "@/lib/data/crisis/strategies";
 
 type Phase = "intro" | "playing" | "finished";
 
@@ -34,12 +36,7 @@ const REGIME_META: Record<CrisisStage["regime"], { label: string; dot: string }>
   range: { label: "震荡", dot: "bg-stone-500" },
 };
 
-interface StageTip {
-  strategy: string;
-  grade: "A" | "B" | "C";
-  winRate: string;
-  drawdown: string;
-}
+type StageTip = StageStrategy;
 
 const GRADE_META: Record<StageTip["grade"], { label: string; cls: string }> = {
   A: { label: "A · 高确定性", cls: "bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800" },
@@ -47,24 +44,8 @@ const GRADE_META: Record<StageTip["grade"], { label: string; cls: string }> = {
   C: { label: "C · 需谨慎", cls: "bg-red-100 text-red-800 border-red-300 dark:bg-red-950/40 dark:text-red-300 dark:border-red-800" },
 };
 
-/** 各危机的阶段场景化策略（数据补丁层；未覆盖的危机走通用兜底） */
-const STAGE_TIPS: Record<string, StageTip[]> = {
-  "2008-subprime": [
-    { strategy: "警惕利率与信用信号：拆借利率异动、基金冻结赎回即是警报，逐步降杠杆、保留现金，不参与最后的狂欢。", grade: "B", winRate: "历史胜率 55-65%", drawdown: "可躲过 -57% 主跌浪" },
-    { strategy: "危机初期不猜底：传统利率工具已失灵，先清高杠杆仓位，持币等待「政策底」信号（存款担保、央行注资）。", grade: "A", winRate: "历史胜率 70-80%", drawdown: "过早抄底最大回撤约 -30%" },
-    { strategy: "反弹不追：政策传闻驱动的反弹多为诱多，用仓位控制替代方向预判，反弹中继续降杠杆。", grade: "B", winRate: "历史胜率 50-60%", drawdown: "追反弹再套约 -15%" },
-    { strategy: "极端恐慌不接飞刀：系统性风险未出清前现金为王，只在明确兜底信号（存款担保、大行注资）落地后分批介入。", grade: "A", winRate: "历史胜率 75-85%", drawdown: "接飞刀个股最大回撤 -90%" },
-    { strategy: "区分政策底与市场底：QE 之后往往还有二次探底，等右侧确认（放量收复关键均线）再进场，避免抄在政策底与市场底之间。", grade: "B", winRate: "历史胜率 55-65%", drawdown: "二次探底再跌约 -20%" },
-    { strategy: "复苏期重仓核心资产：政策底与市场底双确认后，用仓位与耐心吃完整轮反弹，避免频繁进出。", grade: "A", winRate: "历史胜率 70-80%", drawdown: "主要风险是踏空" },
-  ],
-  "2015-ashare-crash": [
-    { strategy: "杠杆牛顶部信号：融资余额创高、监管喊话、新股天量发行即减仓信号，逐步兑现、不追高、不加杠杆。", grade: "B", winRate: "历史胜率 55-65%", drawdown: "满杠杆最大回撤 -60% 以上" },
-    { strategy: "踩踏初期无条件降杠杆：千股跌停意味着流动性枯竭，此时现金为王，任何反弹都是减仓机会。", grade: "A", winRate: "历史胜率 70-80%", drawdown: "硬扛最大回撤 -45%" },
-    { strategy: "救市不等于见底：政策底之后还有市场底，反弹分批减仓，不赌单一方向。", grade: "B", winRate: "历史胜率 50-60%", drawdown: "二次崩盘再跌 -15%" },
-    { strategy: "熔断是流动性事件：连续熔断后短期超跌反弹概率高，但只适合轻仓博弈，不改变中期趋势判断。", grade: "C", winRate: "历史胜率 40-50%", drawdown: "博反弹被套约 -10%" },
-    { strategy: "修复期关注核心资产：国家队入场与杠杆出清后，慢牛由白马核心资产主导，逢低分批布局、长期持有。", grade: "A", winRate: "历史胜率 70-80%", drawdown: "短期波动 -8%" },
-  ],
-};
+/** 阶段策略：数据层已覆盖全部 20 场，此处仅作为类型/边界兜底 */
+const STAGE_TIPS = STAGE_STRATEGIES;
 
 /** 市场情绪刻度（贪婪 ↔ 恐慌）：按阶段状态映射，纯展示增强 */
 const SENTIMENT_LEVEL: Record<Regime, { label: string; pct: number; color: string }> = {
@@ -73,11 +54,20 @@ const SENTIMENT_LEVEL: Record<Regime, { label: string; pct: number; color: strin
   range: { label: "中性", pct: 55, color: "#6b6862" },
 };
 
-/** 未配置策略的阶段：按市场状态给通用纪律 */
+/**
+ * 未配置策略的阶段（仅在数据层漏配时触发，非预期路径）。
+ * 显式声明"该场次策略待补"而不是伪装成一条通用纪律 ——
+ * 原 fallback 返回"熊市/牛市/震荡铁律"，让 18 场危机看起来像有意为之的通用建议，
+ * 实际是数据缺失。scripts/verify-crisis-tips.ts 会断言覆盖率为 100%。
+ */
 function fallbackTip(regime: Regime): StageTip {
-  if (regime === "crash") return { strategy: "熊市铁律：先保本金再谈收益——止损纪律优先，仓位是唯一可完全控制的变量。", grade: "C", winRate: "通用纪律", drawdown: "不设止损最大回撤不可控" };
-  if (regime === "rally") return { strategy: "牛市铁律：趋势未破不轻易下车，但拒绝在情绪最亢奋时追加杠杆。", grade: "C", winRate: "通用纪律", drawdown: "高位加杠杆风险陡增" };
-  return { strategy: "震荡铁律：区间思维，不满仓不空仓，用仓位波动换取心态稳定。", grade: "C", winRate: "通用纪律", drawdown: "追涨杀跌反复磨损" };
+  const label = regime === "crash" ? "下跌" : regime === "rally" ? "上涨" : "震荡";
+  return {
+    strategy: `本阶段的场景化策略尚未补充。当前仅有方向判断（${label}），不足以支撑具体操作 —— 请以左侧「事件纪实」与「本阶段解读」为准，不要把这里当作可执行建议。`,
+    grade: "C",
+    winRate: "待补",
+    drawdown: "待补",
+  };
 }
 
 const LEVEL_META: Record<Crisis["level"], { label: string; tone: "red" | "blue" | "gray" }> = {

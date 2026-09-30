@@ -17,9 +17,13 @@
  * 11. 政策：分类非空、日期格式合法、分类筛选有真实条目
  * 12. 快讯：非市场内容已被过滤
  * 13. 异动榜：档位顺序单调
+ * 14. 危机阶段策略全覆盖，且不含通用模板兜底
+ * 15. 每场危机至少 1 道决策测验题
  */
-
 const BASE = process.env.VERIFY_BASE_URL || "http://localhost:3000";
+
+/** 曾经的通用模板特征词，出现在阶段策略里即视为退化 */
+const TEMPLATE_WORDS = ["铁律", "通用纪律"];
 let pass = 0;
 let fail = 0;
 
@@ -341,6 +345,43 @@ async function main() {
     }
   } catch (e: any) {
     check("产业链数据可校验", false, String(e?.message ?? e));
+  }
+
+  // 危机阶段策略覆盖率：防止「专业解读」再次退化为通用模板
+  // （曾有 18 场 / 57 阶段走 fallback，20 场里 19 场显示同一段「熊市铁律」）
+  try {
+    const { CRISES: CS } = await import("@/lib/data/crisis/crises");
+    const { STAGE_STRATEGIES: TIPS } = await import("@/lib/data/crisis/strategies");
+    const gaps: string[] = [];
+    let stageTotal = 0;
+    for (const c of CS) {
+      const stages = c.stages ?? [];
+      const tips = TIPS[c.id];
+      stageTotal += stages.length;
+      if (!Array.isArray(tips)) {
+        gaps.push(`${c.id} 整场缺失`);
+        continue;
+      }
+      if (tips.length !== stages.length) {
+        gaps.push(`${c.id} 策略${tips.length}≠阶段${stages.length}`);
+        continue;
+      }
+      stages.forEach((st, i) => {
+        const tip = tips[i];
+        if (!tip?.strategy?.trim()) gaps.push(`${c.id}[${i}]${st.name}`);
+        else if (TEMPLATE_WORDS.some((w) => tip.strategy.includes(w)))
+          gaps.push(`${c.id}[${i}]${st.name}=模板`);
+      });
+    }
+    check(
+      "危机阶段策略全覆盖（无通用模板兜底）",
+      gaps.length === 0,
+      gaps.length ? gaps.slice(0, 4).join(" | ") : `${CS.length} 场 / ${stageTotal} 阶段`
+    );
+    const noQuiz = CS.filter((c: any) => !c.nodes?.some((n: any) => n.quiz)).map((c: any) => c.id);
+    check("每场危机至少 1 道决策测验题", noQuiz.length === 0, noQuiz.join(",") || "全部覆盖");
+  } catch (e: any) {
+    check("危机阶段策略可校验", false, String(e?.message ?? e));
   }
 
   console.log(`\n=== 结果：${pass} 通过 / ${fail} 失败 ===\n`);
