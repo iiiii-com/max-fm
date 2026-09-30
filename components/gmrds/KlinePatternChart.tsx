@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useRef } from "react";
+import { usePctPrefs } from "@/components/charts/pct-prefs";
 import EChart from "@/components/charts/EChart";
 import { KlineDetailPanel, useKlineClickDetail } from "@/components/charts/KlineDetail";
 import { echarts, type EChartsOption } from "@/components/charts/echarts";
@@ -39,6 +40,8 @@ export default function KlinePatternChart({
   height?: number;
 }) {
   const [selected, clearSelected, attachChart] = useKlineClickDetail(bars);
+  // 每日涨跌幅标注：此前写死 show:true，用户无法关闭
+  const { pct: pctCfg, pctToggle } = usePctPrefs();
   const option = useMemo<EChartsOption>(() => {
     const dates = bars.map((b) => b.date);
     const closes = bars.map((b) => b.close);
@@ -94,7 +97,7 @@ export default function KlinePatternChart({
           data: ohlc,
           itemStyle: { color: "#c0392b", color0: "#1e8449", borderColor: "#c0392b", borderColor0: "#1e8449" },
         },
-        mkPctSeries({ bars, show: true, position: "top", fontSize: 9, maxVisible: 60, keep: 60 }),
+        mkPctSeries({ bars, show: pctCfg.show, position: pctCfg.position, fontSize: pctCfg.fontSize, maxVisible: 60, keep: 60 }),
         { name: "MA20", type: "line", data: ma(20), smooth: true, showSymbol: false, lineStyle: { width: 1, color: "#1d4ed8" } },
         { name: "MA60", type: "line", data: ma(60), smooth: true, showSymbol: false, lineStyle: { width: 1, color: "#7c3aed" } },
         {
@@ -117,11 +120,12 @@ export default function KlinePatternChart({
         },
       ],
     };
-  }, [bars, marks]);
+  }, [bars, marks, pctCfg]);
 
   return (
     <figure className="rounded-xl border border-border bg-card p-4">
       {title && <p className="text-sm font-bold mb-1">{title}</p>}
+      <div className="mb-2">{pctToggle}</div>
       <div className="relative">
         <EChart option={option} height={height} onReady={attachChart} />
         {selected && (

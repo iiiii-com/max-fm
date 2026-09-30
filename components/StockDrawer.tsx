@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { usePctPrefs } from "@/components/charts/pct-prefs";
 import EChart from "@/components/charts/EChart";
 import { KlineDetailPanel, useKlineClickDetail } from "@/components/charts/KlineDetail";
 import { echarts, type EChartsOption } from "@/components/charts/echarts";
@@ -33,6 +34,8 @@ export default function StockDrawer({ stock, onClose }: { stock: DrawerStock | n
   const [flow, setFlow] = useState<any>(null);
   const [score, setScore] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  // 每日涨跌幅标注：此前写死 show:true 且 fontSize 固定 8，窄抽屉里挤成一团
+  const { pct: pctCfg, pctToggle } = usePctPrefs(true);
   const [err, setErr] = useState("");
   const [selected, clearSelected, attachChart] = useKlineClickDetail(bars);
 
@@ -114,13 +117,13 @@ export default function StockDrawer({ stock, onClose }: { stock: DrawerStock | n
           },
         },
         // 逐根涨跌幅标注（scatter 叠加）
-        mkPctLabel({ bars, show: true, fontSize: 8 }),
+        mkPctLabel({ bars, show: pctCfg.show, position: pctCfg.position, fontSize: pctCfg.fontSize }),
         { name: "MA5", type: "line", data: ma(closes, 5), symbol: "none", lineStyle: { width: 1, color: "#b45309" } },
         { name: "MA10", type: "line", data: ma(closes, 10), symbol: "none", lineStyle: { width: 1, color: "#1d4ed8" } },
         { name: "MA20", type: "line", data: ma(closes, 20), symbol: "none", lineStyle: { width: 1, color: "#7c3aed" } },
       ],
     };
-  }, [bars]);
+  }, [bars, pctCfg]);
 
   const flowOption = useMemo<EChartsOption>(() => {
     const rows: Array<[string, number | null]> = [
@@ -196,7 +199,10 @@ export default function StockDrawer({ stock, onClose }: { stock: DrawerStock | n
             </div>
           )}
           <div>
-            <p className="text-sm font-medium mb-2">K 线（日线）</p>
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <p className="text-sm font-medium">K 线（日线）</p>
+              {bars.length ? pctToggle : null}
+            </div>
             {loading ? (
               <div className="flex items-center justify-center h-[260px] rounded-md border border-border text-xs text-muted">加载中…</div>
             ) : bars.length ? (

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { usePctPrefs } from "@/components/charts/pct-prefs";
 import { Play, Pause, RotateCcw } from "lucide-react";
 import EChart from "@/components/charts/EChart";
 import { KlineDetailPanel, useKlineClickDetail } from "@/components/charts/KlineDetail";
@@ -41,6 +42,8 @@ export default function KlineLab({
   showMarks: boolean;
 }) {
   const [showMA, setShowMA] = useState(true);
+  // 每日涨跌幅标注：此前写死 show:true，用户无法关闭（长周期下会糊成一片）
+  const { pct: pctCfg, pctToggle } = usePctPrefs();
   const [showBOLL, setShowBOLL] = useState(false);
   const [sub, setSub] = useState<SubIndicator>("macd");
 
@@ -164,7 +167,7 @@ export default function KlineLab({
           yAxisIndex: 1,
           data: visible.map((b) => ({ value: b.volume, itemStyle: { color: b.close >= b.open ? "rgba(215,0,11,0.55)" : "rgba(10,160,110,0.55)" } })),
         },
-        mkPctSeries({ bars: visible, show: true, position: "top", fontSize: 9, maxVisible: 60, keep: 60 }),
+        mkPctSeries({ bars: visible, show: pctCfg.show, position: pctCfg.position, fontSize: pctCfg.fontSize, maxVisible: 60, keep: 60 }),
         ...(showMA
           ? ([
               { name: "MA5", type: "line", data: ma5, symbol: "none", lineStyle: { width: 1, color: "#b45309" } },
@@ -209,7 +212,7 @@ export default function KlineLab({
           ]
         : undefined,
     };
-  }, [visible, dates, sub, showMA, showBOLL, showMarks, marks, replayIdx, symbol, ma5, ma10, ma20, ma60, bl, macdRes, kdjRes, rsiRes, replay]);
+  }, [visible, dates, sub, showMA, showBOLL, showMarks, marks, replayIdx, symbol, ma5, ma10, ma20, ma60, bl, macdRes, kdjRes, rsiRes, replay, pctCfg]);
 
   if (!bars.length) {
     return <div className="flex items-center justify-center h-[300px] text-sm text-muted">K 线数据加载中…</div>;
@@ -235,6 +238,7 @@ export default function KlineLab({
             </button>
           ))}
         </div>
+        {pctToggle}
         <div className="flex items-center gap-1.5 ml-auto">
           <button
             onClick={() => (replay ? setReplay(false) : startReplay())}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { usePctPrefs } from "@/components/charts/pct-prefs";
 import EChart from "@/components/charts/EChart";
 import { KlineDetailPanel, useKlineClickDetail } from "@/components/charts/KlineDetail";
 import { echarts, type EChartsOption } from "@/components/charts/echarts";
@@ -43,6 +44,8 @@ export default function InteractiveKlineLab({
   const [showRsi, setShowRsi] = useState(false);
   const [showKdj, setShowKdj] = useState(false);
   const [showMarks, setShowMarks] = useState(true);
+  // 每日涨跌幅标注：此前写死 show:true
+  const { pct: pctCfg, pctToggle } = usePctPrefs();
   // 回放：visibleCount = 当前显示根数（null = 全部）
   const [playCount, setPlayCount] = useState<number | null>(null);
   const [playing, setPlaying] = useState(false);
@@ -82,7 +85,7 @@ export default function InteractiveKlineLab({
     const ohlc = visible.map((b) => [b.open, b.close, b.low, b.high]);
     const hasMacd = showMacd && period === "day";
     const series: any[] = [
-      mkPctSeries({ bars: visible, show: true, position: "top", fontSize: 9, maxVisible: 60, keep: 60 }),
+      mkPctSeries({ bars: visible, show: pctCfg.show, position: pctCfg.position, fontSize: pctCfg.fontSize, maxVisible: 60, keep: 60 }),
       {
         name: "K线", type: "candlestick", data: ohlc,
         itemStyle: { color: "#c0392b", color0: "#1e8449", borderColor: "#c0392b", borderColor0: "#1e8449" },
@@ -182,7 +185,7 @@ export default function InteractiveKlineLab({
       ],
       series,
     };
-  }, [visible, showMA, showBoll, showMacd, showRsi, showKdj, showMarks, period]);
+  }, [visible, showMA, showBoll, showMacd, showRsi, showKdj, showMarks, period, pctCfg]);
 
   return (
     <div className="rounded-xl border border-border bg-card p-4">
@@ -210,6 +213,8 @@ export default function InteractiveKlineLab({
             {label}
           </button>
         ))}
+        <span className="w-px h-4 bg-border" />
+        {pctToggle}
         <span className="w-px h-4 bg-border" />
         <button onClick={() => { setPlaying(false); setPlayCount(null); }} className="px-2 py-1 rounded text-[11px] border border-border text-muted hover:border-primary/40">重置视图</button>
         <button

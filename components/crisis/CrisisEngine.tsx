@@ -8,6 +8,7 @@ import { KlineDetailPanel } from "@/components/charts/KlineDetail";
 import { echarts as echartsNS } from "@/components/charts/echarts";
 import { Badge, Card } from "@/components/ui";
 import VirtualAccount, { type VirtualAccountHandle } from "./VirtualAccount";
+import { usePctPrefs, type PctPrefs } from "@/components/charts/pct-prefs";
 import DecisionQuiz from "./DecisionQuiz";
 import PanicGauge from "./PanicGauge";
 import BullBearPosition from "./BullBearPosition";
@@ -118,7 +119,7 @@ const CANDLE_DOWN = "#0f8a5f";
  * 构造「蜡烛图 + 成交量」双区图表。
  * 数据完整（OHLC）时画蜡烛图，否则回退收盘价折线。
  */
-function mkCandleOption(bars: Bar[], opts: { markData?: any[]; markArea?: any[]; dataZoom?: boolean } = {}): EChartsOption {
+function mkCandleOption(bars: Bar[], opts: { markData?: any[]; markArea?: any[]; dataZoom?: boolean; pct?: PctPrefs } = {}): EChartsOption {
   if (!bars.length) return {};
   const dates = bars.map((b) => b.date);
   const base: EChartsOption = {
@@ -169,7 +170,7 @@ function mkCandleOption(bars: Bar[], opts: { markData?: any[]; markArea?: any[];
       itemStyle: { color: CANDLE_UP, color0: CANDLE_DOWN, borderColor: CANDLE_UP, borderColor0: CANDLE_DOWN },
     });
     // 逐根涨跌幅标注（scatter 叠加，candlestick label 实测不渲染）
-    candleSeries.push(mkPctLabel({ bars: bars as Array<{ open?: number; close: number; high?: number; low?: number }>, show: true, fontSize: 9 }));
+    candleSeries.push(mkPctLabel({ bars: bars as Array<{ open?: number; close: number; high?: number; low?: number }>, show: opts.pct?.show ?? true, position: opts.pct?.position ?? "top", fontSize: opts.pct?.fontSize ?? 9 }));
     candleSeries.push({
       name: "成交量",
       type: "bar",
@@ -223,10 +224,13 @@ function closeAt(bars: Bar[], date: string): number | null {
   return prev ? prev.close : null;
 }
 
+// 结算页用的账户快照。字段与 VirtualAccount 的 AccountState 对齐，
+// 但 position 在此为**百分数**（0-100），与滑杆读数同口径，便于直接展示。
 interface AccountState {
   cash: number;
   position: number;
   nav: number;
+  path?: Array<{ date: string; nav: number; position: number }>;
 }
 
 export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExit?: () => void }) {
@@ -252,6 +256,8 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
   const [revealed, setRevealed] = useState<Set<number>>(new Set());
   const [autoplay, setAutoplay] = useState(false);
   const accountRef = useRef<VirtualAccountHandle>(null);
+  // 每日涨跌幅标注：此前写死 show:true，长周期回放时无法关闭
+  const { pct: pctCfg, pctToggle } = usePctPrefs();
   const klineChartRef = useRef<echartsNS.ECharts | null>(null);
   const [selectedKlineBar, setSelectedKlineBar] = useState<Bar | null>(null);
 
@@ -411,7 +417,7 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
         ]);
       }
     }
-    return mkCandleOption(activeBars, { markData, markArea });
+    return mkCandleOption(activeBars, { markData, markArea, pct: pctCfg });
   }, [activeBars, node, crisis, viewKey, phase]);
 
   const vixFiltered = useMemo(() => {
@@ -525,6 +531,8 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
     return chosen != null ? EXPOSURE[crisis.stages![i].moves[chosen].stance] : 0;
   };
 
+  const clampPct = (v: number) => Math.max(0, Math.min(1, v));
+
   const pathRet = (stance: InvestorMove["stance"]): number => {
     if (!hasStages) return 0;
     let nav = CAPITAL;
@@ -575,7 +583,7 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
         label: { formatter: `${s.name}`, color: "#737373", fontSize: 9, position: "insideEndTop" },
       });
     }
-    return mkCandleOption(activeBars, { markData: markLines, markArea });
+    return mkCandleOption(activeBars, { markData: markLines, markArea, pct: pctCfg });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeBars, stage, viewKey, crisis]);
 
@@ -663,7 +671,7 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
   const narrativeChartOption: EChartsOption = useMemo(() => {
     if (!introKline?.length) return {};
     const tl = crisis.narrative?.timeline ?? [];
-    if (!tl.length) return mkCandleOption(introKline, { dataZoom: true });
+    if (!tl.length) return mkCandleOption(introKline, { dataZoom: true, pct: pctCfg });
     const idxByDate = new Map(introKline.map((b, i) => [b.date, i]));
     const mapped = tl
       .map((t) => {
@@ -704,7 +712,7 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
         ]);
       }
     }
-    return mkCandleOption(introKline, { markData, markArea, dataZoom: true });
+    return mkCandleOption(introKline, { markData, markArea, dataZoom: true, pct: pctCfg });
   }, [introKline, crisis]);
 
   useEffect(() => {
@@ -750,7 +758,12 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
 
   const handleStageFinish = () => {
     const nav = playerStageNav?.[playerStageNav.length - 1]?.nav ?? CAPITAL;
-    setFinalState({ cash: 0, position: 0, nav });
+    // 修正：原实现硬编码 { cash: 0, position: 0 }，导致结算页「最终仓位」
+    // 对所有 stages 场次恒显示 0%，与用户实际决策矛盾。
+    // 现在从最后一阶段的真实暴露度反推仓位与现金。
+    const lastExp = hasStages ? exposureFor(crisis.stages!.length - 1) : 0;
+    const lastPos = Math.round(clampPct(lastExp) * 100);
+    setFinalState({ cash: Math.round(nav * (1 - lastExp)), position: lastPos, nav, path: [] });
     setPhase("finished");
     setAutoplay(false);
   };
@@ -760,12 +773,16 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
     const c1 = closeAt(marketBars ?? [], node.date);
     let ret = 0;
     if (c0 != null && c1 != null && c0 > 0) ret = c1 / c0 - 1;
-    accountRef.current?.step(ret);
+    // 传入日期：VirtualAccount 会把它记进 path，用于结算页画净值轨迹
+    accountRef.current?.step(ret, node.date);
     const state = accountRef.current?.getState();
     setLastStep({ ret, at: Date.now() });
     setNavHistory((h) => [...h, { date: node.date, nav: state?.nav ?? CAPITAL }]);
     if (stepIndex >= crisis.nodes.length - 1) {
-      setFinalState(state ?? null);
+      // position 在 AccountState 里是 0-1 小数，展示层需要 0-100
+      if (state) {
+        setFinalState({ ...state, position: Math.round((state.position ?? 0) * 100) });
+      }
       setPhase("finished");
     } else {
       setStepIndex(stepIndex + 1);
@@ -1535,6 +1552,9 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
                 )}
                 {phase === "playing" && !hasStages && <span className="text-[10px] text-muted">截至 {node.date}</span>}
               </div>
+              {/* 每日涨跌幅开关：整段危机可能跨 3 年、几千根 K 线，
+                  此前写死开启且无法关闭，是重演时最大的视觉干扰源 */}
+              {phase === "playing" ? <div className="mb-2">{pctToggle}</div> : null}
               {viewOptions.length > 1 && (
                 <div className="flex items-center gap-1 mb-2 overflow-x-auto">
                   {viewOptions.map((key) => (
@@ -1716,7 +1736,12 @@ export default function CrisisEngine({ crisis, onExit }: { crisis: Crisis; onExi
                     {phase === "intro" ? "虚拟账户 · 100 万初始资金" : "虚拟账户"}
                   </h3>
                 </div>
-                <VirtualAccount ref={accountRef} capital={CAPITAL} marketName={mainMarket.name} />
+                <VirtualAccount
+          ref={accountRef}
+          capital={CAPITAL}
+          marketName={mainMarket.name}
+          crisisId={crisis.id}
+        />
                 {phase === "playing" && (
                   <>
                     <p className="mt-4 text-xs text-muted leading-relaxed">

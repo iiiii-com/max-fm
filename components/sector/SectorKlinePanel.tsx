@@ -6,6 +6,8 @@ import { X, RefreshCw } from "lucide-react";
 import EChart from "@/components/charts/EChart";
 import type { EChartsOption } from "@/components/charts/echarts";
 import type { SectorKline } from "@/app/api/sector/kline/route";
+import { mkPctSeries } from "@/lib/data/kline-tooltip";
+import { usePctPrefs } from "@/components/charts/pct-prefs";
 
 interface SectorStock {
   name: string;
@@ -41,6 +43,8 @@ export default function SectorKlinePanel({ sector, onClose }: { sector: DetailSe
   const [trend, setTrend] = useState<FundPoint[]>([]);
   const [stocks, setStocks] = useState<SectorStock[]>([]);
   const [loading, setLoading] = useState(true);
+  // 每日涨跌幅标注：此前本图完全没有涨跌幅（它是柱+线双轴图，不是蜡烛图）
+  const { pct: pctCfg, pctToggle } = usePctPrefs();
   const [klineErr, setKlineErr] = useState(false);
   const [retrying, setRetrying] = useState(false);
   const [err, setErr] = useState("");
@@ -179,9 +183,30 @@ export default function SectorKlinePanel({ sector, onClose }: { sector: DetailSe
           areaStyle: { color: { type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: "rgba(245,158,11,0.25)" }, { offset: 1, color: "rgba(245,158,11,0.02)" }] } },
           data: rows.map((r) => r.close),
         },
-      ],
+        // 每日涨跌幅标注。
+        // 本图是「主力净流入柱 + 收盘价线」的双轴组合，不是蜡烛图，
+        // 因此 yAxisIndex 需显式指向右侧价格轴（yAxisIndex: 1），
+        // 否则标注会落到左侧资金流轴上，量纲不同导致位置错乱。
+        // rows 只有 date/close，没有 high/low —— mkPctSeries 会在缺失时回退到 close。
+        pctCfg.show
+          ? ({
+              ...mkPctSeries({
+                bars: rows as unknown as Array<{ date: string; close: number; high?: number; low?: number }>,
+                show: true,
+                position: pctCfg.position,
+                fontSize: pctCfg.fontSize,
+                maxVisible: 40,
+                keep: 40,
+              }),
+              yAxisIndex: 1,
+              // yOf 用 high/low 估算锚点，本图无高低点时会退化到 close，
+              // 直接沿用 close 即可，误差可接受
+            } as any)
+          : null,
+      ].filter(Boolean) as any,
     };
-  }, [rows]);
+  }, [rows, pctCfg]);
+
 
   // 近 10 日主力净流入
   const fundOption = useMemo<EChartsOption>(() => {
@@ -238,15 +263,16 @@ export default function SectorKlinePanel({ sector, onClose }: { sector: DetailSe
       ) : (
         <div className="p-4 grid grid-cols-1 xl:grid-cols-3 gap-4">
           <div className="xl:col-span-2 space-y-4">
-            <div>
-              <p className="text-xs font-medium mb-1.5 text-muted flex items-center gap-2 flex-wrap">
-                <span>近 60 日 · 收盘价 + 主力资金联动</span>
-                {staleAsOf && (
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                    数据时点 {staleAsOf.slice(5, 16).replace("T", " ")} · 源限频，暂展示缓存
-                  </span>
-                )}
-              </p>
+          <div>
+            <p className="text-xs font-medium mb-1.5 text-muted flex items-center gap-2 flex-wrap">
+              <span>近 60 日 · 收盘价 + 主力资金联动</span>
+              {staleAsOf && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                  数据时点 {staleAsOf.slice(5, 16).replace("T", " ")} · 源限频，暂展示缓存
+                </span>
+              )}
+              <span className="ml-auto">{rows.length ? pctToggle : null}</span>
+            </p>
               {rows.length ? (
                 <EChart option={mainOption} height={300} />
               ) : klineErr ? (

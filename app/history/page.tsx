@@ -1,13 +1,9 @@
 import Link from "next/link";
 import BoardTabs from "@/components/BoardTabs";
-import HistoryAxis from "@/components/HistoryAxis";
 import { KonratiefWaves, MerrillClock, CrisisTab } from "./tabs-lazy";
 import KonratiefWaveChart from "@/components/history/KonratiefWaveChart";
-import TimelineSearch from "@/components/history/TimelineSearch";
 import { Card, SectionTitle, Badge } from "@/components/ui";
-import {
-  filterHistory, HISTORY_EVENTS, REGIONS, HISTORY_CATEGORIES, ERAS, eraOf, REGION_LABEL,
-} from "@/lib/data/history";
+import { HISTORY_EVENTS } from "@/lib/data/history";
 
 import { CYCLE_TYPES, MILESTONES, CURRENT_POSITION } from "@/lib/data/cycles";
 import { getRecentAggregated } from "@/lib/data/queries";
@@ -22,30 +18,28 @@ const TYPE_TONE: Record<string, string> = {
   债务危机: "amber", 政策冲击: "blue", 黑天鹅: "gray",
 };
 
-/* 重点突出：牛熊周期（默认）与康波周期；时间线轻量保留；朝代对照已精简下架 */
+/*
+ * 「历史时间线」tab 已移除。
+ *
+ * 移除原因：它与「牛熊周期 / 康波全景」不构成递进关系，而是同一批事件的另一种排版，
+ * 且筛选状态只体现在 URL 上、无法分享复用，属于信息架构冗余。
+ *
+ * 注意：/history/[slug] 详情页**保留**。sitemap 收录了数千条该路由，
+ * 一并下线会让这些已收录 URL 变成死链。数据源 lib/data/history.ts 与
+ * data/history-events.json 也保留 —— 详情页与 sitemap 仍在读。
+ */
 const TABS = [
   { key: "bullbear", label: "牛熊周期" },
   { key: "waves", label: "康波全景" },
-  { key: "timeline", label: "历史时间线" },
 ];
 
-export default async function HistoryPage({ searchParams }: { searchParams: Promise<{ tab?: string; region?: string; cat?: string; era?: string }> }) {
-  const { tab, region = "all", cat = "全部", era = "all" } = await searchParams;
+export default async function HistoryPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
+  const { tab } = await searchParams;
   await bootstrap();
   const agg = await getRecentAggregated();
   const active = TABS.some((t) => t.key === tab) ? (tab as string) : "bullbear";
-  const events = filterHistory({ region, cat, era });
-  const regionLabel = region === "all" ? "全部地区" : (REGION_LABEL[region] ?? region);
-  const eraLabel = era === "all" ? "全部时代" : (ERAS.find((x) => x.key === era)?.label ?? era);
-  const chips = [
-    { key: "all", label: "全部地区" },
-    ...REGIONS.filter((x) => x.key !== "all").map((x) => ({ key: x.key, label: x.label })),
-  ];
   const featured = HISTORY_EVENTS.filter((e) => e.featured).length;
   const lessons = HISTORY_EVENTS.filter((e) => e.lesson).length;
-  const axisEvents = region === "all" && cat === "全部" && era === "all"
-    ? HISTORY_EVENTS.filter((e) => e.featured)
-    : events;
 
   return (
     <div className="mx-auto max-w-7xl px-3 sm:px-4 py-5 sm:py-6 space-y-8">
@@ -56,10 +50,10 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
           {featured} 条精选（含 {lessons} 条「对今日启示」）。
         </p>
         {/*
-          演进脉络导览：本页三个 tab 是「由短周期到长周期」的递进关系，
-          原先没有说明，用户容易把它们当作三块并列内容。这里显式串起因果链。
+          演进脉络导览：剩下的两个 tab 是「由短周期到长周期」的递进关系，
+          原先没有说明，用户容易把它们当作两块并列内容。这里显式串起因果链。
         */}
-        <ol className="mt-3 grid grid-cols-1 gap-2 text-xs sm:grid-cols-3">
+        <ol className="mt-3 grid grid-cols-1 gap-2 text-xs sm:grid-cols-2">
           <li className="rounded-lg border border-border bg-card px-3 py-2">
             <Link href="/history?tab=bullbear" className="font-bold text-primary hover:underline">
               ① 牛熊周期（数月至数年）
@@ -76,72 +70,10 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
               牛熊背后的技术革命长波。六波技术周期、周期嵌套结构、各阶段大类资产表现，以及当前位置判断。
             </p>
           </li>
-          <li className="rounded-lg border border-border bg-card px-3 py-2">
-            <Link href="/history?tab=timeline" className="font-bold text-primary hover:underline">
-              ③ 历史时间线（数千年）
-            </Link>
-            <p className="mt-1 leading-relaxed text-muted">
-              更长尺度的背景。全球政治、经济、技术、思想事件按康波波次标注，用于观察长波与社会变迁的对应关系。
-            </p>
-          </li>
         </ol>
       </header>
 
       <BoardTabs tabs={TABS} active={active} />
-
-      {active === "timeline" && (
-        <section>
-          <div className="mb-3">
-            <TimelineSearch />
-          </div>
-          <div className="flex flex-wrap gap-2 mb-2">
-            {chips.map((c) => (
-              <Link
-                key={c.key}
-                href={`/history?region=${c.key}&cat=${encodeURIComponent(cat)}&era=${era}`}
-                className={`px-3 py-1.5 rounded-lg text-sm border transition-colors ${
-                  region === c.key ? "bg-primary text-white border-primary" : "border-border hover:border-primary/50"
-                }`}
-              >
-                {c.label}
-              </Link>
-            ))}
-            <span className="w-px bg-border mx-1" />
-            {["全部", ...HISTORY_CATEGORIES].map((c) => (
-              <Link
-                key={c}
-                href={`/history?region=${region}&cat=${encodeURIComponent(c)}&era=${era}`}
-                className={`px-3 py-1.5 rounded-lg text-sm border transition-colors ${
-                  cat === c ? "bg-primary text-white border-primary" : "border-border hover:border-primary/50"
-                }`}
-              >
-                {c === "全部" ? "全部类型" : c}
-              </Link>
-            ))}
-            <span className="w-px bg-border mx-1" />
-            {[{ key: "all", label: "全部时代" }, ...ERAS].map((e2) => (
-              <Link
-                key={e2.key}
-                href={`/history?region=${region}&cat=${encodeURIComponent(cat)}&era=${e2.key}`}
-                title={"range" in e2 ? e2.range : undefined}
-                className={`px-3 py-1.5 rounded-lg text-sm border transition-colors ${
-                  era === e2.key ? "bg-primary text-white border-primary" : "border-border hover:border-primary/50"
-                }`}
-              >
-                {e2.label}
-              </Link>
-            ))}
-          </div>
-          <p className="text-xs text-muted mb-4">
-            当前：{regionLabel} · {cat} · {eraLabel} · 共 {axisEvents.length} 条
-            {region === "all" && cat === "全部" && era === "all" ? "（默认仅精选，筛选后展示全部）" : "（筛选模式下展示全部事件）"}
-          </p>
-          <Card className="p-5">
-            <HistoryAxis events={axisEvents} />
-          </Card>
-          {!axisEvents.length && <p className="text-sm text-muted">该筛选条件下暂无事件</p>}
-        </section>
-      )}
 
       {/*
         牛熊周期（默认 tab）——定位为「概览」。

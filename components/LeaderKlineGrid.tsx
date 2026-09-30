@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { usePctPrefs, miniPctConfig, type PctPrefs } from "@/components/charts/pct-prefs";
 import Link from "next/link";
 import type { EChartsOption } from "@/components/charts/echarts";
 import EChart from "@/components/charts/EChart";
@@ -26,7 +27,7 @@ function fmtVol(n: number) {
 }
 
 /** 迷你 K 线（近 60 日 + MA5/MA20 + 涨跌幅） */
-function MiniKline({ secid, name, onPick }: { secid: string; name: string; onPick?: () => void }) {
+function MiniKline({ secid, name, pct, onPick }: { secid: string; name: string; pct: PctPrefs; onPick?: () => void }) {
   const [bars, setBars] = useState<MiniBar[] | null>(null);
   const [err, setErr] = useState("");
   // 重试计数：作为 effect 依赖触发重新拉取（错误态的「重试」按钮用）
@@ -85,13 +86,14 @@ function MiniKline({ secid, name, onPick }: { secid: string; name: string; onPic
           name: "K线", type: "candlestick", data: ohlc,
           itemStyle: { color, color0: "#1e8449", borderColor: color, borderColor0: "#1e8449" },
         },
-        // 逐根涨跌幅标注（scatter 叠加；迷你图只标最近 3 根避免重叠）
-        mkPctSeries({ bars, show: true, fontSize: 8, maxVisible: 3, keep: 3 }),
+        // 逐根涨跌幅标注（scatter 叠加；迷你图只标最近几根避免重叠）。
+        // 此前写死 show:true —— 一屏 20 个迷你图同时标注，视觉噪音极大且无法关闭。
+        mkPctSeries({ bars, ...miniPctConfig(pct, 3) }),
         { name: "MA5", type: "line", data: m5, smooth: true, showSymbol: false, lineStyle: { width: 0.8, color: "#b45309" } },
         { name: "MA20", type: "line", data: m20, smooth: true, showSymbol: false, lineStyle: { width: 0.8, color: "#1d4ed8" } },
       ],
     };
-  }, [bars]);
+  }, [bars, pct]);
 
   if (err)
     return (
@@ -146,6 +148,9 @@ export default function LeaderKlineGrid({ defaultTab = "stock" }: { defaultTab?:
   const [tab, setTab] = useState<"stock" | "etf">(defaultTab);
   const sectors = useMemo(() => SECTOR_LEADERS.slice(0, 10), []);
   const etfs = useMemo(() => THEME_ETFS.slice(0, 12), []);
+  // 全网格统一控制：一屏 20 张迷你图，默认**关闭**逐根标注（20 张图同时标注视觉噪音极大），
+  // 需要时用右侧开关统一打开
+  const { pct, pctToggle } = usePctPrefs(true, { show: false });
 
   return (
     <div className="space-y-4">
@@ -167,6 +172,7 @@ export default function LeaderKlineGrid({ defaultTab = "stock" }: { defaultTab?:
         <span className="text-[10px] text-muted">
           {tab === "stock" ? "近 60 日 K 线 + MA5/MA20 · 点击卡片直达个股详情" : "热门主题 ETF 近 60 日走势 · 点击直达 ETF 详情"}
         </span>
+        <div className="ml-auto">{pctToggle}</div>
       </div>
 
       {tab === "stock" ? (
@@ -180,6 +186,7 @@ export default function LeaderKlineGrid({ defaultTab = "stock" }: { defaultTab?:
               <div className="space-y-2.5">
                 {s.stocks.slice(0, 2).map((st) => (
                   <MiniKline
+          pct={pct}
                     key={st.secid}
                     secid={st.secid}
                     name={st.name}
@@ -203,6 +210,7 @@ export default function LeaderKlineGrid({ defaultTab = "stock" }: { defaultTab?:
                 <span className="text-[10px] text-muted font-mono ml-auto">{e.code}</span>
               </div>
               <MiniKline
+          pct={pct}
                 secid={e.secid}
                 name={e.name}
                 onPick={() => {

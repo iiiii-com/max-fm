@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
+import { usePctPrefs } from "@/components/charts/pct-prefs";
 import EChart from "@/components/charts/EChart";
 import { KlineDetailPanel, useKlineClickDetail } from "@/components/charts/KlineDetail";
 import { echarts, type EChartsOption } from "@/components/charts/echarts";
@@ -14,6 +15,8 @@ import { scanSignals, type ScanBar } from "@/lib/data/rule-engine";
  */
 export default function BuySellScanner({ bars, height = 360 }: { bars: ScanBar[]; height?: number }) {
   const [hoverSignal, setHoverSignal] = useState<string | null>(null);
+  // 每日涨跌幅标注：此前写死 show:true
+  const { pct: pctCfg, pctToggle } = usePctPrefs();
   const [selected, clearSelected, attachChart] = useKlineClickDetail(bars);
 
   const signals = useMemo(() => scanSignals(bars), [bars]);
@@ -49,7 +52,7 @@ export default function BuySellScanner({ bars, height = 360 }: { bars: ScanBar[]
           data: bars.map((b) => [b.open, b.close, b.low, b.high]),
           itemStyle: { color: "#c0392b", color0: "#1e8449", borderColor: "#c0392b", borderColor0: "#1e8449" },
         },
-        mkPctSeries({ bars, show: true, position: "top", fontSize: 9, maxVisible: 60, keep: 60 }),
+        mkPctSeries({ bars, show: pctCfg.show, position: pctCfg.position, fontSize: pctCfg.fontSize, maxVisible: 60, keep: 60 }),
         { name: "MA20", type: "line", data: ma20, smooth: true, showSymbol: false, lineStyle: { width: 1, color: "#1d4ed8" } },
         {
           name: "买卖信号", type: "scatter",
@@ -71,7 +74,7 @@ export default function BuySellScanner({ bars, height = 360 }: { bars: ScanBar[]
         },
       ],
     };
-  }, [bars, signals, hoverSignal]);
+  }, [bars, signals, hoverSignal, pctCfg]);
 
   return (
     <div className="rounded-xl border border-border bg-card p-4">
@@ -106,7 +109,7 @@ export default function BuySellScanner({ bars, height = 360 }: { bars: ScanBar[]
                   onMouseEnter={() => setHoverSignal(s.date + s.type)}
                   onMouseLeave={() => setHoverSignal(null)}
                   className={`px-2.5 py-2 cursor-default ${hoverSignal === s.date + s.type ? "bg-primary/5" : ""}`}>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">{pctToggle}<span className="w-px h-3 bg-border" aria-hidden />
                     <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${s.type === "buy" ? "bg-red-100 text-red-600" : "bg-green-100 text-green-600"}`}>
                       {s.type === "buy" ? "买" : "卖"}
                     </span>

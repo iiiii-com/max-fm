@@ -55,7 +55,6 @@ export function mkKlineTooltip(opts?: {
     // 跟随鼠标并偏移到右上方，不遮挡当前悬停 K 线
     position: (point: number[], params: any, dom: HTMLElement) => {
       const w = dom.offsetWidth || 160;
-      const h = dom.offsetHeight || 140;
       const winW = typeof window !== "undefined" ? window.innerWidth : 1200;
       const left = point[0] + 14;
       const fitLeft = left + w > winW - 8 ? Math.max(8, point[0] - w - 14) : left;
@@ -141,7 +140,10 @@ export function mkPctSeries(cfg: PctLabelConfig) {
     data: bars.map((b, i) => [b.date ?? i, yOf(i)]),
     label: {
       show,
-      position: "top" as const,
+      // 修正：此前无论 position 传 "top" 还是 "bottom" 都写死 "top"，
+      // 也就是说新加的「上方/下方」开关对 yOf 的锚点计算有效、对 label 自身无效，
+      // 两者会打架（点在 low 下方的标注，文字仍浮在 high 上方）。
+      position: position === "bottom" ? "bottom" : "top",
       fontSize,
       distance: 1,
       formatter: (p: any) => {
