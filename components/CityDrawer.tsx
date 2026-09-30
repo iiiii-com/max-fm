@@ -5,6 +5,8 @@ import Link from "next/link";
 import { CITY_RANK, STATIC_REGIONS, type CityInfo, type StaticRegion } from "@/lib/data/regions";
 import { matchChainId } from "@/lib/data/chains";
 import { Badge } from "@/components/ui";
+import CityHousePrice from "@/components/city/CityHousePrice";
+import CityInsightPanel from "@/components/city/CityInsightPanel";
 
 export interface DrawerCity {
   name: string;
@@ -91,6 +93,9 @@ export default function CityDrawer({ city, onClose }: { city: DrawerCity | null;
 
           {info && (
             <>
+              {/* 房价指数（国家统计局 70 城月度数据）。放在最前是因为它是本抽屉里
+                  唯一有官方量化口径的数据，其余产业标签是定性描述。 */}
+              <CityHousePrice cityName={city.name} />
               <div>
                 <p className="text-sm font-medium mb-2">支柱产业</p>
                 <div className="flex flex-wrap gap-1.5">
@@ -131,12 +136,17 @@ export default function CityDrawer({ city, onClose }: { city: DrawerCity | null;
                       </span>
                     ))}
                   </div>
-                </div>
-              )}
-            </>
+            </div>
           )}
+          </>
+        )}
 
-          {rank?.note && <p className="text-[11px] text-muted">{rank.note}</p>}
+        {/* 城市解读：产业讲解 / 特点 / 就业 / 收入开支机制 / 优缺点 / 生活质量。
+            放在最后 —— 前面的房价指数与产业标签是既有信息，
+            解读是展开层，需要读者先看完事实再读判断。 */}
+        <CityInsightPanel cityName={city.name} />
+
+        {rank?.note && <p className="text-[11px] text-muted">{rank.note}</p>}
         </div>
       </div>
     </div>

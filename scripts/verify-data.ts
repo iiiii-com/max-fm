@@ -510,6 +510,43 @@ async function main() {
     check("板块互通索引可校验", false, String(e?.message ?? e));
   }
 
+  // 城市解读覆盖率：67 城必须逐条有解读，且不含编造的统计数值。
+  // 这条断言是刻意的：站内曾出现 province_stats.trade 用
+  // gdp × (0.25 + rng()×0.4) 生成、以省级统计名义展示的造假，
+  // 城市解读里一旦写入「平均年薪 X 万」这类凭印象的数字，
+  // 危害与它相同 —— 数字看起来合理，读者无从怀疑。校验拦的是这个。
+  try {
+    const { CITY_INSIGHTS, missingCityInsights } = await import("@/lib/data/cityInsights");
+    const { STATIC_REGIONS } = await import("@/lib/data/regions");
+    const allCities = STATIC_REGIONS.flatMap((r: any) => r.cities).map((c: any) => c.name);
+    const missing = missingCityInsights(allCities);
+    check(
+      "67 城全部有解读",
+      missing.length === 0,
+      missing.length ? `缺 ${missing.length} 城: ${missing.slice(0, 4).join(",")}` : `${allCities.length} 城全覆盖`
+    );
+    // 反向检查：不得出现疑似编造的数值表述
+    const risky = /平均年薪\s*\d|年薪\s*\d+\s*万|房价均价|均价\s*\d+\s*万|就业率\s*\d|人均可支配收入\s*\d/;
+    const fabricated = Object.entries(CITY_INSIGHTS).filter(([, v]: any) =>
+      risky.test(`${v.income?.drivers ?? ""}${v.income?.structure ?? ""}${v.cost?.housing ?? ""}${v.cost?.living ?? ""}`)
+    );
+    check(
+      "解读不含编造数值（薪资/房价/就业率）",
+      fabricated.length === 0,
+      fabricated.length ? fabricated.map((f) => f[0]).join(",") : "无"
+    );
+    // 房价指数：入库城市数必须与统计局 70 城匹配结果一致
+    const { getCityHousePrices } = await import("@/lib/data/queries");
+    const { byCity, period } = await getCityHousePrices();
+    check(
+      "70 城房价指数已入库且期间明确",
+      byCity.size > 0 && Boolean(period),
+      `${byCity.size} 城 / ${period ?? "期间未知"}`
+    );
+  } catch (e: any) {
+    check("城市解读可校验", false, String(e?.message ?? e));
+  }
+
   console.log(`\n=== 结果：${pass} 通过 / ${fail} 失败 ===\n`);
   process.exit(fail > 0 ? 1 : 0);
 }

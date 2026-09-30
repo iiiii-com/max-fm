@@ -281,6 +281,37 @@ export async function getRecentAggregated(): Promise<{
 
 export { parseJson };
 /**
+ * 70 城商品住宅销售价格指数（国家统计局月度发布）。
+ *
+ * 返回的行按站内城市短名索引（如"深圳"），不含城市 —— 取不到的 18 城
+ * 由调用方按 CITY_HOUSE_PRICE_SCOPE 外显说明，不用近似值补齐。
+ * 数据期统一，见 period 字段；页面必须同屏展示，不只给数字。
+ */
+export async function getCityHousePrices(): Promise<{
+  period: string | null;
+  sourceUrl: string | null;
+  byCity: Map<string, { newMom: number; newYoy: number; usedMom: number; usedYoy: number }>;
+}> {
+  const rows = (await db.select().from(s.cityHousePrice)) as any[];
+  const byCity = new Map<
+    string,
+    { newMom: number; newYoy: number; usedMom: number; usedYoy: number }
+  >();
+  for (const r of rows) {
+    if (r.newMom == null || r.newYoy == null || r.usedMom == null || r.usedYoy == null) continue;
+    byCity.set(r.city, {
+      newMom: r.newMom,
+      newYoy: r.newYoy,
+      usedMom: r.usedMom,
+      usedYoy: r.usedYoy,
+    });
+  }
+  const period = rows.length ? (rows[0].period ?? null) : null;
+  const sourceUrl = rows.length ? (rows[0].sourceUrl ?? null) : null;
+  return { period, sourceUrl, byCity };
+}
+
+/**
  * 产业链索引：公司名 → 环节，以及链 → 环节。
  * 供个股详情页展示「该股在产业链上的位置」，实现个股与产业链的双向互通。
  * 只用 DB 中已存的 375 个公司名，不硬编码任何个股代码。
