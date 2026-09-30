@@ -474,6 +474,42 @@ async function main() {
     check("省级经济数据可校验", false, String(e?.message ?? e));
   }
 
+  // 板块互通：产业链 ↔ 个股 双向索引。
+  // 背景：站内 25 条链、143 个环节、375 家公司此前彼此隔离 ——
+  // 个股详情页看不到自己在产业链上的位置。
+  try {
+    const { getChainIndexRows } = await import("@/lib/data/queries");
+    const { indexByCompany } = await import("@/lib/data/chainIndex");
+    const { hasSectorCode } = await import("@/lib/data/chainIndex");
+    const rows = await getChainIndexRows();
+    const byCo = indexByCompany(rows);
+    check(
+      "产业链索引覆盖全部 25 条链",
+      new Set(rows.map((r: any) => r.chainSlug)).size === 25,
+      `实际 ${new Set(rows.map((r: any) => r.chainSlug)).size} 条 / 索引 ${rows.length} 行`
+    );
+    check("产业链索引含公司名（个股↔链路可通）", byCo.size > 0, `${byCo.size} 家公司`);
+    const crossChain = [...byCo.values()].filter((v) => new Set(v.map((r: any) => r.chainSlug)).size > 1);
+    check(
+      "跨链公司被正确识别（多链归属不丢）",
+      crossChain.length > 0,
+      `${crossChain.length} 家跨链公司`
+    );
+    // 链名必须是真实链名而不是 chainmujew... id —— 之前踩过：分组用 chainId 却当 slug 用
+    const badName = rows.filter((r: any) => /^chain[a-z0-9]{10,}$/.test(r.chainName));
+    check(
+      "索引里链名为真实名称（非 chainId）",
+      badName.length === 0,
+      badName.length ? badName[0].chainName : "全部正常"
+    );
+    // 板块映射必须全部有效：code 存在但接口拉不到时不能展示入口
+    const { CHAIN_SECTOR_CODES } = await import("@/lib/data/chainIndex");
+    const bogusCode = Object.entries(CHAIN_SECTOR_CODES).filter(([k, v]) => hasSectorCode(k) !== Boolean(v));
+    check("板块映射表自洽（未映射的链不展示资金流入口）", bogusCode.length === 0, bogusCode.map(([k]) => k).join(",") || "自洽");
+  } catch (e: any) {
+    check("板块互通索引可校验", false, String(e?.message ?? e));
+  }
+
   console.log(`\n=== 结果：${pass} 通过 / ${fail} 失败 ===\n`);
   process.exit(fail > 0 ? 1 : 0);
 }

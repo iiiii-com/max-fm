@@ -2,6 +2,7 @@ import { db, parseJson } from "@/lib/db";
 import * as s from "@/lib/db/schema";
 import { eq, desc, asc, and, like, inArray } from "drizzle-orm";
 import { validMetrics } from "@/lib/data/chainMetrics";
+import { buildChainIndex } from "@/lib/data/chainIndex";
 
 export const CATEGORY_COLORS: Record<string, string> = {
   物价: "#dc2626", 景气: "#ea580c", 货币: "#2563eb", 外贸: "#0d9488",
@@ -279,3 +280,31 @@ export async function getRecentAggregated(): Promise<{
 }
 
 export { parseJson };
+/**
+ * 产业链索引：公司名 → 环节，以及链 → 环节。
+ * 供个股详情页展示「该股在产业链上的位置」，实现个股与产业链的双向互通。
+ * 只用 DB 中已存的 375 个公司名，不硬编码任何个股代码。
+ */
+export async function getChainIndexRows() {
+  const chains = await getChains();
+  const nodes = await getChainNodes();
+  const byChain = new Map<string, Array<{ id: string; name: string; level: string; companies: string | null }>>();
+  for (const c of chains) byChain.set(c.id, []);
+  for (const n of nodes as any[]) {
+    if (!byChain.has(n.chainId)) byChain.set(n.chainId, []);
+    byChain.get(n.chainId)!.push({ id: n.id, name: n.name, level: n.level, companies: n.companies });
+  }
+  // 用 chainId 分组时，key 是 id；这里同时建 id→slug 映射，
+  // 否则 buildChainIndex 会把 chainId 当 slug 用，导致链名显示成 chainmujew... 且链接失效
+  const slugById = new Map<string, string>(chains.map((c: any) => [c.id as string, c.slug as string]));
+  const normalized = new Map<string, Array<{ id: string; name: string; level: string; companies: string | null }>>();
+  for (const [id, list] of byChain) {
+    const slug = slugById.get(id);
+    if (!slug) continue;
+    normalized.set(slug, list);
+  }
+  return buildChainIndex(
+    chains.map((c: any) => ({ slug: c.slug as string, name: c.name as string })),
+    normalized
+  );
+}

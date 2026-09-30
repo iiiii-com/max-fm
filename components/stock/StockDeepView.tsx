@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Database, Scale, Building2, TrendingUp, Activity, FileText } from "lucide-react";
+import { ArrowLeft, Database, Scale, Building2, TrendingUp, Activity, FileText, GitBranch } from "lucide-react";
 import ContextStrip from "@/components/ContextStrip";
 import InteractiveKlineLab from "@/components/gmrds/InteractiveKlineLab";
 import DepthPanel from "@/components/stock/DepthPanel";
@@ -37,24 +37,39 @@ export default function StockDeepView({ secid }: { secid: string }) {
   const [flow, setFlow] = useState<FlowResp | null>(null);
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(true);
+  // 个股在产业链上的环节归属（板块互通）。指数无对应关系，不请求。
+  const [chainPos, setChainPos] = useState<{
+    name: string | null;
+    chains: Array<{ chainSlug: string; chainName: string; nodes: Array<{ nodeId: string; nodeName: string; level: string; peers: string[] }> }>;
+  } | null>(null);
 
   useEffect(() => {
     if (!secid) return;
     let cancelled = false;
     setLoading(true);
     setErr("");
+    setChainPos(null);
     const klineApi = isIndex ? "/api/index/kline" : "/api/stock/kline";
     Promise.all([
       fetch(`${klineApi}?secid=${secid}&days=250`, { cache: "no-store" }).then((r) => r.json()),
       isIndex ? Promise.resolve(null) : fetch(`/api/stock/fundamentals?secid=${secid}`, { cache: "no-store" }).then((r) => r.json()),
       isIndex ? Promise.resolve(null) : fetch(`/api/stock/flow?secid=${secid}`, { cache: "no-store" }).then((r) => r.json()),
+      // 产业链归属：独立请求，失败不影响其余板块渲染
+      isIndex
+        ? Promise.resolve(null)
+        : fetch(`/api/stock/chain?secid=${secid}`, { cache: "no-store" })
+            .then((r) => r.json())
+            .catch(() => null),
     ])
-      .then(([k, f, fl]) => {
+      .then(([k, f, fl, cp]) => {
         if (cancelled) return;
         if (Array.isArray(k?.klines) && k.klines.length) setBars(k.klines);
         else setErr(k?.error ?? "K 线数据加载失败");
         if (f?.ok && f.data) setFund(f.data);
         if (fl?.ok && fl.flow) setFlow({ flow: fl.flow, score: fl.score ?? null });
+        if (cp?.ok && Array.isArray(cp.chains) && cp.chains.length) {
+          setChainPos({ name: cp.name ?? null, chains: cp.chains });
+        }
       })
       .catch((e) => !cancelled && setErr(e?.message ?? "加载失败"))
       .finally(() => !cancelled && setLoading(false));
@@ -201,6 +216,47 @@ export default function StockDeepView({ secid }: { secid: string }) {
                 <Database className="w-4.5 h-4.5 text-primary" /> 估值分位 · 近 5 年历史百分位
               </h2>
               <ValuationPercentile secid={secid} name={name} />
+            </section>
+          ) : null}
+
+          {/* 产业链位置：个股 → 产业链 / 环节（板块互通） */}
+          {chainPos?.chains.length ? (
+            <section>
+              <h2 className="flex items-center gap-2 font-bold text-lg tracking-tight mb-1">
+                <GitBranch className="w-4.5 h-4.5 text-primary" /> 产业链位置
+              </h2>
+              <p className="text-xs text-muted mb-2.5">
+                {chainPos.name} 在 {chainPos.chains.length} 条产业链中的环节归属。
+                同环节列出的是该环节维护的代表性企业，不等同于完整成分股。
+              </p>
+              <div className="space-y-3">
+                {chainPos.chains.map((c) => (
+                  <div key={c.chainSlug} className="rounded-xl border border-border bg-card p-4">
+                    <div className="flex items-baseline gap-2 flex-wrap mb-2">
+                      <Link
+                        href={`/industry/${c.chainSlug}`}
+                        className="font-medium text-sm hover:text-primary transition-colors"
+                      >
+                        {c.chainName}
+                      </Link>
+                      <span className="text-[11px] text-muted">位于 {c.nodes.length} 个环节</span>
+                    </div>
+                    <ol className="space-y-1.5">
+                      {c.nodes.map((n) => (
+                        <li key={n.nodeId} className="text-xs flex items-baseline gap-2 flex-wrap">
+                          <span className="px-1.5 py-0.5 rounded border border-border text-[10px] text-muted shrink-0">
+                            {n.level}
+                          </span>
+                          <span className="font-medium">{n.nodeName}</span>
+                          <span className="text-[11px] text-muted">
+                            同环节：{n.peers.join("、") || "仅此一家"}
+                          </span>
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                ))}
+              </div>
             </section>
           ) : null}
 
