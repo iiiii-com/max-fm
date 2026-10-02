@@ -1,7 +1,6 @@
 "use client";
 
-import { CHAIN_ECONOMICS } from "@/lib/data/chainEconomics";
-import { CHAIN_CAREERS } from "@/lib/data/chainCareers";
+import { ALL_CHAIN_ECONOMICS, ALL_CHAIN_CAREERS } from "@/lib/data/chainDeepDiveAll";
 import { SectionTitle, Card, Badge } from "@/components/ui";
 
 /**
@@ -15,8 +14,8 @@ import { SectionTitle, Card, Badge } from "@/components/ui";
  * "决定薪资的变量"，不写任何金额。原因与官方口径见 chainCareers.ts 头部注释。
  */
 export default function ChainDeepDivePanel({ slug }: { slug: string }) {
-  const econ = CHAIN_ECONOMICS[slug];
-  const career = CHAIN_CAREERS[slug];
+  const econ = ALL_CHAIN_ECONOMICS[slug];
+  const career = ALL_CHAIN_CAREERS[slug];
   if (!econ && !career) return null;
 
   return (

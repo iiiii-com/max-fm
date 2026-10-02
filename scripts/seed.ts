@@ -657,6 +657,95 @@ const CHAINS = [
       },
     ],
   },
+
+  // ── 以下 9 条链此前只存在于 lib/data/chains.ts 的 STATIC_CHAINS，从未入库 ──
+  // 站内访问不到，等于写了不用。segments 定义沿用 chains.ts（stage→level、
+  // name、companies），环节解读见 lib/data/chainNodeInsights.ts。
+
+  {
+    name: "医疗服务产业链", slug: "medical-service", sentiment: "medium",
+    description: "老龄化与消费医疗双轮驱动，连锁化率持续提升；医保控费压制单价，但专科连锁与第三方检验靠规模扩张。",
+    nodes: [
+      { name: "连锁医疗", level: "上游", companies: ["爱尔眼科", "通策医疗", "美年健康"] },
+      { name: "检验与信息化", level: "中游", companies: ["金域医学", "卫宁健康", "创业慧康"] },
+      { name: "康复与家用医疗", level: "下游", companies: ["翔宇医疗", "鱼跃医疗"] },
+    ],
+  },
+  {
+    name: "核电产业链", slug: "nuclear", sentiment: "high",
+    description: "核准常态化支撑十年景气；核岛土建与核级设备的供给资质构成高壁垒，运营端现金流稳定但受电价管制。",
+    nodes: [
+      { name: "核级材料与设备", level: "上游", companies: ["中核科技", "应流股份", "东方电气"] },
+      { name: "建造与系统", level: "中游", companies: ["中国核建", "中控技术", "江苏神通"] },
+      { name: "核电运营", level: "下游", companies: ["中国核电", "中国广核"] },
+    ],
+  },
+  {
+    name: "物流产业链", slug: "logistics", sentiment: "medium",
+    description: "快递价格战进入收敛期，单票利润触底回升；出海物流与大宗供应链服务是利润改善的主要来源。",
+    nodes: [
+      { name: "装备与平台", level: "上游", companies: ["中集集团", "音飞储存", "传化智联"] },
+      { name: "快递快运", level: "中游", companies: ["顺丰控股", "圆通速递", "韵达股份"] },
+      { name: "航运港口", level: "中游", companies: ["中远海控", "上港集团", "招商轮船"] },
+      { name: "供应链服务", level: "下游", companies: ["建发股份", "厦门象屿"] },
+    ],
+  },
+  {
+    name: "传媒游戏产业链", slug: "media-game", sentiment: "high",
+    description: "版号常态化与 AI 降本增效同时发生；游戏出海与短剧是增量，影视与长视频仍在调整中。",
+    nodes: [
+      { name: "IP 与内容", level: "上游", companies: ["光线传媒", "中国电影", "中文在线"] },
+      { name: "游戏研发", level: "中游", companies: ["三七互娱", "完美世界", "恺英网络"] },
+      { name: "影视与平台", level: "中游", companies: ["华策影视", "芒果超媒"] },
+      { name: "发行与出海", level: "下游", companies: ["昆仑万维", "巨人网络"] },
+    ],
+  },
+  {
+    name: "商业航天产业链", slug: "commercial-space", sentiment: "high",
+    description: "低轨星座组网提速带动星载与火箭需求；发射成本下降与可回收技术是决定商业化节奏的核心变量。",
+    nodes: [
+      { name: "材料与动力", level: "上游", companies: ["中简科技", "铂力特", "航天动力"] },
+      { name: "火箭与卫星", level: "中游", companies: ["航天科技", "中国卫星", "铖昌科技", "上海沪工"] },
+      { name: "卫星应用", level: "下游", companies: ["海格通信", "华力创通", "盟升电子"] },
+    ],
+  },
+  {
+    name: "智能驾驶产业链", slug: "intelligent-driving", sentiment: "high",
+    description: "L2+ 渗透率快速提升，城市 NOA 进入平价放量期；硬件降本速度快于软件变现，域控与线控是价值增量所在。",
+    nodes: [
+      { name: "传感器与地图", level: "上游", companies: ["联创电子", "万集科技", "四维图新"] },
+      { name: "域控与线控", level: "中游", companies: ["德赛西威", "中科创达", "伯特利", "拓普集团"] },
+      { name: "整车应用", level: "下游", companies: ["比亚迪", "赛力斯"] },
+    ],
+  },
+  {
+    name: "工程机械产业链", slug: "machinery", sentiment: "medium",
+    description: "国内需求筑底、海外高增成为主要增量；电动化与后市场是打开估值空间的新变量。",
+    nodes: [
+      { name: "核心零部件", level: "上游", companies: ["恒立液压", "艾迪精密", "潍柴动力"] },
+      { name: "整机制造", level: "中游", companies: ["三一重工", "徐工机械", "中联重科"] },
+      { name: "租赁与服务", level: "下游", companies: ["浙江鼎力", "华铁应急"] },
+    ],
+  },
+  {
+    name: "家用电器产业链", slug: "homeappliance", sentiment: "medium",
+    description: "以旧换新政策托底内需，新兴品类与出海贡献增量；保有量进入更新换代驱动阶段。",
+    nodes: [
+      { name: "核心部件", level: "上游", companies: ["三花智控", "海立股份", "卧龙电驱"] },
+      { name: "白电整机", level: "中游", companies: ["美的集团", "格力电器", "海尔智家"] },
+      { name: "厨电与小家电", level: "中游", companies: ["苏泊尔", "石头科技", "新宝股份"] },
+      { name: "渠道与品牌", level: "下游", companies: ["小熊电器", "极米科技"] },
+    ],
+  },
+  {
+    name: "船舶制造产业链", slug: "shipbuilding", sentiment: "high",
+    description: "新船价格创新高，高附加值船型（液化天然气船、双燃料船）决定盈利质量；船厂产能紧张支撑交付价。",
+    nodes: [
+      { name: "船用配套", level: "上游", companies: ["中国动力", "亚星锚链", "鞍钢股份"] },
+      { name: "总装建造", level: "中游", companies: ["中国船舶", "中国重工", "中船防务"] },
+      { name: "航运与修船", level: "下游", companies: ["招商南油", "中远海能", "中集来福士"] },
+    ],
+  },
 ];
 
 const HISTORY_EVENTS = [

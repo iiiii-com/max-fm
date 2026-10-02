@@ -1,4 +1,4 @@
-import { CHAIN_INSIGHTS } from "@/lib/data/chainInsights";
+import { ALL_CHAIN_INSIGHTS } from "@/lib/data/chainInsightsAll";
 import { Card, SectionTitle } from "@/components/ui";
 
 /**
@@ -8,12 +8,13 @@ import { Card, SectionTitle } from "@/components/ui";
  * 没有任何解读层 —— 这是"产业地图内容太少"的直接原因：
  * 结构画得再清楚，也不回答"这条链靠什么赚钱、看什么、风险在哪、怎么跟踪"。
  *
- * 内容全部来自 lib/data/chainInsights.ts（25 条链逐条撰写）。
+ * 内容全部来自 lib/data/chainInsightsAll.ts 汇总的两份数据
+ * （chainInsights.ts 原有 25 条 + chainInsightsExtra.ts 补入库的 9 条）。
  * 「关注指标」只列指标名称，不列数值 —— 数值由 chain_metrics 在满足
  * 「单位 + 时点 + 来源 + 口径」四件套校验后才展示，避免两处数字打架。
  */
 export default function ChainInsightPanel({ slug }: { slug: string }) {
-  const ins = CHAIN_INSIGHTS[slug];
+  const ins = ALL_CHAIN_INSIGHTS[slug];
   if (!ins) return null;
 
   return (

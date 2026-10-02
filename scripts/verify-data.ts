@@ -399,9 +399,11 @@ async function main() {
     check("危机阶段策略可校验", false, String(e?.message ?? e));
   }
 
-  // 产业解读覆盖率：25 条链必须逐条有解读，否则「产业地图内容太少」会重新发生
+  // 产业解读覆盖率：每条链必须逐条有解读，否则「产业地图内容太少」会重新发生
   try {
-    const { CHAIN_INSIGHTS: INS } = await import("@/lib/data/chainInsights");
+    // 用统一入口取：内容分 chainInsights（原有 25 条）与 chainInsightsExtra
+    // （补入库的 9 条）两处，直接读前者会漏掉后者
+    const { ALL_CHAIN_INSIGHTS: INS } = await import("@/lib/data/chainInsightsAll");
     const { getChains } = await import("@/lib/data/queries");
     const { bootstrap } = await import("@/lib/db");
     await bootstrap();
@@ -496,12 +498,16 @@ async function main() {
     const { getChainIndexRows } = await import("@/lib/data/queries");
     const { indexByCompany } = await import("@/lib/data/chainIndex");
     const { hasSectorCode } = await import("@/lib/data/chainIndex");
+    const { getChains } = await import("@/lib/data/queries");
     const rows = await getChainIndexRows();
     const byCo = indexByCompany(rows);
+    // 与实际入库的链数比对，不写死数字 —— 写死会在新增产业链后误报
+    const chainCount = (await getChains()).length;
+    const indexedChains = new Set(rows.map((r: any) => r.chainSlug));
     check(
-      "产业链索引覆盖全部 25 条链",
-      new Set(rows.map((r: any) => r.chainSlug)).size === 25,
-      `实际 ${new Set(rows.map((r: any) => r.chainSlug)).size} 条 / 索引 ${rows.length} 行`
+      `产业链索引覆盖全部 ${chainCount} 条链`,
+      indexedChains.size === chainCount,
+      `实际 ${indexedChains.size} 条 / 索引 ${rows.length} 行`
     );
     check("产业链索引含公司名（个股↔链路可通）", byCo.size > 0, `${byCo.size} 家公司`);
     const crossChain = [...byCo.values()].filter((v) => new Set(v.map((r: any) => r.chainSlug)).size > 1);
