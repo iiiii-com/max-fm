@@ -72,3 +72,46 @@ const withNumbers = Object.entries(CITY_INSIGHTS).filter(([, v]: any) =>
   risky.test(v.cost?.living ?? "")
 );
 console.log("疑似编造数值:", withNumbers.map((w) => w[0]).join(",") || "无");
+
+/**
+ * 跨城重复分句检查 —— 专治模板味。
+ *
+ * 结构校验只保证字段齐全与数值可信，"房价低，居住空间大"这种整句照抄
+ * 照样全绿，但读者一眼就看出是套话。这里把 67 城的文案按分句比对，
+ * 找出在不同城市间复用的句子。
+ *
+ * 例外（ALLOWED_REPEAT）：这些句子重复是事实而非套话 ——
+ * 它们描述数据可得性，而这些城市确实都没有官方房价指数。
+ */
+const ALLOWED_REPEAT = new Set([
+  "房价无官方城市级指数可参考",
+  "不在统计局 70 城房价统计范围内",
+  "有官方房价指数（统计局 70 城）",
+]);
+
+const buckets = new Map<string, Set<string>>();
+for (const [city, v] of Object.entries(CITY_INSIGHTS) as [string, CityInsight][]) {
+  const texts: string[] = [
+    v.industry, v.character,
+    v.jobs?.structure ?? "", v.jobs?.caveat ?? "",
+    v.income?.drivers ?? "", v.income?.structure ?? "",
+    v.cost?.housing ?? "", v.cost?.living ?? "",
+    ...(v.pros ?? []), ...(v.cons ?? []),
+    ...(v.life?.tradeoffs ?? []), ...(v.life?.fitFor ?? []),
+  ];
+  for (const t of texts) {
+    for (const s of t.split(/[。！？；]/).map((x) => x.trim()).filter((x) => x.length >= 8)) {
+      if (!buckets.has(s)) buckets.set(s, new Set());
+      buckets.get(s)!.add(city);
+    }
+  }
+}
+const repeated = [...buckets]
+  .filter(([s, cities]) => cities.size >= 3 && !ALLOWED_REPEAT.has(s))
+  .sort((a, b) => b[1].size - a[1].size);
+if (repeated.length) {
+  console.log(`跨城重复分句 ${repeated.length} 处（≥3 城复用，判为套话）:`);
+  for (const [s, cities] of repeated) console.log(`  [${cities.size}城] ${s.slice(0, 40)} — ${[...cities].join(" ")}`);
+} else {
+  console.log("跨城重复分句: 无（≥3 城复用；两城同质属正常，不报）");
+}
