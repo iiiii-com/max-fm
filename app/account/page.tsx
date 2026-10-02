@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getSession, getUserFromDb } from "@/lib/auth";
 import { getUserAdvice, getUserFeelings, getWatchlist } from "@/lib/data/queries";
 import { Badge, Card, SectionTitle } from "@/components/ui";
+import ChangePasswordCard from "@/components/ChangePasswordCard";
 import { fmtDateTime } from "@/lib/utils";
 import { bootstrap } from "@/lib/db";
 
@@ -12,7 +13,8 @@ export const metadata = { title: "个人中心" };
 export default async function AccountPage() {
   await bootstrap();
   const session = await getSession();
-  if (!session) redirect("/login");
+  // 带上 next，未登录后重新登录会回到这里而不是落到首页
+  if (!session) redirect("/login?next=%2Faccount");
   const [user, advice, feelings, watch] = await Promise.all([
     getUserFromDb(session.id),
     getUserAdvice(session.id),
@@ -139,6 +141,8 @@ export default async function AccountPage() {
           </Card>
         )}
       </section>
+
+      <ChangePasswordCard />
     </div>
   );
 }

@@ -89,12 +89,19 @@ const t = (name: string) =>
     usedMom: pgReal("used_mom"),
     usedYoy: pgReal("used_yoy"),
     fetchedAt: pgInteger("fetched_at"),
+    // password_resets（忘记密码流程）
+    // tokenHash 存 SHA-256 而非令牌本身：库被读走也不能直接重置他人密码。
+    tokenHash: pgText("token_hash"),
+    expiresAt: pgInteger("expires_at"),
   }) : sqliteTable(name, {
     id: text("id").primaryKey(),
     uid: text("uid"),
     name: text("name"),
     email: text("email"),
     passwordHash: text("password_hash"),
+    // 会话版本号：改密码时 +1。所有旧版本签发的 JWT 立即失效，
+    // 这样"改完密码还留在别人浏览器里"不会持续成立。
+    sessionVersion: text("session_version"),
     provider: text("provider"),
     riskLevel: text("risk_level"),
     interests: text("interests"),
@@ -172,6 +179,10 @@ const t = (name: string) =>
     usedMom: real("used_mom"),
     usedYoy: real("used_yoy"),
     fetchedAt: integer("fetched_at"),
+    // password_resets（忘记密码流程）
+    // tokenHash 存 SHA-256 而非令牌本身：库被读走也不能直接重置他人密码。
+    tokenHash: text("token_hash"),
+    expiresAt: integer("expires_at"),
     // source_url 已在上方公用列集合中定义（line 109），此处不重复声明
   }));
 
@@ -221,6 +232,7 @@ export const cityHousePrice = t("city_house_price");
 export const provinceStats = t("province_stats");
 export const quotesCache = t("quotes_cache");
 export const users = t("users");
+export const passwordResets = t("password_resets");
 export const userAdvice = t("user_advice");
 export const watchlists = t("watchlists");
 export const feelingSurveys = t("feeling_surveys");
