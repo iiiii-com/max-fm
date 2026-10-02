@@ -52,6 +52,10 @@ function NodeEntry({ node, detail }: { node: SwimNode; detail?: (n: SwimNode) =>
   }
   // 详情页模式：节点本身即展开器，避免同一批环节在页面上出现两遍
   // （此前泳道一份、卡片网格一份，信息完全重复）
+  //
+  // 环节讲解放在 summary 里而不是展开区 —— 此前 173 条环节解读全藏在
+  // <details> 内部，读者不逐个点开就等于没写。默认可见是这个内容
+  // 能不能被读到的关键；展开区留给结构化维度（产品/利润/壁垒/指标/风险）。
   return (
     <li className="min-w-0">
       <details className="group">
@@ -61,6 +65,11 @@ function NodeEntry({ node, detail }: { node: SwimNode; detail?: (n: SwimNode) =>
           </span>
           {companies.length ? (
             <p className="mt-0.5 text-[11px] leading-relaxed text-muted">{companies.join(" · ")}</p>
+          ) : null}
+          {node.description ? (
+            <p className="mt-1.5 text-[12px] leading-relaxed text-foreground/75">
+              {node.description}
+            </p>
           ) : null}
         </summary>
         <div className="mt-2 border-t border-border pt-2">{detail(node)}</div>

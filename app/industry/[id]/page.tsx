@@ -5,7 +5,7 @@ import { Card, Badge, SectionTitle } from "@/components/ui";
 import ChainSwimlane from "@/components/chain/ChainSwimlane";
 import ChainInsightPanel from "@/components/chain/ChainInsightPanel";
 import ChainDeepDivePanel from "@/components/chain/ChainDeepDivePanel";
-import ChainQuotes from "@/components/industry/ChainQuotes";
+import ChainNodeDetailPanel from "@/components/chain/ChainNodeDetailPanel";
 import { LEVELS, levelOrder, realNodes } from "@/lib/data/chainLevels";
 import { safeJsonArray } from "@/lib/utils";
 import { bootstrap } from "@/lib/db";
@@ -101,27 +101,20 @@ export default async function ChainDetailPage({ params }: { params: Promise<{ id
       <section>
         <SectionTitle
           title="上中下游分层"
-          sub="按所属层级自上而下排列，点击环节展开作用说明与相关标的行情。环节的规模与增速不展示，因为没有可核验的公开口径"
+          sub="按所属层级自上而下排列。点击环节展开结构化维度（做什么、赚什么钱、为什么进不来、看什么指标、风险）与相关标的行情。环节的规模与增速不展示，因为没有可核验的公开口径"
         />
         <Card className="p-0">
           <ChainSwimlane
             bands={groups}
             metrics={metrics}
-            detail={(n) => {
-              const companies = safeJsonArray<string>(n.companies);
-              return (
-                <div className="min-w-0">
-                  <p className="text-[11px] leading-relaxed text-muted">
-                    {n.description || "该环节暂无文字说明。"}
-                  </p>
-                  {companies.length ? (
-                    <div className="mt-2">
-                      <ChainQuotes companies={companies} />
-                    </div>
-                  ) : null}
-                </div>
-              );
-            }}
+            detail={(n) => (
+              <ChainNodeDetailPanel
+                slug={chain.slug}
+                nodeName={n.name}
+                companies={n.companies}
+                description={n.description}
+              />
+            )}
           />
         </Card>
       </section>

@@ -6,13 +6,27 @@ import { echarts, type EChartsOption } from "@/components/charts/echarts";
 import { STATIC_CHAINS } from "@/lib/data/chains";
 import { resolveChartTheme, TOOLTIP, ANIM_DURATION, INK, BORDER, signColor } from "@/lib/charts/theme";
 
+/**
+ * 画进这张关系图的链。
+ *
+ * 不是全部 34 条都画 —— 力导向图在 30 个节点以上会挤成一团、连边交叉到
+ * 不可读（这正是此前只画 15 条的原因）。选取标准是「有实际跨链供需关系」：
+ * 每个入选 id 至少要与其他入选链在 relates 里互相指向。
+ * 覆盖度由 ECOSYSTEM_COVERAGE 导出，页面必须如实标注图上画了几条、
+ * 站内共有几条 —— 不让读者误以为这就是全部。
+ */
 const HOT_IDS = [
   "semiconductor", "nev", "ai", "solar", "lowaltitude", "robot", "computing",
   "pharma", "baijiu", "consumer", "telecom", "storage", "hydrogen", "defense",
   "commercial-space",
+  // 补入库的 9 条里有跨链关系的：这些链与既有链存在真实的供需或替代关系
+  // （如核电↔风电储能、工程机械↔钢铁与机器人、大家电↔地产与消费电子），
+  // 不画会让"关系图"看起来比真实的产业联系更稀疏。
+  "nuclear", "intelligent-driving", "machinery", "homeappliance", "logistics",
+  "medical-service", "shipbuilding", "media-game",
 ];
 
-/** 本图只画有跨链关联的节点，因此实际覆盖度低于 HOT_IDS；由调用方标注 */
+/** 本图只画有跨链关联的节点，因此实际覆盖度低于站内链总数；由调用方标注 */
 export const ECOSYSTEM_COVERAGE = { total: STATIC_CHAINS.length, drawn: HOT_IDS.length };
 
 const THEME_NAME = "mx-site";

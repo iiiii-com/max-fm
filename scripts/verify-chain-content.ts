@@ -2,8 +2,11 @@ import { db, bootstrap } from "@/lib/db";
 import * as s from "@/lib/db/schema";
 import { ALL_CHAIN_INSIGHTS } from "@/lib/data/chainInsightsAll";
 import { CHAIN_NODE_INSIGHTS } from "@/lib/data/chainNodeInsights";
-import { ALL_CHAIN_ECONOMICS } from "@/lib/data/chainDeepDiveAll";
-import { ALL_CHAIN_CAREERS } from "@/lib/data/chainDeepDiveAll";
+import {
+  ALL_CHAIN_ECONOMICS,
+  ALL_CHAIN_CAREERS,
+} from "@/lib/data/chainDeepDiveAll";
+import { ALL_CHAIN_NODE_DETAILS } from "@/lib/data/chainNodeDetailsAll";
 
 /**
  * 产业链解读覆盖度与字段完整性校验。
@@ -62,6 +65,32 @@ async function main() {
       (k) => !names.includes(k)
     );
     if (orphan.length) problems.push(`${slug}: 解读表存在库里没有的环节名 → ${orphan.join(" ")}`);
+  }
+
+  /**
+   * 环节结构化维度（做什么 / 赚什么钱 / 壁垒 / 指标 / 风险）。
+   * 与上一项同样按库里真实环节名双向核对 —— 键名差一个空格就会静默失效。
+   * 稀土与 CPO 的环节描述内联在 seed 里，维度表仍需覆盖，此处不豁免。
+   */
+  for (const [slug, names] of nodesByChain) {
+    const d = ALL_CHAIN_NODE_DETAILS[slug] ?? {};
+    const missing = names.filter((nm) => !d[nm]);
+    if (missing.length) {
+      problems.push(`${slug}: 环节结构化维度缺失 → ${missing.join(" ")}`);
+      continue;
+    }
+    for (const nm of names) {
+      const v = d[nm];
+      const bad: string[] = [];
+      if (!v.products) bad.push("products");
+      if (!v.value) bad.push("value");
+      if (!v.barriers) bad.push("barriers");
+      if (!v.metrics?.length) bad.push("metrics");
+      if (!v.risks?.length) bad.push("risks");
+      if (bad.length) problems.push(`${slug}/${nm}: 维度字段不全 → ${bad.join(",")}`);
+    }
+    const orphan = Object.keys(d).filter((k) => !names.includes(k));
+    if (orphan.length) problems.push(`${slug}: 维度表存在库里没有的环节名 → ${orphan.join(" ")}`);
   }
 
   console.log(`产业链: ${slugs.length} 条`);

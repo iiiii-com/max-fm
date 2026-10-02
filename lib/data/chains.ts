@@ -856,7 +856,7 @@ export const STATIC_CHAINS: StaticChain[] = [
     prosperity: "中景气",
     marketSize: "约 6 万亿（2024 年口径）",
     outlook: "老龄化与消费医疗双轮驱动，连锁化率持续提升",
-    relates: ["pharma", "meddevice", "finance"],
+        relates: ["pharma", "meddevice", "finance", "agrifood"],
     segments: [
       {
         stage: "上游", name: "连锁医疗", products: "眼科、口腔、体检连锁",
@@ -889,7 +889,7 @@ export const STATIC_CHAINS: StaticChain[] = [
     prosperity: "高景气",
     marketSize: "约 8000 亿（2024 年口径）",
     outlook: "核准常态化，每年 8-10 台机组开工支撑十年景气",
-    relates: ["defense", "machinery", "storage", "wind"],
+        relates: ["defense", "machinery", "storage", "wind", "steelcoal"],
     segments: [
       {
         stage: "上游", name: "核级材料与设备", products: "核级阀门、铸件、主设备",
@@ -922,7 +922,7 @@ export const STATIC_CHAINS: StaticChain[] = [
     prosperity: "分化",
     marketSize: "约 18 万亿（2024 年口径）",
     outlook: "快递价格战收敛，出海物流与供应链服务升级",
-    relates: ["crossborder", "finance", "agrifood", "realestate"],
+        relates: ["crossborder", "finance", "agrifood", "realestate", "consumer", "meddevice"],
     segments: [
       {
         stage: "上游", name: "装备与平台", products: "集装箱、智能仓储、物流平台",
@@ -963,7 +963,7 @@ export const STATIC_CHAINS: StaticChain[] = [
     prosperity: "高景气",
     marketSize: "约 3 万亿（2024 年口径）",
     outlook: "版号常态化 + AI 降本增效，游戏出海与短剧高增",
-    relates: ["ai", "baijiu", "crossborder", "consumer"],
+        relates: ["ai", "baijiu", "crossborder", "consumer", "telecom"],
     segments: [
       {
         stage: "上游", name: "IP 与内容", products: "影视 IP、动画电影、数字版权",
@@ -1038,7 +1038,7 @@ export const STATIC_CHAINS: StaticChain[] = [
     prosperity: "高景气",
     marketSize: "约 4000 亿（2024 年口径）",
     outlook: "L2+ 渗透率快速提升，城市 NOA 进入平价放量期",
-    relates: ["nev", "ai", "semiconductor", "telecom"],
+        relates: ["nev", "ai", "semiconductor", "telecom", "consumer"],
     segments: [
       {
         stage: "上游", name: "传感器与地图", products: "激光雷达、车载镜头、高精地图",
@@ -1072,7 +1072,7 @@ export const STATIC_CHAINS: StaticChain[] = [
     prosperity: "分化",
     marketSize: "约 9000 亿（2024 年口径）",
     outlook: "内需筑底出海高增，电动化与后市场打开新空间",
-    relates: ["robot", "steelcoal", "shipbuilding", "nev"],
+        relates: ["robot", "steelcoal", "shipbuilding", "nev", "agrifood", "realestate"],
     segments: [
       {
         stage: "上游", name: "核心零部件", products: "液压件、发动机、破碎锤",
@@ -1105,7 +1105,7 @@ export const STATIC_CHAINS: StaticChain[] = [
     prosperity: "分化",
     marketSize: "约 1.8 万亿（2024 年口径）",
     outlook: "以旧换新政策托底内需，新兴品类与出海贡献增量",
-    relates: ["consumer", "agrifood", "logistics", "realestate"],
+        relates: ["consumer", "agrifood", "logistics", "realestate", "steelcoal"],
     segments: [
       {
         stage: "上游", name: "核心部件", products: "压缩机、热管理部件、电机",
@@ -1146,7 +1146,7 @@ export const STATIC_CHAINS: StaticChain[] = [
     prosperity: "高景气",
     marketSize: "约 5000 亿（2024 年口径）",
     outlook: "新船价格创新高，绿色甲醇双燃料船型订单占比提升",
-    relates: ["defense", "machinery", "steelcoal", "logistics"],
+        relates: ["steelcoal", "defense", "machinery", "petrochem", "logistics"],
     segments: [
       {
         stage: "上游", name: "船用配套", products: "船舶动力、锚链、船板",
