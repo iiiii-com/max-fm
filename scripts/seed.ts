@@ -3,6 +3,7 @@ import { inArray } from "drizzle-orm";
 import { isPg } from "../lib/db";
 import * as s from "../lib/db/schema";
 import { LINK_LEVEL } from "../lib/data/chainLevels";
+import { nodeInsight } from "../lib/data/chainNodeInsights";
 
 function mulberry32(a: number) {
   return function () {
@@ -1151,7 +1152,15 @@ for (const [prov, meta] of Object.entries(PROVINCES)) {
         // 需要真实规模/景气度时，走 metrics 表（要求 source + asOf + unit 三件套齐全）。
         value: null,
         growth: null,
-        description: (n as any).description ?? `${n.name}是${c.name}的${n.level}环节，${(n.companies ?? []).slice(0, 2).join("、")}等为代表性企业。${NODE_LEVEL_ROLE[n.level] ?? ""}。`,
+        // 环节解读优先查 lib/data/chainNodeInsights（逐条撰写，143 个环节），
+        // 查不到才用节点内联描述，最后才退回模板。稀土永磁与 CPO 两条链的
+        // 逐环节描述仍留在 CHAINS 内联，因此保留这一层。
+        // 模板（NODE_LEVEL_ROLE 拼接）只应作为兜底存在 —— 此前 131/143 个
+        // 环节都是模板，结构校验查不出来，读者一眼看出是套话。
+        description:
+          nodeInsight(c.slug, n.name) ??
+          (n as any).description ??
+          `${n.name}是${c.name}的${n.level}环节，${(n.companies ?? []).slice(0, 2).join("、")}等为代表性企业。${NODE_LEVEL_ROLE[n.level] ?? ""}。`,
       });
     }
     for (const tgt of chainLinkTargets[c.slug] ?? []) {

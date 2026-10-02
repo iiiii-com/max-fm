@@ -253,6 +253,21 @@ async function main() {
       withNum.slice(0, 3).map((n) => `${n.name}(${n.value}/${n.growth})`).join(" ")
     );
 
+    // 1b) 不允许残留模板环节描述
+    // 模板特征是拼接句"XX 是 YY 的中游环节，A、B 等为代表性企业"。
+    // 此前 131/143 个环节都是这样生成的 —— 字段齐全、结构校验全绿，
+    // 但读起来每条一样，模板感一眼可见。现在逐条写实在 chainNodeInsights。
+    const LINK = "关联";
+    const realNodes = nodes.filter((n: any) => n.level !== LINK);
+    const templated = realNodes.filter(
+      (n: any) => typeof n.description === "string" && n.description.includes("等为代表性企业")
+    );
+    check(
+      `环节描述无模板拼接（${realNodes.length} 个环节）`,
+      templated.length === 0,
+      templated.slice(0, 3).map((n: any) => n.name).join(" ")
+    );
+
     // 2) 跨链关联节点不得占用真实层级
     const fakeLevel = nodes.filter(
       (n) => isRealLevel(n.level) && String(n.name ?? "").startsWith("关联：")
