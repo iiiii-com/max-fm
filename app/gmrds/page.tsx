@@ -11,6 +11,7 @@ import { getRecentAggregated } from "@/lib/data/queries";
 import { fetchSectors } from "@/lib/data/quotes";
 import { fmtDate } from "@/lib/utils";
 import { bootstrap } from "@/lib/db";
+import GmrdsShell from "@/components/gmrds/GmrdsShell";
 
 const DEEP_ENTRIES = [
   { href: "/gmrds/governance", icon: Users, title: "治理架构", desc: "十二学院 + 决策委员会 · 职责分工 / 组织边界 / 协作机制" },
@@ -49,7 +50,8 @@ export default async function GmrdsPage() {
   ];
   const topSectors = [...sectors].sort((a, b) => b.changePct - a.changePct).slice(0, 5);
   return (
-    <div className="mx-auto max-w-7xl px-3 sm:px-4 py-5 sm:py-6 space-y-8">
+    <GmrdsShell>
+      <div className="space-y-8">
       {/* Hero */}
       <section className="rounded-xl border border-border bg-gradient-to-br from-primary/8 via-transparent to-transparent p-6 sm:p-8">
         <p className="text-[11px] font-semibold tracking-widest text-primary uppercase mb-2">Global Markets Research & Decision System</p>
@@ -389,6 +391,7 @@ export default async function GmrdsPage() {
         </Link>
       </section>
     </div>
+    </GmrdsShell>
   );
 }
 

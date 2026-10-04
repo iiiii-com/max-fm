@@ -4,6 +4,7 @@ import { Card } from "@/components/ui";
 import { FLOW_PRACTICES } from "@/lib/data/gmrds-deep";
 import { FLOW_PRAXIS, caseById } from "@/lib/data/gmrds-practical";
 import { DECISION_FLOW, academyBySlug } from "@/lib/data/gmrds";
+import GmrdsShell from "@/components/gmrds/GmrdsShell";
 
 export const metadata = { title: "十一环节详解 | 研究体系 GMRDS" };
 
@@ -11,7 +12,8 @@ const STAGE_COLORS = ["#0284c7", "#1e8449", "#be185d", "#a16207"];
 
 export default function FlowPage() {
   return (
-    <div className="mx-auto max-w-7xl px-3 sm:px-4 py-5 sm:py-6 space-y-8">
+    <GmrdsShell>
+      <div className="space-y-8">
       {/* 头部 */}
       <section className="rounded-xl border border-border bg-gradient-to-br from-primary/8 via-transparent to-transparent p-6 sm:p-8">
         <div className="flex items-center gap-2 text-xs text-muted mb-3">
@@ -199,5 +201,6 @@ export default function FlowPage() {
         </Link>
       </div>
     </div>
+    </GmrdsShell>
   );
 }

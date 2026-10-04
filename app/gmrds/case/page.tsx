@@ -6,6 +6,7 @@ import TransferChain from "@/components/gmrds/TransferChain";
 import { TRANSFER_CASE } from "@/lib/data/gmrds-deep";
 import shIndex from "@/data/sh-index.json";
 import usMarket from "@/data/us-market.json";
+import GmrdsShell from "@/components/gmrds/GmrdsShell";
 
 export const metadata = { title: "真实数据传导案例 | 研究体系 GMRDS" };
 
@@ -40,7 +41,8 @@ export default function TransferCasePage() {
   const us = spxAnnual();
 
   return (
-    <div className="mx-auto max-w-7xl px-3 sm:px-4 py-5 sm:py-6 space-y-8">
+    <GmrdsShell>
+      <div className="space-y-8">
       {/* 头部 */}
       <section className="rounded-xl border border-border bg-gradient-to-br from-primary/8 via-transparent to-transparent p-6 sm:p-8">
         <div className="flex items-center gap-2 text-xs text-muted mb-3">
@@ -117,5 +119,6 @@ export default function TransferCasePage() {
         </Link>
       </div>
     </div>
+    </GmrdsShell>
   );
 }

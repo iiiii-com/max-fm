@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight, ArrowDown, Database, Layers, RefreshCw } from "l
 import { Card } from "@/components/ui";
 import { DATA_LAYERS, DATA_STANDARDS } from "@/lib/data/gmrds-deep";
 import DataLayersDiagram from "@/components/gmrds/DataLayersDiagram";
+import GmrdsShell from "@/components/gmrds/GmrdsShell";
 
 export const metadata = { title: "数据互通机制 | 研究体系 GMRDS" };
 
@@ -10,7 +11,8 @@ const LAYER_COLORS: Record<string, string> = { L1: "#0284c7", L2: "#1e8449", L3:
 
 export default function DataPlatformPage() {
   return (
-    <div className="mx-auto max-w-7xl px-3 sm:px-4 py-5 sm:py-6 space-y-8">
+    <GmrdsShell>
+      <div className="space-y-8">
       {/* 头部 */}
       <section className="rounded-xl border border-border bg-gradient-to-br from-primary/8 via-transparent to-transparent p-6 sm:p-8">
         <div className="flex items-center gap-2 text-xs text-muted mb-3">
@@ -93,5 +95,6 @@ export default function DataPlatformPage() {
         </Link>
       </div>
     </div>
+    </GmrdsShell>
   );
 }

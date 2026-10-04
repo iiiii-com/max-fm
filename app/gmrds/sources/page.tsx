@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft, CheckCircle2, AlertTriangle, Database, ShieldCheck } from "lucide-react";
 import { Card } from "@/components/ui";
+import GmrdsShell from "@/components/gmrds/GmrdsShell";
 
 export const metadata = { title: "来源核对清单 | 研究体系 GMRDS" };
 
@@ -43,7 +44,8 @@ export default function GmrdsSourcesPage() {
   }, {});
 
   return (
-    <div className="mx-auto max-w-7xl px-3 sm:px-4 py-5 sm:py-6 space-y-6">
+    <GmrdsShell>
+      <div className="space-y-6">
       {/* 头部 */}
       <section className="rounded-xl border border-border bg-gradient-to-br from-primary/8 via-transparent to-transparent p-6 sm:p-8">
         <div className="flex items-center gap-2 text-xs text-muted mb-3">
@@ -146,5 +148,6 @@ export default function GmrdsSourcesPage() {
         <p className="text-[10px] text-muted ml-auto">核验日期：2026-08-25 · 口径：收盘价 / 实时接口 / 史料整理</p>
       </div>
     </div>
+    </GmrdsShell>
   );
 }

@@ -3,12 +3,14 @@ import { ArrowLeft, CheckCircle2, ArrowUpRight } from "lucide-react";
 import { Card } from "@/components/ui";
 import { ROADMAP } from "@/lib/data/gmrds";
 import VersionTimeline from "@/components/gmrds/VersionTimeline";
+import GmrdsShell from "@/components/gmrds/GmrdsShell";
 
-export const metadata = { title: "迭代路线图 | 研究体系" };
+export const metadata = { title: "迭代路线图 | 研究体系 GMRDS" };
 
 export default function GmrdsRoadmapPage() {
   return (
-    <div className="mx-auto max-w-7xl px-3 sm:px-4 py-5 sm:py-6 space-y-8">
+    <GmrdsShell>
+      <div className="space-y-8">
       {/* 头部 */}
       <section className="rounded-xl border border-border bg-gradient-to-br from-primary/8 via-transparent to-transparent p-6 sm:p-8">
         <div className="flex items-center gap-2 text-xs text-muted mb-3">
@@ -125,5 +127,6 @@ export default function GmrdsRoadmapPage() {
         <p className="text-[10px] text-muted">路线图随研究体系持续演进更新 · 每版交付以真实数据与可验证方法为前提</p>
       </div>
     </div>
+    </GmrdsShell>
   );
 }

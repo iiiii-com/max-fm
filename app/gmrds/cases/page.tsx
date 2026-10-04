@@ -3,6 +3,7 @@ import { ArrowLeft, BookOpenCheck, AlertTriangle } from "lucide-react";
 import { Card } from "@/components/ui";
 import { CASES, caseById } from "@/lib/data/gmrds-practical";
 import { academyBySlug } from "@/lib/data/gmrds";
+import GmrdsShell from "@/components/gmrds/GmrdsShell";
 
 export const metadata = { title: "真实案例库 | 研究体系 GMRDS" };
 
@@ -13,7 +14,8 @@ const FLOW_TITLES: Record<number, string> = {
 
 export default function CasesPage() {
   return (
-    <div className="mx-auto max-w-7xl px-3 sm:px-4 py-5 sm:py-6 space-y-8">
+    <GmrdsShell>
+      <div className="space-y-8">
       {/* 头部 */}
       <section className="rounded-xl border border-border bg-gradient-to-br from-primary/8 via-transparent to-transparent p-6 sm:p-8">
         <div className="flex items-center gap-2 text-xs text-muted mb-3">
@@ -132,5 +134,6 @@ export default function CasesPage() {
         <p className="text-[10px] text-muted">案例为公开真实事件，具体数值以权威披露/史料为准（核验日期 2026-08-25）</p>
       </div>
     </div>
+    </GmrdsShell>
   );
 }

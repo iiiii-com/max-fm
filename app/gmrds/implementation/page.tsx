@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight, Flag, Database, Cpu, CheckCircle2 } from "lucide
 import { Card } from "@/components/ui";
 import { IMPLEMENTATION } from "@/lib/data/gmrds-deep";
 import { ROADMAP } from "@/lib/data/gmrds";
+import GmrdsShell from "@/components/gmrds/GmrdsShell";
 
 export const metadata = { title: "实施路线图 | 研究体系 GMRDS" };
 
@@ -10,7 +11,8 @@ const PHASE_COLORS = ["#0284c7", "#7c3aed", "#c0392b"];
 
 export default function ImplementationPage() {
   return (
-    <div className="mx-auto max-w-7xl px-3 sm:px-4 py-5 sm:py-6 space-y-8">
+    <GmrdsShell>
+      <div className="space-y-8">
       {/* 头部 */}
       <section className="rounded-xl border border-border bg-gradient-to-br from-primary/8 via-transparent to-transparent p-6 sm:p-8">
         <div className="flex items-center gap-2 text-xs text-muted mb-3">
@@ -117,5 +119,6 @@ export default function ImplementationPage() {
         </Link>
       </div>
     </div>
+    </GmrdsShell>
   );
 }

@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { Badge, Card } from "@/components/ui";
 import { ACADEMIES, DECISION_FLOW, FLOW_STAGES, academyBySlug } from "@/lib/data/gmrds";
+import GmrdsShell from "@/components/gmrds/GmrdsShell";
 
 const ICONS: Record<string, typeof Globe> = {
   globe: Globe,
@@ -29,7 +30,8 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const a = academyBySlug(slug);
-  return { title: a ? `${a.name} | 研究体系` : "学院 | 研究体系" };
+  // 未知 slug 会走 notFound()，标题给一个可辨识的兜底而不是静默的"学院"
+  return { title: a ? `${a.name} | 研究体系 GMRDS` : "学院未找到 | 研究体系 GMRDS" };
 }
 
 export default async function AcademyPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -44,7 +46,8 @@ export default async function AcademyPage({ params }: { params: Promise<{ slug: 
   const flowSteps = DECISION_FLOW.filter((f) => f.sourceAcademies.includes(a.slug));
 
   return (
-    <div className="mx-auto max-w-7xl px-3 sm:px-4 py-5 sm:py-6 space-y-6">
+    <GmrdsShell>
+      <div className="space-y-6">
       {/* 面包屑式导航 */}
       <div className="flex items-center gap-2 text-xs text-muted">
         <Link href="/gmrds" className="hover:text-primary">研究体系 GMRDS</Link>
@@ -249,5 +252,6 @@ export default async function AcademyPage({ params }: { params: Promise<{ slug: 
         ) : <span />}
       </nav>
     </div>
+    </GmrdsShell>
   );
 }

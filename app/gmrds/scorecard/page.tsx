@@ -3,6 +3,7 @@ import { ArrowLeft, Gauge } from "lucide-react";
 import ScorecardLab from "@/components/gmrds/ScorecardLab";
 import shIndex from "@/data/sh-index.json";
 import { scanSignals } from "@/lib/data/rule-engine";
+import GmrdsShell from "@/components/gmrds/GmrdsShell";
 
 export const metadata = { title: "全流程评分示例 | 研究体系 GMRDS" };
 
@@ -60,7 +61,8 @@ export default function GmrdsScorecardPage() {
   ];
 
   return (
-    <div className="mx-auto max-w-7xl px-3 sm:px-4 py-5 sm:py-6 space-y-6">
+    <GmrdsShell>
+      <div className="space-y-6">
       {/* 头部 */}
       <section className="rounded-xl border border-border bg-gradient-to-br from-primary/8 via-transparent to-transparent p-6 sm:p-8">
         <div className="flex items-center gap-2 text-xs text-muted mb-3">
@@ -85,5 +87,6 @@ export default function GmrdsScorecardPage() {
         <p className="text-[10px] text-muted flex items-center gap-1"><Gauge className="w-3 h-3" /> 演示评分基于真实数据；权重为框架设定，待 V2.0 回测校准</p>
       </div>
     </div>
+    </GmrdsShell>
   );
 }
