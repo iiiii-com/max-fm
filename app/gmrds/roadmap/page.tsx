@@ -1,11 +1,25 @@
 import Link from "next/link";
-import { ArrowLeft, CheckCircle2, ArrowUpRight } from "lucide-react";
+import { ArrowLeft, ArrowUpRight } from "lucide-react";
 import { Card } from "@/components/ui";
-import { ROADMAP } from "@/lib/data/gmrds";
+import { ROADMAP, type DeliverableItem } from "@/lib/data/gmrds";
 import VersionTimeline from "@/components/gmrds/VersionTimeline";
 import GmrdsShell from "@/components/gmrds/GmrdsShell";
 
 export const metadata = { title: "迭代路线图 | 研究体系 GMRDS" };
+
+/** 交付状态徽标：颜色只表状态，不表涨跌 */
+function StatusBadge({ status }: { status: DeliverableItem["status"] }) {
+  const map = {
+    已交付: "border-emerald-600/30 bg-emerald-600/10 text-emerald-700 dark:text-emerald-400",
+    部分交付: "border-amber-600/30 bg-amber-600/10 text-amber-700 dark:text-amber-400",
+    待接入: "border-border bg-border/40 text-muted",
+  } as const;
+  return (
+    <span className={`shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded border ${map[status]}`}>
+      {status}
+    </span>
+  );
+}
 
 export default function GmrdsRoadmapPage() {
   return (
@@ -24,6 +38,12 @@ export default function GmrdsRoadmapPage() {
           <b className="text-foreground">V2.0 专业版</b> 引入量化验证与跨市场联动，
           <b className="text-foreground">V3.0 研究平台版</b> 以 AI 贯穿全流程实现自适应进化。
           量化统计、跨市场联动与 AI 辅助研究三条能力主线贯穿始终、逐级增强。
+        </p>
+        <p className="text-xs text-muted leading-relaxed max-w-3xl mt-3 border-l-2 border-primary/50 pl-3">
+          下方每项交付都写明<b className="text-foreground">范围、可核对的验收标准、落地的站内模块与上游数据依赖</b>，
+          状态按站内当前实现标注——<b className="text-foreground">已交付</b>指能力已可用，
+          <b className="text-foreground">部分交付</b>指主体可用但仍有环节依赖未接通，
+          <b className="text-foreground">待接入</b>指上游数据尚未到位。状态随迭代更新，不做时间承诺。
         </p>
       </section>
 
@@ -98,26 +118,74 @@ export default function GmrdsRoadmapPage() {
       </section>
 
       {/* 版本交付明细 */}
-      {ROADMAP.map((v, i) => (
-        <section key={v.version}>
-          <h2 className="font-bold text-base mb-3">
-            <span className="inline-flex items-center gap-2">
-              <span className="text-xs font-black px-2 py-0.5 rounded bg-primary text-white">{v.version}</span>
-              {v.name} · 交付内容
-            </span>
-          </h2>
-          <Card className="p-4">
-            <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
-              {v.core.map((c) => (
-                <li key={c} className="flex items-start gap-2 text-sm leading-relaxed">
-                  <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                  <span>{c}</span>
-                </li>
+      {ROADMAP.map((v) => {
+        const done = v.deliverables.filter((d) => d.status === "已交付").length;
+        const part = v.deliverables.filter((d) => d.status === "部分交付").length;
+        const todo = v.deliverables.filter((d) => d.status === "待接入").length;
+        return (
+          <section key={v.version}>
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+              <h2 className="font-bold text-base">
+                <span className="inline-flex items-center gap-2">
+                  <span className="text-xs font-black px-2 py-0.5 rounded bg-primary text-white">{v.version}</span>
+                  {v.name} · 交付内容
+                </span>
+              </h2>
+              {/* 真实进度：按站内当前实现统计，不做预期承诺 */}
+              <div className="flex items-center gap-1.5 text-[10px]">
+                <span className="px-1.5 py-0.5 rounded border border-emerald-600/30 bg-emerald-600/10 text-emerald-700 dark:text-emerald-400 font-semibold">
+                  已交付 {done}
+                </span>
+                <span className="px-1.5 py-0.5 rounded border border-amber-600/30 bg-amber-600/10 text-amber-700 dark:text-amber-400 font-semibold">
+                  部分 {part}
+                </span>
+                <span className="px-1.5 py-0.5 rounded border border-border text-muted font-semibold">
+                  待接入 {todo}
+                </span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+              {v.deliverables.map((d) => (
+                <Card key={d.name} className="p-4 flex flex-col">
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <h3 className="font-bold text-sm leading-snug">{d.name}</h3>
+                    <StatusBadge status={d.status} />
+                  </div>
+
+                  <p className="text-xs text-muted leading-relaxed mb-2.5">{d.scope}</p>
+
+                  <div className="rounded-lg bg-border/30 border border-border/60 px-2.5 py-2 mb-2.5">
+                    <p className="text-[10px] font-bold tracking-wider text-primary mb-1">验收标准</p>
+                    <p className="text-[11px] leading-relaxed text-foreground/85">{d.acceptance}</p>
+                  </div>
+
+                  <div className="mt-auto space-y-1.5 pt-1">
+                    <div className="flex items-start gap-1.5 text-[10px]">
+                      <span className="shrink-0 text-muted font-semibold w-14">落地模块</span>
+                      <span className="flex flex-wrap gap-1">
+                        {d.modules.map((m) => (
+                          <Link
+                            key={m}
+                            href={m}
+                            className="px-1.5 py-0.5 rounded bg-primary/8 text-primary border border-primary/20 hover:bg-primary/15 transition-colors"
+                          >
+                            {m}
+                          </Link>
+                        ))}
+                      </span>
+                    </div>
+                    <div className="flex items-start gap-1.5 text-[10px]">
+                      <span className="shrink-0 text-muted font-semibold w-14">数据依赖</span>
+                      <span className="text-muted leading-relaxed">{d.deps}</span>
+                    </div>
+                  </div>
+                </Card>
               ))}
-            </ul>
-          </Card>
-        </section>
-      ))}
+            </div>
+          </section>
+        );
+      })}
 
       {/* 底部 */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">

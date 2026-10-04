@@ -563,6 +563,22 @@ export const FLOW_STAGES = [
   { no: 4, label: "执行与优化", desc: "验证 · 决策 · 风控 · 复盘" },
 ] as const;
 
+/** 单项交付物：范围 + 可验证的验收标准 + 落地面 + 数据依赖 + 真实状态 */
+export interface DeliverableItem {
+  /** 交付物名称 */
+  name: string;
+  /** 交付范围：具体做出什么 */
+  scope: string;
+  /** 验收标准：怎样才算交付完成（可核对，不含形容词） */
+  acceptance: string;
+  /** 落到本站的模块或路由 */
+  modules: string[];
+  /** 数据依赖：上游不通则本项降级 */
+  deps: string;
+  /** 真实状态：按站内当前实现标注，不做预期承诺 */
+  status: "已交付" | "部分交付" | "待接入";
+}
+
 /** 迭代路线图（核心能力 + 模块边界） */
 export interface RoadmapVersion {
   version: string;
@@ -572,6 +588,8 @@ export interface RoadmapVersion {
   quantLevel: string;
   linkageLevel: string;
   aiLevel: string;
+  /** 交付明细（结构化，可验收） */
+  deliverables: DeliverableItem[];
 }
 
 export const ROADMAP: RoadmapVersion[] = [
@@ -589,6 +607,48 @@ export const ROADMAP: RoadmapVersion[] = [
     quantLevel: "基础统计：收益 / 回撤 / 夏普等描述性指标",
     linkageLevel: "全球指数日度监控与相对强弱排序",
     aiLevel: "内容生成与政策解读",
+    deliverables: [
+      {
+        name: "十二学院框架文档化",
+        scope: "把宏观、流动性、周期、行业、公司、估值、技术、量化、配置、交易、AI、决策委员会十二个学院的研究对象、输入输出与判断标准固化成文档。",
+        acceptance: "每个学院页均有研究对象、方法步骤、判断阈值（数值或规则）与所属环节；学院与十一环节的对应关系可逐一核对。",
+        modules: ["/gmrds", "/gmrds/macro", "/gmrds/valuation"],
+        deps: "无（框架层不依赖行情）",
+        status: "已交付",
+      },
+      {
+        name: "全球指数日度监控",
+        scope: "沪深与美股主要指数的日线行情、涨跌幅展示，异常波动提示。",
+        acceptance: "行情含日期、开高低收、成交量五字段；涨跌幅由收盘价自算；接口不可用时显示取数时间并降级为快照，不展示空值。",
+        modules: ["/market"],
+        deps: "东财行情接口；不可达时回退 data/sh-index.json 快照",
+        status: "已交付",
+      },
+      {
+        name: "宏观与行业基础整理",
+        scope: "GDP / CPI / PMI / M2 等宏观指标的政策定位与周期含义，以及行业层面的基础归类。",
+        acceptance: "每个指标标注单位、时点、来源与环比方向；宏观指标页显示快照 asOf 与是否陈旧。",
+        modules: ["/macro", "/industry"],
+        deps: "国家统计局与东财宏观；旧 easyquery 接口 403 时需降级",
+        status: "部分交付",
+      },
+      {
+        name: "核心公司池与基础估值",
+        scope: "重点跟踪标的清单，以及 PE / PB / 股息率等静态估值指标的横向对比。",
+        acceptance: "估值指标标注取数时间；同一估值口径下可跨标的比较；缺少分母口径（负值、周期底部）时显式提示不可比。",
+        modules: ["/stock", "/gmrds/valuation"],
+        deps: "东财实时估值；PE 口径需注明静态或 TTM",
+        status: "部分交付",
+      },
+      {
+        name: "决策流程文档化",
+        scope: "十一环节决策链的输入、方法、输出与判断阈值，以及环节之间的依赖关系。",
+        acceptance: "每个环节均有方法步骤与判断标准两栏；十一环节齐全且编号连续；环节 10 给出仓位区间而非单一数字。",
+        modules: ["/gmrds/flow", "/gmrds/depth"],
+        deps: "无（方法论层）",
+        status: "已交付",
+      },
+    ],
   },
   {
     version: "V2.0",
@@ -604,6 +664,75 @@ export const ROADMAP: RoadmapVersion[] = [
     quantLevel: "回撤/分布/相关性自动化 + 回测框架",
     linkageLevel: "跨市场联动矩阵 + 风险雷达图",
     aiLevel: "情报聚合 + 报告初稿 + 异常监测",
+    deliverables: [
+      {
+        name: "量化统计模块（回撤 / 分布 / 自动化）",
+        scope:
+          "回撤实验室绘制水下曲线与历史回撤区间；回测引擎跑既定买卖点规则，输出总收益、年化收益、最大回撤、胜率与交易次数、夏普比率。",
+        acceptance:
+          "回撤序列由净值自算而非读缓存；回测结果六项指标齐备且交易次数可核（胜率分母与交易次数一致）；样本区间与标的明确标注；含“历史表现不代表未来”风险提示。",
+        modules: ["/gmrds/toolkit", "/lab"],
+        deps: "指数日线快照；快照过期时回测结论同步标注区间",
+        status: "已交付",
+      },
+      {
+        name: "买卖点信号扫描与规则引擎",
+        scope: "对日线序列做趋势与形态扫描，输出买入 / 卖出信号点并可在 K 线图上叠加。",
+        acceptance: "信号由公开规则（如均线交叉、形态条件）触发，规则逐条可查；信号点与 K 线坐标一一对应；未触发时给出空结果而非静默。",
+        modules: ["/gmrds/toolkit", "/gmrds/scorecard"],
+        deps: "指数与个股日线",
+        status: "已交付",
+      },
+      {
+        name: "跨市场联动矩阵",
+        scope: "轮动矩阵展示多资产在同一时间窗的强弱排序与轮动方向；传导链展示宏观变量到资产价格的传导路径。",
+        acceptance: "矩阵维度与时间窗可切换并注明区间；轮动结论由排序自算；传导链每条路径标注驱动变量与观测指标，不做无数据支撑的方向断言。",
+        modules: ["/gmrds/toolkit", "/compare", "/history"],
+        deps: "多市场指数行情；跨市场取数存在时差，需标注时点",
+        status: "已交付",
+      },
+      {
+        name: "风险雷达与估值带",
+        scope: "风险雷达按维度展示指标状态；估值带按历史分位定位当前估值位置。",
+        acceptance: "雷达各维度取值来源与区间明确；估值分位注明历史窗口长度；缺历史序列时不给分位数。",
+        modules: ["/gmrds/toolkit", "/gmrds/valuation"],
+        deps: "估值序列与历史分位数据",
+        status: "部分交付",
+      },
+      {
+        name: "行业高频景气自动抓取",
+        scope: "板块资金流、成分股与行业景气指标自动采集，形成行业层面的高频观察。",
+        acceptance: "板块与资金流数据自动更新并显示取数时间；接口限频或失败时降级并显式提示，不展示过期数据为最新。",
+        modules: ["/sector", "/industry"],
+        deps: "东财板块与资金流接口（频繁限频）；高频景气度指标待接入",
+        status: "部分交付",
+      },
+      {
+        name: "仓位与风控系统化",
+        scope: "十一环节评分（1-9 环节加权）汇总结效评分，映射到仓位建议区间，并保留每项评分依据。",
+        acceptance:
+          "每一环节评分都附计算依据（公式 + 真实取值）；自动评分与手动覆写区分显示；综合评分由权重自算；仓位输出为区间并声明权重为框架设定、待回测校准。",
+        modules: ["/gmrds/scorecard", "/advice"],
+        deps: "指数日线、估值快照、规则引擎信号",
+        status: "已交付",
+      },
+      {
+        name: "SAA / TAA 配置模型",
+        scope: "战略配置（资产类别比例）与战术配置（择时偏离）分层的配置建议框架。",
+        acceptance: "问卷输入到配置建议的映射规则可查；输出含目标比例与偏离区间；无持仓或无风险偏好输入时不生成建议。",
+        modules: ["/advice", "/etf"],
+        deps: "风险问卷、历史协方差与波动率；协方差矩阵待接入",
+        status: "部分交付",
+      },
+      {
+        name: "产业景气到标的的传导链",
+        scope: "把产业链环节的景气变化映射到板块与标的，作为行业层面的择时依据。",
+        acceptance: "产业链覆盖完整且环节有讲解；代表城市、优缺点与周期位置结构化展示；环节到板块的映射需标注映射依据，不做无依据推荐。",
+        modules: ["/industry", "/gmrds/industry"],
+        deps: "产业链数据（40 链 / 203 环节）；BK 板块代码待东财接口恢复",
+        status: "部分交付",
+      },
+    ],
   },
   {
     version: "V3.0",
@@ -619,6 +748,75 @@ export const ROADMAP: RoadmapVersion[] = [
     quantLevel: "AI 因子挖掘 + 实时统计引擎",
     linkageLevel: "全谱系资产实时档案 + 跨市场风险传导监测",
     aiLevel: "全流程线上化 + 复盘迭代闭环",
+    deliverables: [
+      {
+        name: "一体化数据平台（库 + 工具 + 看板）",
+        scope: "统一数据层承载行情、宏观、产业与研究结论，各页面从同一数据源取数，看板化呈现。",
+        acceptance:
+          "每个数据域有单一权威来源与快照文件；接口失败统一回退快照并显示 asOf；新环境无需手工导入即可通过快照渲染完整页面。",
+        modules: ["/map", "/industry", "/macro", "/gmrds/data-platform"],
+        deps: "数据库 + 快照仓库（已建立）；需持续扩充数据域",
+        status: "部分交付",
+      },
+      {
+        name: "AI 辅助研究（数据 / 报告 / 情报 / 预警）",
+        scope: "AI 承担数据清洗、报告初稿、政策情报聚合与异常提示，研究者保留判断权。",
+        acceptance:
+          "AI 生成内容与真实数据严格分离并标注；所有数字回链到可溯源来源；无来源的推断必须显式标为推断；AI 输出不得覆盖人工结论。",
+        modules: ["/gmrds", "/policy", "/macro"],
+        deps: "模型服务与情报源；政策情报抓取待稳定",
+        status: "部分交付",
+      },
+      {
+        name: "数据质量与口径校验",
+        scope: "对城市文案、产业链内容、评分来源建立自动化校验，模板化或过期内容在提交前拦截。",
+        acceptance:
+          "校验脚本覆盖孤儿数据、模板残留、单位与时点缺失、批次遗漏；任一项失败即阻断提交；校验结果与统计口径一并输出。",
+        modules: ["scripts/verify-data.ts", "/gmrds/sources"],
+        deps: "无（工程侧能力）",
+        status: "已交付",
+      },
+      {
+        name: "实时流动性监测",
+        scope: "监测市场成交额、两融、DR007 等流动性指标，触发阈值预警。",
+        acceptance: "指标显示取数时间与延迟；阈值可配置；数据超期时预警“数据陈旧”而非继续展示为实时。",
+        modules: ["/market", "/gmrds/liquidity"],
+        deps: "需分钟级或准实时行情源（当前为日线/延迟行情）；两融与 DR007 接口待接入",
+        status: "待接入",
+      },
+      {
+        name: "全流程线上化（决策 / 复盘 / 迭代）",
+        scope: "研究结论、决策记录与复盘结果线上留存，形成可追溯的迭代闭环。",
+        acceptance: "每次决策可记录输入依据与结论；复盘对照当初判断并记录偏差原因；偏差数据可统计、可回溯到具体环节。",
+        modules: ["/gmrds/governance", "/gmrds/roadmap", "/gmrds/scorecard"],
+        deps: "用户体系（已完成）；研究记录存储待建",
+        status: "部分交付",
+      },
+      {
+        name: "全谱系资产覆盖",
+        scope: "从股票、ETF 扩展到债券、期货、可转债、外汇与商品，形成跨资产研究谱系。",
+        acceptance: "新增资产类别具备基础行情、估值或持仓结构三类信息中的至少两类；跨资产对比支持同口径换算。",
+        modules: ["/etf", "/compare", "/market"],
+        deps: "各资产类行情与基本面接口；债券 / 期货 / 外汇 / 商品均待接入",
+        status: "待接入",
+      },
+      {
+        name: "智能配置与因子挖掘",
+        scope: "基于历史协方差与因子有效性做组合构建与风险预算，替代人工设定权重。",
+        acceptance: "因子需给出样本内表现与样本外验证；协方差与波动率标注估计窗口；回测须计入交易成本与滑点；不成立时给出无效结论。",
+        modules: ["/advice", "/gmrds/quant", "/gmrds/allocation"],
+        deps: "长历史价格序列、因子库与成本模型；均待建",
+        status: "待接入",
+      },
+      {
+        name: "跨市场风险传导监测",
+        scope: "实时跟踪宏观变量到资产价格的传导路径，异常时给出预警与证据。",
+        acceptance: "每条传导路径绑定可观测指标与阈值；触发时给出时间戳与触发依据；路径断裂（指标缺数）时显式标记不可判定。",
+        modules: ["/gmrds/toolkit", "/gmrds/global", "/cycle"],
+        deps: "多市场行情 + 宏观指标同步；当前为延迟数据",
+        status: "部分交付",
+      },
+    ],
   },
 ];
 
