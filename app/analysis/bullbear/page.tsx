@@ -3,6 +3,7 @@ import { Badge, Card, SectionTitle } from "@/components/ui";
 import BullBearEvents from "@/components/crisis/BullBearEvents";
 import BullBearCompare from "@/components/BullBearCompare";
 import UsMarketKline from "@/components/analysis/UsMarketKline";
+import UsDailyKline from "@/components/analysis/UsDailyKline";
 
 export const metadata = { title: "牛熊深度分析报告 · 中美对比" };
 
@@ -211,6 +212,20 @@ export default function BullBearReport() {
         />
         <div className="mb-6">
           <UsMarketKline />
+        </div>
+
+        {/* 日线级美股 K 线：22 年真实历史，可切区间，看年度视角看不到的形态 */}
+        <div className="mb-6">
+          <Card className="p-5">
+            <h3 className="flex items-center gap-2 font-bold text-base mb-1">
+              美股日线走势 · 22 年真实历史
+            </h3>
+            <p className="text-[11px] text-muted mb-3 leading-relaxed">
+              上方为年度视角（每年一根，便于对齐危机年份）；此处为日线级，可切1 / 3 / 5 / 10 / 20 年与全部区间，
+              用于观察 2008 崩盘、2020 熔断、2022 加息熊市等日线级形态与关键拐点。
+            </p>
+            <UsDailyKline />
+          </Card>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {COMPARE_DIMS.map((c) => (

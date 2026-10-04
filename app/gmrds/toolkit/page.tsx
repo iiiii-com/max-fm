@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft, Wrench, CandlestickChart, Radar as RadarIcon, Scale, TrendingDown, LayoutGrid, TestTubes, Sparkles, BarChart3, ScanSearch, Zap } from "lucide-react";
-import KlinePatternChart from "@/components/gmrds/KlinePatternChart";
+import KlinePatternLab from "@/components/gmrds/KlinePatternLab";
 import RadarChart from "@/components/gmrds/RadarChart";
 import ValuationBand from "@/components/gmrds/ValuationBand";
 import DrawdownChart from "@/components/gmrds/DrawdownChart";
@@ -13,17 +13,21 @@ import FinancialTrends from "@/components/gmrds/FinancialTrends";
 import BatchScanner from "@/components/gmrds/BatchScanner";
 import TechLevels from "@/components/gmrds/TechLevels";
 import VizBoundary from "@/components/gmrds/VizBoundary";
-import shanghaiSample from "@/data/shanghai-sample.json";
 import shIndex from "@/data/sh-index.json";
 import GmrdsShell from "@/components/gmrds/GmrdsShell";
 
 export const metadata = { title: "实操工具箱 | 研究体系 GMRDS" };
 
-/** 真实回撤统计（上证 2020 起，收盘口径自算） */
+/** sh-index 口径：日期/开/收/高/低/量 */
+type Row = [string, number, number, number, number, number];
+
+/**
+ * 真实回撤统计（收盘口径自算）。
+ * 窗口用全历史（1990 起）而非 2020 起：回撤是"历史极值"问题，
+ * 只看近 6 年会漏掉 2007/2015 两轮深度回撤，统计口径会偏乐观。
+ */
 function drawdownStats() {
-  const closes: Array<[string, number]> = (shIndex as [string, number, number, number, number, number][])
-    .filter((b) => b[0] >= "2020-01-01")
-    .map((b) => [b[0], b[2]]);
+  const closes: Array<[string, number]> = (shIndex as Row[]).map((b) => [b[0], b[2]]);
   if (closes.length < 2) return { stats: [], dd: [] };
   const rets: number[] = [];
   for (let i = 1; i < closes.length; i++) rets.push((closes[i][1] / closes[i - 1][1] - 1) * 100);
@@ -54,10 +58,11 @@ function drawdownStats() {
 }
 
 export default function ToolkitPage() {
-  // 真实数据：上证 2024-08 ~ 2025-06（219 根，腾讯日线）
-  const bars = shanghaiSample as Array<{ date: string; open: number; close: number; high: number; low: number; volume: number }>;
   const risk = drawdownStats();
-  const scanBars = (shIndex as [string, number, number, number, number, number][])
+  // 数据起止日自算，避免图注里写死日期后与快照脱节
+  const shIndexLastDate = (shIndex as Row[]).at(-1)![0];
+  const shIndexFirstDate = (shIndex as Row[])[0][0];
+  const scanBars = (shIndex as Row[])
     .filter((b) => b[0] >= "2024-01-01")
     .map((b) => ({ date: b[0], open: b[1], close: b[2], high: b[3], low: b[4], volume: Math.round(b[5]) }));
 
@@ -121,18 +126,15 @@ export default function ToolkitPage() {
         <h2 className="flex items-center gap-2 font-bold text-lg tracking-tight mb-3">
           <CandlestickChart className="w-4.5 h-4.5 text-primary" /> 环节 7 · K线形态与买卖点识别
         </h2>
-        <VizBoundary name="K线形态与买卖点">
-          <KlinePatternChart
-            bars={bars}
-            marks={marks}
-            title="上证综指 2024-08 ~ 2025-06（真实日线）· 形态与买卖点"
-            height={420}
-            caption={
-              "图注：真实行情（腾讯日线）。2024-09-24 政策组合拳放量突破（买入点）；2024-10-08 冲高 3489.78 后见顶（减仓）；" +
-              "2025 年 2 月放量突破前高确认趋势延续（加仓）。判定标准：① 放量突破 = 有效；② 缩量回踩 = 观察；③ 高点放量滞涨 = 减仓。"
-            }
-          />
-        </VizBoundary>
+        <KlinePatternLab
+          marks={marks}
+          caption={
+            "图注：真实行情（腾讯财经日线，数据截至 " +
+            `${shIndexLastDate}` +
+            "）。当前区间内可见 2024-09-24 政策组合拳放量突破（买入点）、2024-10-08 冲高 3489.78 后见顶（减仓）、" +
+            "2025 年 2 月放量突破前高确认趋势延续（加仓）。切到 5 年 / 10 年 / 全部可观察 2015 股灾、2018 熊市、2021 高点与 2024 低点等长周期形态。判定标准：① 放量突破 = 有效；② 缩量回踩 = 观察；③ 高点放量滞涨 = 减仓。"
+          }
+        />
       </section>
 
       {/* 多维评估雷达 */}
@@ -274,9 +276,10 @@ export default function ToolkitPage() {
           <DrawdownChart
             ddSeries={risk.dd}
             stats={risk.stats}
-            title="上证综指回撤曲线（2020-01 ~ 2026-08，收盘口径）"
+            title={`上证综指回撤曲线（${shIndexFirstDate} ~ ${shIndexLastDate}，收盘口径）`}
             caption={
-              "图注：真实行情自算（腾讯日线）。最大回撤发生在 2022 年（宏观紧缩 + 流动性收紧）；2024-2025 年修复至新高。" +
+              "图注：真实行情自算（腾讯日线，全历史 1990 起）。最大回撤区间与年份由收盘序列自算得出，" +
+              "覆盖 2007 股灾、2015 去杠杆与 2022 紧缩等多轮深度回撤，而非仅近几年。" +
               "判定标准（环节 9）：最大回撤 >20% 触发组合审查；年化波动 >30% 为高危；夏普 <0.5 需重新评估风险预算。"
             }
           />

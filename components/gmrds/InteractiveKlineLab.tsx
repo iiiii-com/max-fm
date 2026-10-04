@@ -227,7 +227,14 @@ export default function InteractiveKlineLab({
           {playing ? "⏸ 暂停回放" : "▶ 行情回放"}
         </button>
         <span className="ml-auto text-[10px] text-muted">
-          {playCount != null ? `回放中：显示最近 ${Math.min(playCount, bars.length)} / ${bars.length} 根` : `共 ${bars.length} 根 · ${period === "day" ? "2020 起真实日线" : "周/月聚合"}`}
+          {playCount != null
+            ? `回放中：显示最近 ${Math.min(playCount, bars.length)} / ${bars.length} 根`
+            : // 区间与根数都从实际数据自算，不写死起始年份
+              `共 ${bars.length} 根 · ${
+                bars.length
+                  ? `${bars[0].date} ~ ${bars[bars.length - 1].date}`
+                  : "无数据"
+              }${period === "day" ? " · 日线" : period === "week" ? " · 周聚合" : " · 月聚合"}`}
         </span>
       </div>
       <div className="relative">

@@ -78,7 +78,8 @@ export default function UsMarketKline() {
   };
 
   const bars = useMemo(() => {
-    const rows = usMarket[index] as YearBar[];
+    // us-market.json 现为 { name, code, daily, annual } 结构；本组件是年度视角，取 annual
+    const rows = (usMarket as unknown as Record<UsIndex, { annual: YearBar[] }>)[index].annual;
     return rows.map((r, i) => {
       let { open, close, high, low } = r;
       if (close == null) close = open;
