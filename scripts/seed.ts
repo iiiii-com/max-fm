@@ -3,7 +3,7 @@ import { inArray } from "drizzle-orm";
 import { isPg } from "../lib/db";
 import * as s from "../lib/db/schema";
 import { LINK_LEVEL } from "../lib/data/chainLevels";
-import { nodeInsight } from "../lib/data/chainNodeInsights";
+import { ALL_CHAIN_NODE_INSIGHTS } from "../lib/data/chainNodeDetailsAll";
 
 function mulberry32(a: number) {
   return function () {
@@ -746,6 +746,76 @@ const CHAINS = [
       { name: "航运与修船", level: "下游", companies: ["招商南油", "中远海能", "中集来福士"] },
     ],
   },
+
+  // ── 第三批补入的 6 条链 ──
+  // segments 定义见 lib/data/chains.ts 的 STATIC_CHAINS（同 id 可对照）。
+
+  {
+    name: "合成生物产业链", slug: "synbio", sentiment: "medium",
+    description: "工程菌株改造与生物基材料放量，但商业化分化极大 —— 多数项目卡在放大与成本，少数已跑通规模量产。",
+    nodes: [
+      { name: "生物原料与培养基", level: "上游", companies: ["梅花生物", "诺唯赞", "华恒生物"] },
+      { name: "菌株与工艺开发", level: "中游", companies: ["金斯瑞", "皓元医药", "森松国际"] },
+      { name: "生物制造设备", level: "中游", companies: ["东富龙", "森松国际", "楚天科技"] },
+      { name: "生物基材料", level: "下游", companies: ["华恒生物", "嘉必优", "彤程新材"] },
+      { name: "生物医疗应用", level: "下游", companies: ["华大基因", "药明巨诺", "博雅生物"] },
+    ],
+  },
+  {
+    name: "算力租赁产业链", slug: "gpu-cloud", sentiment: "high",
+    description: "供给快速增加、租赁价格下行；盈利正向有电力指标与客户资源者集中，纯倒卖算力已难盈利。",
+    nodes: [
+      { name: "算力硬件", level: "上游", companies: ["浪潮信息", "工业富联", "中科曙光"] },
+      { name: "智算中心建设", level: "中游", companies: ["英维克", "申菱环境", "科华数据"] },
+      { name: "算力调度平台", level: "中游", companies: ["并行科技", "优刻得", "光环新网"] },
+      { name: "算力租赁运营", level: "下游", companies: ["润泽科技", "奥飞数据", "首都在线"] },
+      { name: "模型与应用租赁", level: "下游", companies: ["阿里", "百度集团", "商汤科技"] },
+    ],
+  },
+  {
+    name: "创新医疗器械产业链", slug: "innov-device", sentiment: "high",
+    description: "高值耗材与手术机器人国产替代与出海双轮；集采未覆盖的品类仍有价格空间，已覆盖的靠海外与新品对冲。",
+    nodes: [
+      { name: "核心材料与部件", level: "上游", companies: ["微电生理", "南微医学", "正海生物"] },
+      { name: "高值耗材创新", level: "中游", companies: ["微创医疗", "心脉医疗", "惠泰医疗"] },
+      { name: "创新设备", level: "中游", companies: ["微创机器人", "开立医疗", "天智航"] },
+      { name: "器械 CDMO", level: "下游", companies: ["药明康德", "凯莱英", "康德莱"] },
+      { name: "出海注册与服务", level: "下游", companies: ["迈瑞医疗", "联影医疗", "安克创新"] },
+    ],
+  },
+  {
+    name: "宠物食品产业链", slug: "pet-food", sentiment: "high",
+    description: "自主品牌出海替代代工是主要利润增量；宠物鲜湿粮与功能粮是结构性增长点，行业集中度仍低。",
+    nodes: [
+      { name: "原料与添加剂", level: "上游", companies: ["中宠股份", "佩蒂股份", "乖宝宠物"] },
+      { name: "代工与自有品牌", level: "中游", companies: ["中宠股份", "佩蒂股份", "乖宝宠物"] },
+      { name: "零食与鲜湿粮", level: "中游", companies: ["中宠股份", "路斯股份", "源飞宠物"] },
+      { name: "渠道与品牌运营", level: "下游", companies: ["乖宝宠物", "依依股份", "天元宠物"] },
+      { name: "宠物医疗与保险", level: "下游", companies: ["瑞普生物", "中牧股份", "生物股份"] },
+    ],
+  },
+  {
+    name: "卫星互联网产业链", slug: "satellite-internet", sentiment: "high",
+    description: "低轨星座批量组网带动星载与终端需求；地面终端成本能否降到消费级是打开市场的前提。",
+    nodes: [
+      { name: "星载材料与芯片", level: "上游", companies: ["铖昌科技", "臻镭科技", "国博电子"] },
+      { name: "卫星制造与发射", level: "中游", companies: ["中国卫星", "航天电子", "上海沪工"] },
+      { name: "地面终端与站", level: "中游", companies: ["海格通信", "华力创通", "盟升电子"] },
+      { name: "卫星通信服务", level: "下游", companies: ["中国卫通", "上海瀚讯", "信科移动"] },
+      { name: "遥感与导航应用", level: "下游", companies: ["四维图新", "中科星图", "航天宏图"] },
+    ],
+  },
+  {
+    name: "钠离子电池产业链", slug: "sodium-battery", sentiment: "medium",
+    description: "以低成本与安全性切入储能与低速车，对锂电是补充而非全面替代；能量密度差距决定了各自的应用边界。",
+    nodes: [
+      { name: "钠盐与正极材料", level: "上游", companies: ["中盐化工", "振华新材", "容百科技"] },
+      { name: "负极与隔膜", level: "上游", companies: ["贝特瑞", "元力股份", "恩捷股份"] },
+      { name: "钠离子电芯", level: "中游", companies: ["宁德时代", "亿纬锂能", "传艺科技"] },
+      { name: "电池系统与PACK", level: "中游", companies: ["鹏辉能源", "圣泉集团", "南都电源"] },
+      { name: "储能与低速车应用", level: "下游", companies: ["雅迪控股", "宗申动力", "南都电源"] },
+    ],
+  },
 ];
 
 const HISTORY_EVENTS = [
@@ -1247,7 +1317,7 @@ for (const [prov, meta] of Object.entries(PROVINCES)) {
         // 模板（NODE_LEVEL_ROLE 拼接）只应作为兜底存在 —— 此前 131/143 个
         // 环节都是模板，结构校验查不出来，读者一眼看出是套话。
         description:
-          nodeInsight(c.slug, n.name) ??
+          ALL_CHAIN_NODE_INSIGHTS[c.slug]?.[n.name] ??
           (n as any).description ??
           `${n.name}是${c.name}的${n.level}环节，${(n.companies ?? []).slice(0, 2).join("、")}等为代表性企业。${NODE_LEVEL_ROLE[n.level] ?? ""}。`,
       });

@@ -1,12 +1,18 @@
 import { db, bootstrap } from "@/lib/db";
 import * as s from "@/lib/db/schema";
 import { ALL_CHAIN_INSIGHTS } from "@/lib/data/chainInsightsAll";
-import { CHAIN_NODE_INSIGHTS } from "@/lib/data/chainNodeInsights";
 import {
   ALL_CHAIN_ECONOMICS,
   ALL_CHAIN_CAREERS,
 } from "@/lib/data/chainDeepDiveAll";
-import { ALL_CHAIN_NODE_DETAILS } from "@/lib/data/chainNodeDetailsAll";
+import {
+  ALL_CHAIN_NODE_DETAILS,
+  ALL_CHAIN_NODE_INSIGHTS,
+} from "@/lib/data/chainNodeDetailsAll";
+import {
+  ALL_GLOBAL_POSITION,
+  ALL_CYCLE,
+} from "@/lib/data/chainCyclePosition";
 
 /**
  * 产业链解读覆盖度与字段完整性校验。
@@ -59,9 +65,9 @@ async function main() {
   }
   for (const [slug, names] of nodesByChain) {
     if (inlineOk.has(slug)) continue;
-    const missing = names.filter((nm) => !CHAIN_NODE_INSIGHTS[slug]?.[nm]);
+    const missing = names.filter((nm) => !ALL_CHAIN_NODE_INSIGHTS[slug]?.[nm]);
     if (missing.length) problems.push(`${slug}: 环节解读缺失或键名不匹配 → ${missing.join(" ")}`);
-    const orphan = Object.keys(CHAIN_NODE_INSIGHTS[slug] ?? {}).filter(
+    const orphan = Object.keys(ALL_CHAIN_NODE_INSIGHTS[slug] ?? {}).filter(
       (k) => !names.includes(k)
     );
     if (orphan.length) problems.push(`${slug}: 解读表存在库里没有的环节名 → ${orphan.join(" ")}`);
@@ -91,6 +97,45 @@ async function main() {
     }
     const orphan = Object.keys(d).filter((k) => !names.includes(k));
     if (orphan.length) problems.push(`${slug}: 维度表存在库里没有的环节名 → ${orphan.join(" ")}`);
+  }
+
+  /**
+   * 全球格局与周期位置。
+   * 除字段齐全外，还要查两条硬红线 ——
+   *  1) 不能出现国产化率百分比：各报告口径差异极大（产值/产能/装机量），
+   *     很多细分环节根本没有公开统计，给一个看似精确的数字比不给更危险。
+   *  2) 周期位置必须给 invalidators（什么会推翻这个判断）。
+   *     只给结论不给可证伪条件，等于让读者把判断当定论 —— 这是最该防的。
+   */
+  for (const slug of slugs) {
+    const g = ALL_GLOBAL_POSITION[slug];
+    if (!g) {
+      problems.push(`${slug}: 缺全球格局`);
+    } else {
+      const bad: string[] = [];
+      if (!g.globalRole) bad.push("globalRole");
+      if (!g.localization) bad.push("localization");
+      if (!g.localizationBlockers?.length) bad.push("localizationBlockers");
+      if (!g.keyCompetitors?.length) bad.push("keyCompetitors");
+      if (bad.length) problems.push(`${slug}: 全球格局字段不全 → ${bad.join(",")}`);
+    }
+
+    const c = ALL_CYCLE[slug];
+    if (!c) {
+      problems.push(`${slug}: 缺周期位置`);
+    } else {
+      const bad: string[] = [];
+      if (!c.stage) bad.push("stage");
+      if (!c.basis?.length) bad.push("basis");
+      if (!c.direction) bad.push("direction");
+      if (!c.invalidators?.length) bad.push("invalidators");
+      if (bad.length) problems.push(`${slug}: 周期位置字段不全 → ${bad.join(",")}`);
+    }
+
+    // 硬红线：不得出现国产化率百分比
+    const gText = g ? JSON.stringify(g) : "";
+    const pct = gText.match(/国产化率?[^\d]{0,6}(\d{1,3})\s*%/);
+    if (pct) problems.push(`${slug}: 全球格局出现国产化率数字 → ${pct[0]}`);
   }
 
   console.log(`产业链: ${slugs.length} 条`);

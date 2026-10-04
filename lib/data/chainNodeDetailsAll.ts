@@ -8,9 +8,18 @@ import {
   CHAIN_NODE_DETAILS,
   type ChainNodeDetail,
 } from "@/lib/data/chainNodeDetails";
+import { CHAIN_NODE_INSIGHTS } from "@/lib/data/chainNodeInsights";
 import { EXTRA_CHAIN_NODE_DETAILS } from "@/lib/data/chainNodeDetailsExtra";
+import { BATCH3_NODE_DETAILS } from "@/lib/data/chainNodeDetailsBatch3";
+import { BATCH3_NODE_INSIGHTS } from "@/lib/data/chainNodeDetailsBatch3";
 
 export type { ChainNodeDetail };
+
+/** 环节讲解（含第三批），键名必须与 seed.ts 节点名逐字一致 */
+export const ALL_CHAIN_NODE_INSIGHTS: Record<string, Record<string, string>> = {
+  ...CHAIN_NODE_INSIGHTS,
+  ...BATCH3_NODE_INSIGHTS,
+};
 
 export const ALL_CHAIN_NODE_DETAILS: Record<
   string,
@@ -18,6 +27,7 @@ export const ALL_CHAIN_NODE_DETAILS: Record<
 > = {
   ...CHAIN_NODE_DETAILS,
   ...EXTRA_CHAIN_NODE_DETAILS,
+  ...BATCH3_NODE_DETAILS,
 };
 
 /** 取某条链某环节的结构化维度；缺失返回 undefined */

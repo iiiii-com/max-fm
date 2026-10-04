@@ -1174,6 +1174,306 @@ export const STATIC_CHAINS: StaticChain[] = [
       },
     ],
   },
+{
+    id: "synbio",
+    name: "合成生物产业链",
+    prosperity: "分化",
+    marketSize: "站内不提供规模数字",
+    outlook: "工程菌株改造与生物基材料放量，但商业化分化极大",
+    relates: ["pharma", "innovdrug", "agrifood", "petrochem", "meddevice"],
+    segments: [
+      {
+        stage: "上游", name: "生物原料与培养基", products: "发酵原料、酶制剂、培养基与耗材",
+        companies: [
+          { name: "梅花生物", secid: "1.600873", role: "氨基酸与生物原料" },
+          { name: "诺唯赞", secid: "1.688105", role: "酶制剂与耗材" },
+          { name: "华恒生物", secid: "1.688639", role: "合成生物底盘菌株" },
+        ],
+      },
+      {
+        stage: "中游", name: "菌株与工艺开发", products: "工程菌株改造、发酵工艺与放大",
+        companies: [
+          { name: "金斯瑞", secid: "1.01548", role: "生命科学服务" },
+          { name: "皓元医药", secid: "1.688131", role: "分子砌块与工艺" },
+          { name: "森松国际", secid: "1.2155", role: "生物制药工程" },
+        ],
+      },
+      {
+        stage: "中游", name: "生物制造设备", products: "发酵罐、层析系统与下游纯化",
+        companies: [
+          { name: "东富龙", secid: "1.300171", role: "制药装备" },
+          { name: "森松国际", secid: "1.2155", role: "工程与装备" },
+          { name: "楚天科技", secid: "0.300358", role: "制药装备" },
+        ],
+      },
+      {
+        stage: "下游", name: "生物基材料", products: "生物基化学品、合成材料替代",
+        companies: [
+          { name: "华恒生物", secid: "1.688639", role: "生物基氨基酸" },
+          { name: "嘉必优", secid: "1.688089", role: "生物基酯类" },
+          { name: "彤程新材", secid: "1.603650", role: "生物基可降解材料" },
+        ],
+      },
+      {
+        stage: "下游", name: "生物医疗应用", products: "体外诊断原料、CAR-T 与基因治疗",
+        companies: [
+          { name: "华大基因", secid: "0.300676", role: "基因检测" },
+          { name: "药明巨诺", secid: "1.02126", role: "细胞治疗" },
+          { name: "博雅生物", secid: "0.300294", role: "血制品与诊断原料" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "gpu-cloud",
+    name: "算力租赁产业链",
+    prosperity: "高景气",
+    marketSize: "站内不提供规模数字",
+    outlook: "供给快速增加，租赁价格下行，盈利向有电力与客户资源者集中",
+    relates: ["computing", "ai", "telecom", "semiconductor", "finance"],
+    segments: [
+      {
+        stage: "上游", name: "算力硬件", products: "GPU 服务器、加速卡与网络设备",
+        companies: [
+          { name: "浪潮信息", secid: "0.000977", role: "AI 服务器" },
+          { name: "工业富联", secid: "1.601138", role: "服务器代工" },
+          { name: "中科曙光", secid: "1.603019", role: "高性能计算" },
+        ],
+      },
+      {
+        stage: "中游", name: "智算中心建设", products: "机房建设、液冷与供电系统",
+        companies: [
+          { name: "英维克", secid: "0.002837", role: "液冷温控" },
+          { name: "申菱环境", secid: "0.301018", role: "机房温控" },
+          { name: "科华数据", secid: "0.002335", role: "UPS 与数据中心" },
+        ],
+      },
+      {
+        stage: "中游", name: "算力调度平台", products: "算力管理与调度软件",
+        companies: [
+          { name: "并行科技", secid: "0.839493", role: "算力云平台" },
+          { name: "优刻得", secid: "1.688158", role: "云计算" },
+          { name: "光环新网", secid: "0.300383", role: "IDC 与云服务" },
+        ],
+      },
+      {
+        stage: "下游", name: "算力租赁运营", products: "按小时或按卡出租算力",
+        companies: [
+          { name: "润泽科技", secid: "0.300442", role: "智算中心运营" },
+          { name: "奥飞数据", secid: "0.300738", role: "IDC 与算力" },
+          { name: "首都在线", secid: "0.846516", role: "算力租赁" },
+        ],
+      },
+      {
+        stage: "下游", name: "模型与应用租赁", products: "大模型 API 与行业算力服务",
+        companies: [
+          { name: "阿里", role: "云与模型服务" },
+          { name: "百度集团", role: "模型与算力服务" },
+          { name: "商汤科技", role: "AI 基础软件" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "innov-device",
+    name: "创新医疗器械产业链",
+    prosperity: "高景气",
+    marketSize: "站内不提供规模数字",
+    outlook: "高值耗材国产替代与出海双轮，创新品类审批提速",
+    relates: ["meddevice", "pharma", "medical-service", "innovdrug"],
+    segments: [
+      {
+        stage: "上游", name: "核心材料与部件", products: "生物材料、精密部件与传感器",
+        companies: [
+          { name: "微电生理", secid: "1.688351", role: "介入器械部件" },
+          { name: "南微医学", secid: "0.688029", role: "内镜耗材" },
+          { name: "正海生物", secid: "1.300653", role: "再生材料" },
+        ],
+      },
+      {
+        stage: "中游", name: "高值耗材创新", products: "神经介入、电生理与骨科创新",
+        companies: [
+          { name: "微创医疗", role: "高值耗材平台" },
+          { name: "心脉医疗", secid: "1.688016", role: "主动脉介入" },
+          { name: "惠泰医疗", secid: "1.688617", role: "电生理与血管介入" },
+        ],
+      },
+      {
+        stage: "中游", name: "创新设备", products: "手术机器人与内窥镜设备",
+        companies: [
+          { name: "微创机器人", role: "腔镜手术机器人" },
+          { name: "开立医疗", secid: "0.300633", role: "内窥镜与超声" },
+          { name: "天智航", secid: "1.688277", role: "骨科手术机器人" },
+        ],
+      },
+      {
+        stage: "下游", name: "器械 CDMO", products: "器械研发生产一体化服务",
+        companies: [
+          { name: "药明康德", role: "一体化研发生产" },
+          { name: "凯莱英", secid: "0.002821", role: "医药与器械 CDMO" },
+          { name: "康德莱", secid: "1.603987", role: "医疗器械与耗材" },
+        ],
+      },
+      {
+        stage: "下游", name: "出海注册与服务", products: "海外认证、本地化与临床支持",
+        companies: [
+          { name: "迈瑞医疗", secid: "0.300760", role: "全球器械龙头" },
+          { name: "联影医疗", secid: "1.688271", role: "影像设备出海" },
+          { name: "安克创新", secid: "0.300866", role: "消费医疗出海" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "pet-food",
+    name: "宠物食品产业链",
+    prosperity: "高景气",
+    marketSize: "站内不提供规模数字",
+    outlook: "自主品牌出海替代代工，宠物鲜食与功能粮是结构性增量",
+    relates: ["agrifood", "crossborder", "consumer", "medical-service"],
+    segments: [
+      {
+        stage: "上游", name: "原料与添加剂", products: "肉类、谷物、钙磷与功能性添加",
+        companies: [
+          { name: "中宠股份", secid: "0.002891", role: "宠物食品与原料" },
+          { name: "佩蒂股份", secid: "0.300673", role: "宠物咬胶与鲜湿粮" },
+          { name: "乖宝宠物", secid: "0.301498", role: "宠物主粮" },
+        ],
+      },
+      {
+        stage: "中游", name: "代工与自有品牌", products: "OEM/ODM 与自主品牌主粮",
+        companies: [
+          { name: "中宠股份", secid: "0.002891", role: "代工与自主品牌" },
+          { name: "佩蒂股份", secid: "0.300673", role: "海外客户与自有品牌" },
+          { name: "乖宝宠物", secid: "0.301498", role: "麦富迪品牌" },
+        ],
+      },
+      {
+        stage: "中游", name: "零食与鲜湿粮", products: "功能性零食、冻干与鲜湿粮",
+        companies: [
+          { name: "中宠股份", secid: "0.002891", role: "零食与湿粮" },
+          { name: "路斯股份", secid: "0.832806", role: "宠物食品" },
+          { name: "源飞宠物", secid: "0.001222", role: "宠物牵引与用品" },
+        ],
+      },
+      {
+        stage: "下游", name: "渠道与品牌运营", products: "电商、宠物店与内容电商",
+        companies: [
+          { name: "乖宝宠物", secid: "0.301498", role: "线上品牌运营" },
+          { name: "依依股份", secid: "0.001206", role: "宠物卫生用品" },
+          { name: "天元宠物", secid: "0.301335", role: "宠物用品与渠道" },
+        ],
+      },
+      {
+        stage: "下游", name: "宠物医疗与保险", products: "宠物医院、疫苗与保险",
+        companies: [
+          { name: "瑞普生物", secid: "1.300119", role: "动物疫苗" },
+          { name: "中牧股份", secid: "1.600195", role: "兽用生物制品" },
+          { name: "生物股份", secid: "1.600201", role: "动物疫苗" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "satellite-internet",
+    name: "卫星互联网产业链",
+    prosperity: "高景气",
+    marketSize: "站内不提供规模数字",
+    outlook: "低轨星座批量组网，地面终端成本是消费级市场的门槛",
+    relates: ["commercial-space", "telecom", "defense", "computing", "ai"],
+    segments: [
+      {
+        stage: "上游", name: "星载材料与芯片", products: "星载芯片、相控阵 T/R 组件与宇航材料",
+        companies: [
+          { name: "铖昌科技", secid: "0.001270", role: "星载相控阵芯片" },
+          { name: "臻镭科技", secid: "1.688270", role: "射频前端芯片" },
+          { name: "国博电子", secid: "1.688375", role: "射频模块" },
+        ],
+      },
+      {
+        stage: "中游", name: "卫星制造与发射", products: "卫星平台、火箭发射服务",
+        companies: [
+          { name: "中国卫星", secid: "1.600118", role: "卫星总装" },
+          { name: "航天电子", secid: "1.600879", role: "星载测控与连接" },
+          { name: "上海沪工", secid: "1.603131", role: "卫星制造" },
+        ],
+      },
+      {
+        stage: "中游", name: "地面终端与站", products: "用户终端、关口站与测控",
+        companies: [
+          { name: "海格通信", secid: "0.002465", role: "北斗与卫星通信终端" },
+          { name: "华力创通", secid: "0.300045", role: "卫星导航与通信" },
+          { name: "盟升电子", secid: "1.688311", role: "星载与地面天线" },
+        ],
+      },
+      {
+        stage: "下游", name: "卫星通信服务", products: "卫星移动通信与宽带接入",
+        companies: [
+          { name: "中国卫通", secid: "1.601698", role: "卫星运营" },
+          { name: "上海瀚讯", secid: "0.300762", role: "宽带通信" },
+          { name: "信科移动", secid: "1.688387", role: "卫星互联网" },
+        ],
+      },
+      {
+        stage: "下游", name: "遥感与导航应用", products: "遥感数据、导航增强与行业应用",
+        companies: [
+          { name: "四维图新", secid: "0.002405", role: "地图与位置服务" },
+          { name: "中科星图", secid: "1.688568", role: "遥感与数字地球" },
+          { name: "航天宏图", secid: "1.688066", role: "遥感应用" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "sodium-battery",
+    name: "钠离子电池产业链",
+    prosperity: "中景气",
+    marketSize: "站内不提供规模数字",
+    outlook: "以低成本与安全性切入储能与低速车，对锂电形成补充而非全面替代",
+    relates: ["nev", "storage", "battery-materials", "steelcoal", "computing"],
+    segments: [
+      {
+        stage: "上游", name: "钠盐与正极材料", products: "碳酸钠、钠离子正极与电解液",
+        companies: [
+          { name: "中盐化工", secid: "0.600328", role: "纯碱与钠盐" },
+          { name: "振华新材", secid: "1.603707", role: "正极材料" },
+          { name: "容百科技", secid: "1.688005", role: "正极材料" },
+        ],
+      },
+      {
+        stage: "上游", name: "负极与隔膜", products: "硬碳负极与钠电专用隔膜",
+        companies: [
+          { name: "贝特瑞", secid: "0.835185", role: "负极材料" },
+          { name: "元力股份", secid: "0.300174", role: "硬碳负极" },
+          { name: "恩捷股份", secid: "0.002812", role: "隔膜" },
+        ],
+      },
+      {
+        stage: "中游", name: "钠离子电芯", products: "软包与方形钠电芯",
+        companies: [
+          { name: "宁德时代", secid: "0.300750", role: "钠电池技术储备" },
+          { name: "亿纬锂能", secid: "0.300014", role: "钠离子电池" },
+          { name: "传艺科技", secid: "0.002866", role: "钠电中试与产业化" },
+        ],
+      },
+      {
+        stage: "中游", name: "电池系统与PACK", products: "储能系统与电池包集成",
+        companies: [
+          { name: "华钠锂电", role: "钠电系统" },
+          { name: "鹏辉能源", secid: "0.300438", role: "储能电芯" },
+          { name: "圣泉集团", secid: "1.605589", role: "电解液与材料" },
+        ],
+      },
+      {
+        stage: "下游", name: "储能与低速车应用", products: "储能电站、两轮车与低速车",
+        companies: [
+          { name: "南都电源", secid: "0.300068", role: "储能系统" },
+          { name: "雅迪控股", role: "两轮电动车" },
+          { name: "宗申动力", secid: "0.001696", role: "三轮与低速车" },
+        ],
+      },
+    ],
+  },
 ];
 
 export function getStaticChain(id: string): StaticChain | undefined {
@@ -1213,8 +1513,16 @@ const KEYWORD_CHAINS: Array<[string, string]> = [
   ["跨境电商", "crossborder"], ["跨境", "crossborder"],
   ["消费电子", "consumer"], ["电子信息", "consumer"], ["电子", "consumer"],
   ["医药", "pharma"], ["生物医药", "pharma"], ["疫苗", "pharma"],
+  // 新补入的 6 条链的匹配关键词。
+  // 顺序有意义：matchChainId 取第一个命中，因此更具体的词要排在更宽泛的词前面
+  // （例如"合成生物"必须在"生物"类词之前，"算力租赁"在"算力"之前）。
+  ["合成生物", "synbio"], ["生物制造", "synbio"], ["生物基", "synbio"],
+  ["算力租赁", "gpu-cloud"], ["算力云", "gpu-cloud"], ["智算中心", "gpu-cloud"],
+  ["创新器械", "innov-device"], ["手术机器人", "innov-device"], ["高值耗材", "innov-device"],
+  ["宠物食品", "pet-food"], ["宠物经济", "pet-food"], ["宠物粮", "pet-food"],
+  ["卫星互联网", "satellite-internet"], ["低轨星座", "satellite-internet"], ["卫星通信", "satellite-internet"],
+  ["钠离子电池", "sodium-battery"], ["钠电池", "sodium-battery"], ["钠电", "sodium-battery"],
 ];
-
 export function matchChainId(text: string): string | undefined {
   for (const [kw, id] of KEYWORD_CHAINS) {
     if (text.includes(kw)) return id;
