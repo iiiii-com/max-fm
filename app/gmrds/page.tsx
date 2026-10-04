@@ -374,20 +374,45 @@ export default async function GmrdsPage() {
 
       {/* 路线图入口 */}
       <section>
-        <SectionTitle title="迭代路线图" desc="V1.0 基础版 → V2.0 专业版 → V3.0 研究平台版" />
+        <SectionTitle
+          title="迭代路线图与真实交付进度"
+          desc="V1.0 基础版 → V2.0 专业版 → V3.0 研究平台版；进度按站内当前实现统计"
+        />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {ROADMAP.map((v) => (
-            <Card key={v.version} className="p-4">
-              <div className="flex items-center gap-2 mb-1.5">
-                <span className="text-xs font-black px-2 py-0.5 rounded bg-primary text-white">{v.version}</span>
-                <span className="font-bold text-sm">{v.name}</span>
-              </div>
-              <p className="text-[11px] text-muted leading-relaxed border-l-2 border-primary/40 pl-2">{v.boundary}</p>
-            </Card>
-          ))}
+          {ROADMAP.map((v) => {
+            const done = v.deliverables.filter((d) => d.status === "已交付").length;
+            const part = v.deliverables.filter((d) => d.status === "部分交付").length;
+            const todo = v.deliverables.filter((d) => d.status === "待接入").length;
+            const total = v.deliverables.length;
+            return (
+              <Card key={v.version} className="p-4">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="text-xs font-black px-2 py-0.5 rounded bg-primary text-white">{v.version}</span>
+                  <span className="font-bold text-sm">{v.name}</span>
+                </div>
+                <p className="text-[11px] text-muted leading-relaxed border-l-2 border-primary/40 pl-2">{v.boundary}</p>
+
+                {/* 交付进度条：已交付 + 部分交付按半权计入，直观但不误导 */}
+                <div className="mt-3">
+                  <div className="flex items-center justify-between text-[10px] mb-1">
+                    <span className="text-muted">交付进度</span>
+                    <span className="font-semibold text-foreground">
+                      {done}/{total} 已交付
+                      {part > 0 && <span className="text-muted font-normal"> · {part} 部分</span>}
+                      {todo > 0 && <span className="text-muted font-normal"> · {todo} 待接入</span>}
+                    </span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-border overflow-hidden flex">
+                    <span className="bg-emerald-600/70 h-full" style={{ width: `${(done / total) * 100}%` }} />
+                    <span className="bg-amber-600/60 h-full" style={{ width: `${(part / total) * 100}%` }} />
+                  </div>
+                </div>
+              </Card>
+            );
+          })}
         </div>
         <Link href="/gmrds/roadmap" className="inline-flex items-center gap-1 mt-3 text-xs font-medium text-primary hover:underline">
-          查看完整路线图与能力演进 <ArrowRight className="w-3.5 h-3.5" />
+          查看逐项交付内容与验收标准 <ArrowRight className="w-3.5 h-3.5" />
         </Link>
       </section>
     </div>
