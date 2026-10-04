@@ -5,12 +5,8 @@
       "schedule": "30 15 * * 1-5"
     },
     {
-      "path": "/api/tasks/run?task=policy-sync",
-      "schedule": "0 */6 * * *"
-    },
-    {
       "path": "/api/tasks/run?task=all",
-      "schedule": "0 3 1 * *"
+      "schedule": "45 3 * * *"
     }
   ]
 }
