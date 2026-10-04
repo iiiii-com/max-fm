@@ -69,3 +69,5 @@ start.log
 # local runtime logs
 validate.log
 .superpowers/
+
+--full-page
