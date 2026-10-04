@@ -13,6 +13,8 @@ import {
   ALL_GLOBAL_POSITION,
   ALL_CYCLE,
 } from "@/lib/data/chainCyclePosition";
+import { ALL_CHAIN_CITIES, ALL_PROS_CONS } from "@/lib/data/chainCityProsAll";
+import { STATIC_REGIONS } from "@/lib/data/regions";
 
 /**
  * 产业链解读覆盖度与字段完整性校验。
@@ -138,8 +140,52 @@ async function main() {
     if (pct) problems.push(`${slug}: 全球格局出现国产化率数字 → ${pct[0]}`);
   }
 
-  console.log(`产业链: ${slugs.length} 条`);
-  console.log(`岗位总数: ${slugs.reduce((n, x) => n + (ALL_CHAIN_CAREERS[x]?.roles?.length ?? 0), 0)}`);
+console.log(`产业链: ${slugs.length} 条`);
+console.log(`岗位总数: ${slugs.reduce((n, x) => n + (ALL_CHAIN_CAREERS[x]?.roles?.length ?? 0), 0)}`);
+
+  /**
+   * 代表城市。
+   * 硬约束：城市名必须存在于站内城市清单（lib/data/regions）。
+   * 写错一个字的后果是死链 —— 而死链比没有这条信息更糟，
+   * 因为读者会以为站内没有这个城市的产业链数据。
+   */
+  const siteCityNames = new Set(
+    STATIC_REGIONS.flatMap((r) => r.cities.map((c) => c.name))
+  );
+  for (const slug of slugs) {
+    const list = ALL_CHAIN_CITIES[slug];
+    if (!list || !list.length) {
+      problems.push(`${slug}: 缺代表城市`);
+      continue;
+    }
+    if (list.length < 3) problems.push(`${slug}: 代表城市少于 3 个`);
+    for (const c of list) {
+      if (!c.city) {
+        problems.push(`${slug}: 代表城市缺 city`);
+      } else if (!siteCityNames.has(c.city)) {
+        problems.push(`${slug}: 城市「${c.city}」不在站内城市清单 → 会产生死链`);
+      }
+      if (!c.focus) problems.push(`${slug}/${c.city}: 缺 focus（集聚什么环节）`);
+      if (!c.why) problems.push(`${slug}/${c.city}: 缺 why（为什么是这里）`);
+    }
+    const dup = list.map((c) => c.city).filter((x, i, arr) => arr.indexOf(x) !== i);
+    if (dup.length) problems.push(`${slug}: 代表城市重复 → ${[...new Set(dup)].join(" ")}`);
+  }
+
+  /** 产业优缺点：优势、劣势、适合谁、不适合谁，四项都不可缺 */
+  for (const slug of slugs) {
+    const p = ALL_PROS_CONS[slug];
+    if (!p) {
+      problems.push(`${slug}: 缺产业优缺点`);
+      continue;
+    }
+    const bad: string[] = [];
+    if (!p.strengths?.length) bad.push("strengths");
+    if (!p.weaknesses?.length) bad.push("weaknesses");
+    if (!p.fitFor?.length) bad.push("fitFor");
+    if (!p.notFor?.length) bad.push("notFor");
+    if (bad.length) problems.push(`${slug}: 优缺点字段不全 → ${bad.join(",")}`);
+  }
   if (problems.length) {
     console.log(`\n问题 ${problems.length} 项:`);
     for (const p of problems) console.log("  - " + p);

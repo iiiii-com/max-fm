@@ -5,6 +5,7 @@ import { Card, Badge, SectionTitle } from "@/components/ui";
 import ChainSwimlane from "@/components/chain/ChainSwimlane";
 import ChainInsightPanel from "@/components/chain/ChainInsightPanel";
 import ChainPositionPanel from "@/components/chain/ChainPositionPanel";
+import ChainCityProsPanel from "@/components/chain/ChainCityProsPanel";
 import ChainDeepDivePanel from "@/components/chain/ChainDeepDivePanel";
 import ChainNodeDetailPanel from "@/components/chain/ChainNodeDetailPanel";
 import { LEVELS, levelOrder, realNodes } from "@/lib/data/chainLevels";
@@ -123,6 +124,8 @@ export default async function ChainDetailPage({ params }: { params: Promise<{ id
       <ChainInsightPanel slug={chain.slug} />
 
       <ChainPositionPanel slug={chain.slug} />
+
+      <ChainCityProsPanel slug={chain.slug} />
 
       <ChainDeepDivePanel slug={chain.slug} />
 

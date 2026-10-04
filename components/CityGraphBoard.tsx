@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { EChartsOption } from "@/components/charts/echarts";
 import EChart from "@/components/charts/EChart";
 import { Badge, Card } from "@/components/ui";
+import CityDrawer from "@/components/CityDrawer";
 import { CITY_INSIGHTS } from "@/lib/data/cityInsights";
 import {
-  buildCityGraphNodes, buildCityGraphEdges, buildCityGraphStats,
+  buildCityGraphNodes, buildCityGraphEdges,
   INDUSTRY_CATS, INDUSTRY_COLORS, TIER_ORDER,
   type CityGraphNode, type IndustryCat, type Tier,
 } from "@/lib/data/city-graph";
@@ -29,12 +30,22 @@ const TIER_STYLE: Record<Tier, { size: number }> = {
 export default function CityGraphBoard() {
   const nodes = useMemo(() => buildCityGraphNodes(), []);
   const edges = useMemo(() => buildCityGraphEdges(nodes), [nodes]);
-  const stats = useMemo(() => buildCityGraphStats(nodes), [nodes]);
 
   const [catFilter, setCatFilter] = useState<"全部" | IndustryCat>("全部");
   const [tierFilter, setTierFilter] = useState<"全部" | Tier>("全部");
   const [selected, setSelected] = useState<CityGraphNode | null>(null);
   const [hovered, setHovered] = useState<CityGraphNode | null>(null);
+
+  // 支持从产业链详情页跳转过来：/map?city=深圳 直接打开该市解读抽屉。
+  // 此前产业链的「代表城市」链接指向 /map?city=xxx，但本页不读这个参数 ——
+  // 点了没反应，等于死链。
+  // 用 CityDrawer 而非图内详情卡：抽屉里有完整的城市解读（产业、特点、就业、
+  // 收入开支、优缺点、生活质量），图内卡片只有产业链信息。
+  const [deepLinkCity, setDeepLinkCity] = useState<string | null>(null);
+  useEffect(() => {
+    const city = new URLSearchParams(window.location.search).get("city");
+    if (city) setDeepLinkCity(city);
+  }, []);
 
   const visibleNodes = useMemo(
     () =>
@@ -275,6 +286,10 @@ export default function CityGraphBoard() {
           </Card>
         </div>
       </div>
+      <CityDrawer
+        city={deepLinkCity ? { name: deepLinkCity } : null}
+        onClose={() => setDeepLinkCity(null)}
+      />
     </div>
   );
 }
