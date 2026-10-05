@@ -4,32 +4,47 @@ import { useEffect, type ReactNode } from "react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+const WIDTHS = {
+  sm: "max-w-sm",
+  md: "max-w-md",
+  lg: "max-w-2xl",
+} as const;
+
 export function Dialog({
   open,
   onClose,
   title,
+  description,
   children,
-  wide = false,
+  size = "md",
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
+  description?: string;
   children: ReactNode;
-  wide?: boolean;
+  size?: keyof typeof WIDTHS;
 }) {
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
   }, [open, onClose]);
 
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
       <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-[2px]"
+        className="absolute inset-0 animate-fade-in bg-foreground/25 backdrop-blur-[3px] dark:bg-black/60"
         onClick={onClose}
       />
       <div
@@ -37,21 +52,26 @@ export function Dialog({
         aria-modal="true"
         aria-label={title}
         className={cn(
-          "relative z-10 w-full overflow-hidden rounded-xl border bg-card shadow-xl",
-          wide ? "max-w-lg" : "max-w-md"
+          "surface-lit relative z-10 flex max-h-[85vh] w-full animate-pop-in flex-col overflow-hidden rounded-xl border bg-popover shadow-overlay",
+          WIDTHS[size]
         )}
       >
-        <div className="flex items-center justify-between border-b px-5 py-3.5">
-          <h2 className="text-sm font-semibold">{title}</h2>
+        <div className="flex items-start justify-between gap-4 border-b px-5 py-4">
+          <div className="min-w-0">
+            <h2 className="text-sm font-semibold tracking-tight">{title}</h2>
+            {description && (
+              <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
+            )}
+          </div>
           <button
             onClick={onClose}
             aria-label="关闭"
-            className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            className="-mr-1 -mt-0.5 rounded-md p-1.5 text-subtle-foreground transition-colors hover:bg-accent hover:text-foreground"
           >
             <X className="size-4" />
           </button>
         </div>
-        <div className="max-h-[75vh] overflow-y-auto p-5">{children}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto p-5">{children}</div>
       </div>
     </div>
   );

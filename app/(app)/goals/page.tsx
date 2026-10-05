@@ -1,12 +1,16 @@
-﻿import { ComingSoon, PageHeader } from "@/components/page-parts";
+﻿import type { Metadata } from "next";
+import { ComingSoon, PageHeader } from "@/components/page-parts";
 
-export const metadata = { title: "目标" };
+export const metadata: Metadata = { title: "目标" };
 
 export default function Page() {
   return (
-    <div>
-      <PageHeader title="目标" />
+    <>
+      <PageHeader
+        title="目标"
+        description="按季度拆解目标并绑定任务，报表会汇总达成进度。"
+      />
       <ComingSoon title="目标" />
-    </div>
+    </>
   );
 }

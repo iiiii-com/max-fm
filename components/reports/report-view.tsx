@@ -1,10 +1,10 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ResponsiveContainer,
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -23,14 +23,28 @@ import {
   TrendingUp,
   ChartPie,
   BarChart3,
+  Flame,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardBody, CardHeader } from "@/components/ui/card";
+import { Segmented } from "@/components/ui/segmented";
+import { EmptyState, StatTile } from "@/components/ui/feedback";
 import { cn } from "@/lib/utils";
 import { addDaysYmd, formatHours, todayYmd, weekStartYmd } from "@/lib/date";
 import { TASK_STATUS_LABELS } from "@/lib/labels";
 import { HeatmapCard } from "@/components/reports/heatmap-card";
+import { apiGet } from "@/lib/api-client";
+import {
+  AXIS_TICK,
+  CHART,
+  CHART_SERIES,
+  GRID_PROPS,
+  STATUS_COLORS,
+  tooltipStyle,
+} from "@/lib/chart";
 
 // ---------- 类型 ----------
 interface Kpi {
@@ -100,43 +114,10 @@ function rangeFor(key: PresetKey): [string, string] {
     case "quarter": {
       const qStartM = Math.floor((m - 1) / 3) * 3 + 1;
       const qs = `${y}-${String(qStartM).padStart(2, "0")}-01`;
-      // 季度末若在未来，结束仍取今天
       return [qs, today];
     }
     default:
       return [today, today];
-  }
-}
-
-// ---------- 颜色 ----------
-const PALETTE = [
-  "#6366f1", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6",
-  "#06b6d4", "#ec4899", "#84cc16", "#f97316", "#14b8a6",
-];
-const STATUS_COLORS: Record<string, string> = {
-  TODO: "#94a3b8",
-  IN_PROGRESS: "#6366f1",
-  DONE: "#10b981",
-};
-const ATTEND_COLORS: Record<string, string> = {
-  NORMAL: "#10b981",
-  LATE: "#f59e0b",
-};
-
-const tooltipStyle = {
-  background: "var(--card)",
-  border: "1px solid var(--border)",
-  borderRadius: 8,
-  fontSize: 12,
-  color: "var(--card-foreground)",
-};
-
-async function getJSON<T>(url: string): Promise<T | null> {
-  try {
-    const r = await fetch(url);
-    return r.ok ? ((await r.json()) as T) : null;
-  } catch {
-    return null;
   }
 }
 
@@ -147,9 +128,10 @@ export function ReportView() {
   const [customTo, setCustomTo] = useState("");
 
   const [from, to] = useMemo(
-    () => (preset === "custom" && customFrom && customTo
-      ? ([customFrom, customTo] as [string, string])
-      : rangeFor(preset === "custom" ? "30d" : preset)),
+    () =>
+      preset === "custom" && customFrom && customTo
+        ? ([customFrom, customTo] as [string, string])
+        : rangeFor(preset === "custom" ? "30d" : preset),
     [preset, customFrom, customTo]
   );
 
@@ -167,12 +149,12 @@ export function ReportView() {
     if (from > to) return;
     const qs = `from=${from}&to=${to}`;
     const [k, t, r, pd] = await Promise.all([
-      getJSON<{ data?: Kpi } & Kpi>(`/api/reports/kpi?${qs}`),
-      getJSON<{ points: TrendPoint[] }>(`/api/reports/trend?${qs}`),
-      getJSON<{ ranking: RankItem[] }>(`/api/reports/ranking?${qs}`),
-      getJSON<{ items: DistItem[] }>(`/api/reports/distribution?dim=project&${qs}`),
+      apiGet<Kpi>(`/api/reports/kpi?${qs}`),
+      apiGet<{ points: TrendPoint[] }>(`/api/reports/trend?${qs}`),
+      apiGet<{ ranking: RankItem[] }>(`/api/reports/ranking?${qs}`),
+      apiGet<{ items: DistItem[] }>(`/api/reports/distribution?dim=project&${qs}`),
     ]);
-    const sd = await getJSON<{ items: DistItem[] }>(
+    const sd = await apiGet<{ items: DistItem[] }>(
       `/api/reports/distribution?dim=status`
     );
     if (k) setKpi(k);
@@ -187,7 +169,7 @@ export function ReportView() {
   }, [load]);
 
   async function openDayDetail(date: string) {
-    const d = await getJSON<{ logs: DayLog[] }>(
+    const d = await apiGet<{ logs: DayLog[] }>(
       `/api/timelogs?from=${date}&to=${date}`
     );
     setDayDetail({ date, logs: d?.logs ?? [] });
@@ -199,247 +181,308 @@ export function ReportView() {
     }
   }
 
-  const kpiCards = [
-    { icon: Clock3, label: "总工时（小时）", value: kpi ? formatHours(kpi.hoursTotal) : "…", cls: "" },
-    { icon: CheckCircle2, label: "完成任务", value: kpi?.tasksCompleted ?? "…", cls: "text-success" },
-    { icon: CircleDot, label: "进行中", value: kpi?.tasksActive ?? "…", cls: "text-primary" },
-    { icon: AlertTriangle, label: "已逾期未完", value: kpi?.overdue ?? "…", cls: kpi?.overdue ? "text-destructive" : "" },
-    { icon: CalendarCheck2, label: "出勤天数", value: kpi?.attendanceDays ?? "…", cls: "" },
-    { icon: AlarmClock, label: "迟到次数", value: kpi?.lateCount ?? "…", cls: kpi?.lateCount ? "text-warning" : "" },
-  ];
-
   const maxRank = ranking[0]?.totalHours ?? 1;
+  const seriesColor = metric === "hours" ? CHART.c1 : CHART.c4;
+  const statusColorMap = useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const [k, v] of Object.entries(TASK_STATUS_LABELS)) m[v] = k;
+    return m;
+  }, []);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {/* 时间筛选器 */}
       <div className="flex flex-wrap items-center gap-2">
-        <div className="flex rounded-md border bg-card p-0.5">
-          {PRESETS.map((p) => (
-            <button
-              key={p.key}
-              onClick={() => setPreset(p.key)}
-              className={cn(
-                "rounded px-3 py-1.5 text-xs transition-colors sm:text-sm",
-                preset === p.key
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
+        <Segmented
+          items={PRESETS.map((p) => ({ value: p.key, label: p.label }))}
+          value={preset}
+          onChange={setPreset}
+        />
         <div className="flex items-center gap-1.5">
-          <Input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} className="h-8 w-36 text-xs" />
-          <span className="text-xs text-muted-foreground">至</span>
-          <Input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} className="h-8 w-36 text-xs" />
+          <Input
+            type="date"
+            value={customFrom}
+            onChange={(e) => setCustomFrom(e.target.value)}
+            aria-label="开始日期"
+            className="h-7 w-33 text-xs"
+          />
+          <span className="text-xs text-subtle-foreground">至</span>
+          <Input
+            type="date"
+            value={customTo}
+            onChange={(e) => setCustomTo(e.target.value)}
+            aria-label="结束日期"
+            className="h-7 w-33 text-xs"
+          />
           <Button variant="outline" size="sm" onClick={applyCustom}>
             应用
           </Button>
-          {preset === "custom" && (
-            <span className="ml-1 text-xs text-muted-foreground">
-              自定义区间生效中
-            </span>
-          )}
         </div>
-        <span className="ml-auto hidden text-xs tabular-nums text-muted-foreground md:block">
-          统计区间：{from} ~ {to}
-        </span>
+        <p className="tabular ml-auto text-[11px] text-subtle-foreground">
+          统计区间 {from} ~ {to}
+        </p>
       </div>
 
-      {/* KPI 卡片 */}
+      {/* KPI */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-        {kpiCards.map((c) => (
-          <div key={c.label} className="rounded-xl border bg-card p-4">
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <c.icon className={cn("size-3.5", c.cls)} />
-              {c.label}
-            </div>
-            <p className={cn("mt-1.5 text-2xl font-bold tabular-nums tracking-tight", c.cls)}>
-              {c.value}
-            </p>
-          </div>
-        ))}
+        <StatTile
+          label="总工时"
+          unit="h"
+          value={kpi ? formatHours(kpi.hoursTotal) : "…"}
+          icon={Clock3}
+        />
+        <StatTile
+          label="完成任务"
+          value={kpi?.tasksCompleted ?? "…"}
+          icon={CheckCircle2}
+          tone="success"
+        />
+        <StatTile
+          label="进行中"
+          value={kpi?.tasksActive ?? "…"}
+          icon={CircleDot}
+          tone="primary"
+        />
+        <StatTile
+          label="逾期未完"
+          value={kpi?.overdue ?? "…"}
+          icon={AlertTriangle}
+          tone={kpi?.overdue ? "destructive" : "neutral"}
+        />
+        <StatTile
+          label="出勤天数"
+          value={kpi?.attendanceDays ?? "…"}
+          unit="天"
+          icon={CalendarCheck2}
+        />
+        <StatTile
+          label="迟到次数"
+          value={kpi?.lateCount ?? "…"}
+          unit="次"
+          icon={AlarmClock}
+          tone={kpi?.lateCount ? "warning" : "neutral"}
+        />
       </div>
 
       {/* 图表区 */}
       <div className="grid gap-4 xl:grid-cols-2">
         {/* 折线趋势 */}
-        <div className="rounded-xl border bg-card p-4">
-          <div className="mb-2 flex items-center justify-between">
-            <h3 className="flex items-center gap-1.5 text-sm font-semibold">
-              <TrendingUp className="size-4 text-primary" />
-              每日趋势
-            </h3>
-            <div className="flex rounded-md border bg-secondary/50 p-0.5 text-xs">
-              {(["hours", "tasksDone"] as const).map((m) => (
-                <button
-                  key={m}
-                  onClick={() => setMetric(m)}
-                  className={cn(
-                    "rounded px-2 py-1 transition-colors",
-                    metric === m ? "bg-card shadow-sm font-medium" : "text-muted-foreground"
-                  )}
+        <Card className="flex flex-col">
+          <CardHeader
+            title="每日趋势"
+            icon={<TrendingUp />}
+            action={
+              <Segmented
+                size="sm"
+                items={[
+                  { value: "hours" as const, label: "工时" },
+                  { value: "tasksDone" as const, label: "完成任务" },
+                ]}
+                value={metric}
+                onChange={setMetric}
+              />
+            }
+          />
+          <CardBody className="flex flex-1 flex-col pt-0">
+            <div className="min-h-[260px] flex-1">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart
+                  data={trend}
+                  onClick={(s: unknown) => {
+                    const label = (s as { activeLabel?: unknown })?.activeLabel;
+                    if (typeof label === "string") openDayDetail(label);
+                  }}
+                  margin={{ top: 8, right: 8, bottom: 0, left: -20 }}
                 >
-                  {m === "hours" ? "工时" : "完成任务"}
-                </button>
-              ))}
+                  <defs>
+                    <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={seriesColor} stopOpacity={0.26} />
+                      <stop offset="100%" stopColor={seriesColor} stopOpacity={0.02} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid {...GRID_PROPS} />
+                  <XAxis
+                    dataKey="date"
+                    tickFormatter={(v: string) => v.slice(5).replace("-", "/")}
+                    tick={AXIS_TICK}
+                    axisLine={false}
+                    tickLine={false}
+                    interval="preserveStartEnd"
+                    minTickGap={18}
+                  />
+                  <YAxis
+                    tick={AXIS_TICK}
+                    axisLine={false}
+                    tickLine={false}
+                    width={44}
+                    allowDecimals={metric === "hours"}
+                  />
+                  <Tooltip
+                    contentStyle={tooltipStyle}
+                    cursor={{ stroke: "var(--border-strong)" }}
+                    labelFormatter={(v) => String(v)}
+                    formatter={(value) => [
+                      metric === "hours"
+                        ? `${formatHours(Number(value))} 小时`
+                        : `${value} 个`,
+                      metric === "hours" ? "工时" : "完成",
+                    ]}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey={metric}
+                    stroke={seriesColor}
+                    strokeWidth={2}
+                    fill="url(#trendFill)"
+                    dot={false}
+                    activeDot={{
+                      r: 4.5,
+                      strokeWidth: 2,
+                      stroke: "var(--card)",
+                    }}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
             </div>
-          </div>
-          <div style={{ height: 260 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart
-                data={trend}
-                onClick={(s: unknown) => {
-                  const label = (s as { activeLabel?: unknown })?.activeLabel;
-                  if (typeof label === "string") openDayDetail(label);
-                }}
-                margin={{ top: 6, right: 8, bottom: 0, left: -18 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke="#88888822" vertical={false} />
-                <XAxis
-                  dataKey="date"
-                  tickFormatter={(v: string) => v.slice(5).replace("-", "/")}
-                  tick={{ fill: "#7c8595", fontSize: 10 }}
-                  interval="preserveStartEnd"
-                  minTickGap={18}
-                />
-                <YAxis tick={{ fill: "#7c8595", fontSize: 10 }} allowDecimals={metric === "hours"} />
-                <Tooltip
-                  contentStyle={tooltipStyle}
-                  labelFormatter={(v) => String(v)}
-                  formatter={(value) => [
-                    metric === "hours" ? `${formatHours(Number(value))} 小时` : `${value} 个`,
-                    metric === "hours" ? "工时" : "完成",
-                  ]}
-                />
-                <Line
-                  type="monotone"
-                  dataKey={metric}
-                  stroke={metric === "hours" ? "#6366f1" : "#10b981"}
-                  strokeWidth={2}
-                  dot={{ r: trend.length <= 31 ? 3 : 0 }}
-                  activeDot={{ r: 5 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-          <p className="mt-1 text-center text-[11px] text-muted-foreground">
-            点击折线上的点可查看当日明细 ↓
-          </p>
-        </div>
+            <p className="mt-1 text-center text-[11px] text-subtle-foreground">
+              点击折线可查看当日明细
+            </p>
+          </CardBody>
+        </Card>
 
-        {/* 排行榜（可下钻） */}
-        <div className="rounded-xl border bg-card p-4">
-          <h3 className="mb-3 flex items-center gap-1.5 text-sm font-semibold">
-            <BarChart3 className="size-4 text-warning" />
-            任务耗时排行 Top10
-          </h3>
-          {ranking.length === 0 ? (
-            <p className="py-16 text-center text-sm text-muted-foreground">区间内暂无工时数据</p>
-          ) : (
-            <ul className="space-y-2">
-              {ranking.map((item, i) => (
-                <li key={`${item.taskId ?? item.title}-${i}`}>
-                  <button
-                    onClick={() => setDrill(item)}
-                    className="group w-full text-left"
-                  >
-                    <div className="mb-1 flex items-baseline justify-between gap-2 text-xs">
-                      <span className="min-w-0 truncate font-medium group-hover:text-primary">
-                        <span className="mr-1.5 inline-flex size-4 items-center justify-center rounded-full bg-secondary text-[10px] tabular-nums">
-                          {i + 1}
+        {/* 排行榜 */}
+        <Card className="flex flex-col">
+          <CardHeader
+            title="任务耗时排行 Top 10"
+            description="点击任意条目下钻查看明细"
+            icon={<BarChart3 />}
+          />
+          <CardBody className="flex flex-1 flex-col pt-0">
+            {ranking.length === 0 ? (
+              <EmptyState
+                icon={<BarChart3 />}
+                title="区间内暂无工时数据"
+                description="在「工时」模块填报记录后，这里会显示任务耗时排名。"
+                className="border-0 py-10"
+              />
+            ) : (
+              <ul className="space-y-2.5">
+                {ranking.map((item, i) => (
+                  <li key={`${item.taskId ?? item.title}-${i}`}>
+                    <button
+                      onClick={() => setDrill(item)}
+                      className="group block w-full text-left"
+                    >
+                      <div className="mb-1.5 flex items-baseline justify-between gap-3 text-[12px]">
+                        <span className="flex min-w-0 items-center gap-2">
+                          <span
+                            className={cn(
+                              "tabular inline-flex size-4.5 shrink-0 items-center justify-center rounded-[5px] text-[10px] font-semibold",
+                              i === 0
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-muted text-muted-foreground"
+                            )}
+                          >
+                            {i + 1}
+                          </span>
+                          <span className="truncate font-medium transition-colors group-hover:text-primary">
+                            {item.title}
+                          </span>
+                          {item.projectName && (
+                            <span className="hidden shrink-0 text-[10.5px] text-subtle-foreground sm:inline">
+                              {item.projectName}
+                            </span>
+                          )}
                         </span>
-                        {item.title}
-                      </span>
-                      <span className="shrink-0 tabular-nums text-muted-foreground">
-                        {formatHours(item.totalHours)}h
-                      </span>
-                    </div>
-                    <div className="h-1.5 overflow-hidden rounded-full bg-secondary">
-                      <div
-                        className="h-full rounded-full transition-all"
-                        style={{
-                          width: `${(item.totalHours / maxRank) * 100}%`,
-                          backgroundColor: item.projectColor ?? PALETTE[i % PALETTE.length],
-                        }}
-                      />
-                    </div>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+                        <span className="tabular shrink-0 font-semibold">
+                          {formatHours(item.totalHours)}h
+                        </span>
+                      </div>
+                      <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                        <div
+                          className="h-full rounded-full transition-[width] duration-500"
+                          style={{
+                            width: `${(item.totalHours / maxRank) * 100}%`,
+                            backgroundColor:
+                              item.projectColor ?? CHART_SERIES[i % CHART_SERIES.length],
+                          }}
+                        />
+                      </div>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardBody>
+        </Card>
 
         {/* 双环形图 */}
-        <div className="rounded-xl border bg-card p-4">
-          <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold">
-            <ChartPie className="size-4 text-success" />
-            占比分析
-          </h3>
-          <div className="grid grid-cols-2 gap-2">
-            <MiniPie
-              title="项目工时占比"
-              data={projectDist.map((d) => ({ ...d }))}
-              colorFn={(item, i) => item.color || PALETTE[i % PALETTE.length]}
-              emptyText="暂无工时"
-            />
-            <MiniPie
-              title="任务状态分布"
-              data={statusDist.map((d) => ({
-                ...d,
-                name: TASK_STATUS_LABELS[d.name as keyof typeof TASK_STATUS_LABELS] ?? d.name,
-              }))}
-              colorFn={(item) =>
-                STATUS_COLORS[
-                  Object.keys(TASK_STATUS_LABELS).find(
-                    (k) => TASK_STATUS_LABELS[k as keyof typeof TASK_STATUS_LABELS] === item.name
-                  ) ?? ""
-                ] ?? PALETTE[0]
-              }
-              emptyText="暂无任务"
-            />
-          </div>
-        </div>
+        <Card>
+          <CardHeader title="占比分析" icon={<ChartPie />} />
+          <CardBody className="pt-0">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <MiniPie
+                title="项目工时占比"
+                data={projectDist.map((d) => ({ ...d }))}
+                colorFn={(item, i) => item.color || CHART_SERIES[i % CHART_SERIES.length]}
+                emptyText="暂无工时"
+              />
+              <MiniPie
+                title="任务状态分布"
+                data={statusDist.map((d) => ({
+                  ...d,
+                  name:
+                    TASK_STATUS_LABELS[d.name as keyof typeof TASK_STATUS_LABELS] ?? d.name,
+                }))}
+                colorFn={(item) =>
+                  STATUS_COLORS[statusColorMap[item.name] ?? ""] ?? CHART_SERIES[0]
+                }
+                emptyText="暂无任务"
+              />
+            </div>
+          </CardBody>
+        </Card>
 
-        {/* 热力图 */}
         <HeatmapCard />
       </div>
 
       {/* 下钻：排行明细 */}
-      <Dialog open={!!drill} onClose={() => setDrill(null)} title={`「${drill?.title ?? ""}」的工时记录`} wide>
+      <Dialog
+        open={!!drill}
+        onClose={() => setDrill(null)}
+        title={drill ? `「${drill.title}」的工时记录` : ""}
+        size="lg"
+      >
         {drill && (
-          <table className="w-full text-sm">
+          <table className="w-full text-[13px]">
             <thead>
-              <tr className="border-b text-left text-xs text-muted-foreground">
-                <th className="py-2">日期</th>
-                <th>备注</th>
-                <th>来源</th>
-                <th className="text-right">小时</th>
+              <tr className="border-b text-left text-[11px] text-muted-foreground">
+                <th className="pb-2 font-medium">日期</th>
+                <th className="font-medium">备注</th>
+                <th className="font-medium">来源</th>
+                <th className="text-right font-medium">小时</th>
               </tr>
             </thead>
             <tbody>
               {drill.entries.map((e) => (
-                <tr key={e.id} className="border-b last:border-0">
-                  <td className="py-2 tabular-nums">{e.date}</td>
-                  <td className="max-w-40 truncate text-muted-foreground">{e.note ?? "-"}</td>
+                <tr key={e.id} className="border-b border-border/60 last:border-0">
+                  <td className="tabular py-2.5">{e.date}</td>
+                  <td className="max-w-48 truncate text-muted-foreground">{e.note ?? "—"}</td>
                   <td>
-                    <span className={cn("rounded px-1.5 py-0.5 text-[11px]", e.source === "TIMER" ? "bg-primary/10 text-primary" : "bg-muted")}>
+                    <Badge tone={e.source === "TIMER" ? "primary" : "neutral"}>
                       {e.source === "TIMER" ? "番茄钟" : "手动"}
-                    </span>
+                    </Badge>
                   </td>
-                  <td className="text-right tabular-nums">{formatHours(e.hours)}</td>
+                  <td className="tabular text-right">{formatHours(e.hours)}</td>
                 </tr>
               ))}
             </tbody>
             <tfoot>
               <tr className="font-semibold">
-                <td className="pt-2" colSpan={3}>
+                <td className="pt-2.5" colSpan={3}>
                   合计
                 </td>
-                <td className="pt-2 text-right tabular-nums">{formatHours(drill.totalHours)}</td>
+                <td className="tabular pt-2.5 text-right">{formatHours(drill.totalHours)}</td>
               </tr>
             </tfoot>
           </table>
@@ -447,23 +490,40 @@ export function ReportView() {
       </Dialog>
 
       {/* 下钻：单日明细 */}
-      <Dialog open={!!dayDetail} onClose={() => setDayDetail(null)} title={`${dayDetail?.date ?? ""} 工时明细`} wide>
+      <Dialog
+        open={!!dayDetail}
+        onClose={() => setDayDetail(null)}
+        title={dayDetail ? `${dayDetail.date} 工时明细` : ""}
+        size="lg"
+      >
         {dayDetail &&
           (dayDetail.logs.length === 0 ? (
-            <p className="py-8 text-center text-sm text-muted-foreground">当天没有工时记录</p>
+            <p className="py-10 text-center text-[13px] text-muted-foreground">
+              当天没有工时记录
+            </p>
           ) : (
-            <ul className="space-y-2">
+            <ul className="space-y-1.5">
               {dayDetail.logs.map((l) => (
-                <li key={l.id} className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm">
-                  <span className="font-medium">{l.task?.title ?? l.note ?? "工作记录"}</span>
+                <li
+                  key={l.id}
+                  className="flex items-center gap-2 rounded-lg border px-3 py-2.5 text-[13px]"
+                >
+                  <span className="min-w-0 truncate font-medium">
+                    {l.task?.title ?? l.note ?? "工作记录"}
+                  </span>
                   {l.note && l.task && (
-                    <span className="truncate text-xs text-muted-foreground">{l.note}</span>
+                    <span className="truncate text-[11px] text-subtle-foreground">
+                      {l.note}
+                    </span>
                   )}
-                  <span className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
+                  <span className="ml-auto flex shrink-0 items-center gap-2">
                     {l.source === "TIMER" && (
-                      <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary">番茄钟</span>
+                      <Badge tone="primary">
+                        <Flame className="size-2.5" />
+                        番茄钟
+                      </Badge>
                     )}
-                    <b className="tabular-nums text-foreground">{formatHours(l.hours)}h</b>
+                    <b className="tabular">{formatHours(l.hours)}h</b>
                   </span>
                 </li>
               ))}
@@ -489,9 +549,9 @@ function MiniPie({
   const shown = data.filter((d) => d.value > 0);
   return (
     <div>
-      <p className="mb-1 text-center text-xs font-medium text-muted-foreground">{title}</p>
+      <p className="mb-1 text-center text-[12px] font-medium">{title}</p>
       {shown.length === 0 ? (
-        <p className="flex h-32 items-center justify-center text-xs text-muted-foreground/60">
+        <p className="flex h-32 items-center justify-center text-[11px] text-subtle-foreground">
           {emptyText}
         </p>
       ) : (
@@ -503,25 +563,34 @@ function MiniPie({
                   data={shown}
                   dataKey="value"
                   nameKey="name"
-                  innerRadius={38}
-                  outerRadius={58}
+                  innerRadius={40}
+                  outerRadius={60}
                   paddingAngle={2}
-                  stroke="none"
+                  stroke="var(--card)"
+                  strokeWidth={1.5}
                 >
                   {shown.map((item, i) => (
                     <Cell key={i} fill={colorFn(item, i)} />
                   ))}
                 </Pie>
-                <Tooltip contentStyle={tooltipStyle} formatter={(v, n) => [String(v), String(n)]} />
+                <Tooltip
+                  contentStyle={tooltipStyle}
+                  formatter={(v, n) => [`${formatHours(Number(v))} h`, String(n)]}
+                />
               </PieChart>
             </ResponsiveContainer>
           </div>
-          <ul className="mt-1 space-y-0.5">
+          <ul className="mt-1 space-y-1">
             {shown.slice(0, 4).map((item, i) => (
               <li key={i} className="flex items-center gap-1.5 text-[11px]">
-                <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: colorFn(item, i) }} />
+                <span
+                  className="size-2 shrink-0 rounded-full"
+                  style={{ backgroundColor: colorFn(item, i) }}
+                />
                 <span className="min-w-0 flex-1 truncate">{item.name}</span>
-                <span className="tabular-nums text-muted-foreground">{formatHours(item.value)}</span>
+                <span className="tabular text-subtle-foreground">
+                  {formatHours(item.value)}
+                </span>
               </li>
             ))}
           </ul>
