@@ -31,14 +31,21 @@ export async function GET(req: Request) {
   if (!/^\d+\.\w+$/.test(secid)) return NextResponse.json({ error: "参数错误" }, { status: 400 });
   const periodRaw = (searchParams.get("period") ?? "day").trim();
   const period: KlinePeriod = periodRaw === "week" ? "week" : periodRaw === "month" ? "month" : "day";
-  const days = Math.min(500, Math.max(10, Number(searchParams.get("days") ?? 250)));
+  /**
+   * 天数上限由此处决定。
+   * 实测东财 push2his：lmt 参数对该接口无效（lmt=500 与 lmt=10000 返回同样的 6015 根），
+   * 真正的限制是 beg。原先 beg=20200101 + lmt<=500 把 25 年历史砍到 2 年，
+   * 导致个股 K 线"只有一年"。现 beg 放到 1990 并把天数上限提到 8000，
+   * 日线可覆盖 A 股全历史（茅台 2001 上市起约 6015 根 / 25 年）。
+   */
+  const days = Math.min(8000, Math.max(10, Number(searchParams.get("days") ?? 2500)));
   const [mkt, code] = secid.split(".");
 
   // ---- 源1：东方财富 ----
   try {
     const url = `https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=${encodeURIComponent(
       secid
-    )}&klt=${KLT[period]}&fqt=1&beg=20200101&end=20261231&lmt=${days}&fields1=f1,f2,f3&fields2=f51,f52,f53,f54,f55,f56,f57`;
+    )}&klt=${KLT[period]}&fqt=1&beg=19900101&end=20500101&fields1=f1,f2,f3&fields2=f51,f52,f53,f54,f55,f56,f57`;
     const res = await fetch(url, {
       next: { revalidate: 120 },
       headers: { Referer: "https://quote.eastmoney.com/", "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" },
@@ -55,7 +62,12 @@ export async function GET(req: Request) {
         volume: Math.round(Number(volume)), amount: Math.round(Number(amount)),
       };
     });
-    return NextResponse.json({ name, code: String(json?.data?.code ?? code), secid, period, klines });
+    // 回传实际覆盖区间，前端据此显示区间而不是猜
+    return NextResponse.json({
+      name, code: String(json?.data?.code ?? code), secid, period, klines,
+      total: raw.length,
+      span: klines.length ? { from: klines[0].date, to: klines[klines.length - 1].date } : null,
+    });
   } catch {
     /* fallthrough */
   }

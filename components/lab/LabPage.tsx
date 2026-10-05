@@ -96,7 +96,7 @@ export default function LabPage() {
   const load = () => {
     setLoading(true);
     setErr("");
-    fetch(`/api/stock/kline?secid=${symbol.secid}&period=${period}&days=260`, { cache: "no-store" })
+    fetch(`/api/stock/kline?secid=${symbol.secid}&period=${period}&days=8000`, { cache: "no-store" })
       .then((r) => r.json())
       .then((j) => {
         if (Array.isArray(j?.klines) && j.klines.length) {

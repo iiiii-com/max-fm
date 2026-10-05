@@ -30,7 +30,7 @@ export default function IndexDetailPanel() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch(`/api/index/kline?secid=${sel.secid}&days=260`, { cache: "no-store" })
+    fetch(`/api/index/kline?secid=${sel.secid}&days=800`, { cache: "no-store" })
       .then((r) => r.json())
       .then((j) => {
         if (cancelled) return;

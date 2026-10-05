@@ -32,10 +32,18 @@ const KIND_STYLE: Record<CmpTarget["kind"], string> = {
   etf: "bg-emerald-50 text-emerald-700 border-emerald-200",
 };
 
+/**
+ * 对比区间。原为 60/120/250 日，最长仅约 1.2 年，
+ * 无法看跨年趋势与牛熊段落；现覆盖 1 个月到 10 年。
+ */
 const RANGES = [
-  { label: "近 60 日", days: 60 },
-  { label: "近 120 日", days: 120 },
-  { label: "近 250 日", days: 250 },
+  { label: "近 1 月", days: 22 },
+  { label: "近 3 月", days: 66 },
+  { label: "近 6 月", days: 130 },
+  { label: "近 1 年", days: 250 },
+  { label: "近 3 年", days: 750 },
+  { label: "近 5 年", days: 1250 },
+  { label: "近 10 年", days: 2500 },
 ];
 
 /** 预置常用标的：一键体验，覆盖三类 */
@@ -58,7 +66,8 @@ export default function CompareCenter() {
   const [hits, setHits] = useState<CmpTarget[]>([]);
   const [searching, setSearching] = useState(false);
   const [focused, setFocused] = useState(false);
-  const [rangeIdx, setRangeIdx] = useState(0);
+  // 默认「近 3 年」：既能看跨年趋势，又不至于首屏过长
+  const [rangeIdx, setRangeIdx] = useState(4);
   const [series, setSeries] = useState<LoadedSeries[]>([]);
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState<string[]>([]);

@@ -53,7 +53,7 @@ function MiniSpark({ code, expanded, onExpand }: { code: string; expanded: boole
     setErr("");
     (async () => {
       try {
-        const res = await fetch(`/api/global/kline?code=${code}&days=${expanded ? 250 : 60}`, { cache: "no-store" });
+        const res = await fetch(`/api/global/kline?code=${code}&days=${expanded ? 8000 : 250}`, { cache: "no-store" });
         const json = await res.json();
         if (json?.ok && Array.isArray(json.bars) && json.bars.length) {
           if (!cancelled) setBars(json.bars);

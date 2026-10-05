@@ -22,7 +22,13 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const secid = searchParams.get("secid")?.trim() ?? "";
   if (!/^\d+\.\w+$/.test(secid)) return NextResponse.json({ error: "参数错误" }, { status: 400 });
-  const days = Math.min(500, Math.max(5, Number(searchParams.get("days") ?? 60)));
+  /**
+   * 天数上限由此处决定。
+   * 原先 Math.min(500, ...) 把指数 K 线限制在约 2 年，
+   * 而东财/腾讯接口实际可返回数十年（beg 放到 1990 后）。
+   * 现上限 8000 根，日线可覆盖指数全历史。
+   */
+  const days = Math.min(8000, Math.max(5, Number(searchParams.get("days") ?? 60)));
 
   const { bars, source } = await fetchIndexKlineMulti(secid, days);
 
@@ -39,6 +45,8 @@ export async function GET(req: Request) {
     secid,
     source,
     klines: bars,
+    // 实际覆盖区间，供前端显示而不是猜
+    span: bars.length ? { from: bars[0].date, to: bars[bars.length - 1].date } : null,
   });
 }
 

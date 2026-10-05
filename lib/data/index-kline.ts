@@ -48,7 +48,7 @@ export async function fetchEastmoneyIndex(secid: string, days: number): Promise<
   try {
     const url = `https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=${encodeURIComponent(
       secid
-    )}&klt=101&fqt=0&beg=20200101&end=20261231&lmt=${days}&fields1=f1,f2,f3&fields2=f51,f52,f53,f54,f55,f56`;
+    )}&klt=101&fqt=0&beg=19900101&end=20500101&lmt=${days}&fields1=f1,f2,f3&fields2=f51,f52,f53,f54,f55,f56`;
     const res = await fetch(url, {
       next: { revalidate: 120 },
       headers: { Referer: "https://quote.eastmoney.com/", "User-Agent": UA },

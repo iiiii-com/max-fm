@@ -27,7 +27,7 @@ export default function TechLevels() {
   useEffect(() => {
     let cancelled = false;
     const api = sel.secid.startsWith("100.") ? "/api/index/kline" : "/api/stock/kline";
-    fetch(`${api}?secid=${sel.secid}&days=120`, { cache: "no-store" })
+    fetch(`${api}?secid=${sel.secid}&days=8000`, { cache: "no-store" })
       .then((r) => r.json())
       .then((j) => {
         if (cancelled) return;

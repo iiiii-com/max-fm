@@ -21,8 +21,8 @@ const LAB_SYMBOLS: LabSymbol[] = [
   { label: "🇭🇰 恒生指数", name: "恒生指数", secid: "100.HSI", kind: "index" },
 ];
 
-/** 回测区间：近 3 年（约 750 交易日） */
-const DAYS = 750;
+/** 回测区间：5000 交易日（约 20 年），覆盖多轮牛熊。原为 750 日（约 3 年）。 */
+const DAYS = 5000;
 
 export default function BacktestLab() {
   const [sel, setSel] = useState<LabSymbol>(LAB_SYMBOLS[0]);

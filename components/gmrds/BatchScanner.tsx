@@ -69,7 +69,7 @@ export default function BatchScanner() {
         const item = queue.shift()!;
         try {
           const [k, f] = await Promise.all([
-            fetch(`/api/stock/kline?secid=${item.secid}&days=120`, { cache: "no-store" }).then((r) => r.json()),
+            fetch(`/api/stock/kline?secid=${item.secid}&days=8000`, { cache: "no-store" }).then((r) => r.json()),
             fetch(`/api/stock/fundamentals?secid=${item.secid}`, { cache: "no-store" }).then((r) => r.json()),
           ]);
           const bars = k?.klines;

@@ -191,7 +191,7 @@ interface ProbeRow {
 const PROBES: Array<{ name: string; url: string; note: string }> = [
   { name: "行情快照 /api/quotes", url: "/api/quotes", note: "东财/腾讯/新浪多源容错" },
   { name: "市场宽度 /api/market/breadth", url: "/api/market/breadth", note: "沪深家数分布" },
-  { name: "个股K线 /api/stock/kline", url: "/api/stock/kline?secid=1.000001&days=30", note: "多源容错 + 服务端缓存兜底" },
+  { name: "个股K线 /api/stock/kline", url: "/api/stock/kline?secid=1.000001&days=8000", note: "多源容错 + 服务端缓存兜底" },
   { name: "财报摘要 /api/stock/fundamentals", url: "/api/stock/fundamentals?secid=0.000001", note: "东财 F10" },
   { name: "估值分位 /api/stock/valuation-percentile", url: "/api/stock/valuation-percentile?secid=1.000001", note: "近5年每日 PE/PB" },
 ];

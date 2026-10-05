@@ -51,7 +51,7 @@ export default function StockDeepView({ secid }: { secid: string }) {
     setChainPos(null);
     const klineApi = isIndex ? "/api/index/kline" : "/api/stock/kline";
     Promise.all([
-      fetch(`${klineApi}?secid=${secid}&days=250`, { cache: "no-store" }).then((r) => r.json()),
+      fetch(`${klineApi}?secid=${secid}&days=8000`, { cache: "no-store" }).then((r) => r.json()),
       isIndex ? Promise.resolve(null) : fetch(`/api/stock/fundamentals?secid=${secid}`, { cache: "no-store" }).then((r) => r.json()),
       isIndex ? Promise.resolve(null) : fetch(`/api/stock/flow?secid=${secid}`, { cache: "no-store" }).then((r) => r.json()),
       // 产业链归属：独立请求，失败不影响其余板块渲染

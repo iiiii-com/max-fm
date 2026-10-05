@@ -39,7 +39,7 @@ async function pullKlines(bk: string, lmt: number): Promise<string[]> {
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
         const url =
-          `https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=90.${bk}&klt=101&fqt=${fqt}&end=20500101&lmt=${lmt}` +
+          `https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=90.${bk}&klt=101&fqt=${fqt}&beg=19900101&end=20500101` +
           `&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f52,f53,f54,f55,f56,f57`;
         const res = await fetch(url, { headers: UA, signal: AbortSignal.timeout(10000), cache: "no-store" });
         if (res.ok) {
@@ -54,7 +54,7 @@ async function pullKlines(bk: string, lmt: number): Promise<string[]> {
   }
   // curl 兜底（Schannel 栈，成功率高）
   const url =
-    `https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=90.${bk}&klt=101&fqt=1&end=20500101&lmt=${lmt}` +
+    `https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=90.${bk}&klt=101&fqt=1&beg=19900101&end=20500101` +
     `&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f52,f53,f54,f55,f56,f57`;
   const { stdout } = await execFileAsync(
     CURL_BIN,
@@ -91,13 +91,18 @@ async function fetchFlow(bk: string, lmt: number): Promise<Map<string, number>> 
 // 完整拉取：K线 + 资金流 → 组装为结构化列表
 async function pullSectorKline(bk: string, lmt: number): Promise<SectorKline[]> {
   const [klines, flowMap] = await Promise.all([pullKlines(bk, lmt), fetchFlow(bk, lmt)]);
+  // beg=19900101 会一次拿到 26 年全量；按请求条数截断，避免把 6000+ 根推给前端
+  const window = klines.slice(-lmt);
+  // 截断窗口需要前一根算涨跌幅，否则首根 pct 恒为 0
+  const offset = klines.length - window.length;
   const list: SectorKline[] = [];
-  for (let i = 0; i < klines.length; i++) {
-    const p = (klines[i] ?? "").split(",");
+  for (let i = 0; i < window.length; i++) {
+    const p = (window[i] ?? "").split(",");
     if (p.length < 3) continue;
     const date = String(p[0]);
     const close = Number(p[2]) || 0;
-    const prevClose = i > 0 ? Number((klines[i - 1] ?? "").split(",")[2]) || 0 : close;
+    const prev = offset + i;
+    const prevClose = prev > 0 ? Number((klines[prev - 1] ?? "").split(",")[2]) || 0 : close;
     list.push({
       date,
       close,
@@ -126,7 +131,13 @@ function bgRefresh(key: string, bk: string, lmt: number): void {
 
 export async function GET(req: Request) {
   const bk = new URL(req.url).searchParams.get("bk")?.trim() ?? "";
-  const lmt = Math.min(120, Math.max(10, Number(new URL(req.url).searchParams.get("lmt")) || 30));
+  /**
+   * 板块 K 线默认条数与上限。
+   * 原先 Math.min(120, ...) 且默认 30 根 —— 板块 K 线因此只有约 5.8 个月（默认仅 1.5 个月）。
+   * 实测东财板块接口 beg=19900101 可返回 6480 根 / 26.7 年（BK0475），
+   * 故放开上限并把 beg 放到 1990；lmt 对该接口无效，真正限制是 beg。
+   */
+  const lmt = Math.min(8000, Math.max(30, Number(new URL(req.url).searchParams.get("lmt")) || 500));
   if (!/^BK\d+$/.test(bk)) return NextResponse.json({ error: "参数错误" }, { status: 400 });
 
   const key = `${bk}:${lmt}`;

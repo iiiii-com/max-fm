@@ -28,7 +28,12 @@ const SINA_SYMBOLS: Record<string, string> = {
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const code = (searchParams.get("code") ?? "").toUpperCase().trim();
-  const days = Math.min(800, Math.max(10, Number(searchParams.get("days")) || 120));
+  /**
+ * 天数上限由此处决定。
+ * 原先 Math.min(800, ...) 把全球指数 K 线限制在约 3.2 年，
+ * 而新浪/腾讯/东财实际可返回数十年。现放到 8000 根，与 A 股接口口径一致。
+ */
+  const days = Math.min(8000, Math.max(10, Number(searchParams.get("days")) || 120));
 
   // 1) 新浪美股（SPX/NDX/DJIA）
   if (SINA_SYMBOLS[code]) {

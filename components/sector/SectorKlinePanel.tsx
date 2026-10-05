@@ -62,7 +62,7 @@ export default function SectorKlinePanel({ sector, onClose }: { sector: DetailSe
 
     const loadKline = (isRetry: boolean): void => {
       if (isRetry) setRetrying(true);
-      fetch(`/api/sector/kline?bk=${sector.code}&lmt=60`, { cache: "no-store" })
+      fetch(`/api/sector/kline?bk=${sector.code}&lmt=8000`, { cache: "no-store" })
         .then((r) => r.json())
         .then((k) => {
           if (!alive) return;
@@ -292,7 +292,7 @@ export default function SectorKlinePanel({ sector, onClose }: { sector: DetailSe
                       setRows([]);
                       setStaleAsOf(null);
                       setRetrying(true);
-                      fetch(`/api/sector/kline?bk=${sector.code}&lmt=60`, { cache: "no-store" })
+                      fetch(`/api/sector/kline?bk=${sector.code}&lmt=8000`, { cache: "no-store" })
                         .then((r) => r.json())
                         .then((k) => {
                           if (k?.ok && Array.isArray(k.list) && k.list.length) {
