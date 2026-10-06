@@ -7,6 +7,7 @@ import { KlineDetailPanel, useKlineClickDetail } from "@/components/charts/Kline
 import { echarts, type EChartsOption } from "@/components/charts/echarts";
 import { sma, boll, macd, rsi, kdj, aggregateBars } from "@/lib/data/indicators";
 import { mkPctSeries } from "@/lib/data/kline-tooltip";
+import { mkDayAxisLabel } from "@/lib/data/axis";
 
 export interface LabBar {
   date: string;
@@ -148,11 +149,12 @@ export default function InteractiveKlineLab({
     ];
     if (hasMacd) grid.push({ left: 56, right: 14, top: "70%", height: "12%" });
     if (hasOsc) grid.push({ left: 56, right: 14, top: hasMacd ? "84%" : "70%", height: "12%" });
+    const dayAxisLabel = mkDayAxisLabel(dates[dates.length - 1], { fontSize: 10 });
     const xAxes: any[] = [
-      { type: "category", data: dates, axisLabel: { fontSize: 10 } },
+      { type: "category", data: dates, axisLabel: dayAxisLabel },
       { type: "category", gridIndex: 1, data: dates, axisLabel: { show: false } },
     ];
-    for (let g = 2; g < nGrid; g++) xAxes.push({ type: "category", gridIndex: g, data: dates, axisLabel: g === nGrid - 1 ? { fontSize: 9 } : { show: false } });
+    for (let g = 2; g < nGrid; g++) xAxes.push({ type: "category", gridIndex: g, data: dates, axisLabel: g === nGrid - 1 ? mkDayAxisLabel(dates[dates.length - 1], { fontSize: 9 }) : { show: false } });
     const yAxes: any[] = [
       { scale: true, axisLabel: { fontSize: 10 }, splitLine: { lineStyle: { color: "#f4f3f0" } } },
       { gridIndex: 1, axisLabel: { fontSize: 9 }, splitLine: { show: false } },

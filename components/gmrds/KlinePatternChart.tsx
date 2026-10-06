@@ -6,6 +6,7 @@ import EChart from "@/components/charts/EChart";
 import { KlineDetailPanel, useKlineClickDetail } from "@/components/charts/KlineDetail";
 import { echarts, type EChartsOption } from "@/components/charts/echarts";
 import { mkPctSeries } from "@/lib/data/kline-tooltip";
+import { mkDayAxisLabel } from "@/lib/data/axis";
 
 export interface KlinePoint {
   date: string;
@@ -78,7 +79,7 @@ export default function KlinePatternChart({
       xAxis: {
         type: "category",
         data: dates,
-        axisLabel: { fontSize: 10 },
+        axisLabel: mkDayAxisLabel(dates[dates.length - 1], { fontSize: 10 }),
         axisTick: { show: false },
       },
       yAxis: {

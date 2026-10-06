@@ -35,14 +35,53 @@ function calcInterval(dataLength: number): number {
 }
 
 /**
+ * 日K / 周K 的横轴标签：加年份，但最新那年不加。
+ *
+ * 为什么需要：K线跨度已经拉到 25 年（个股 6015 根 / 板块 6480 根），
+ * 只显示 MM-DD 时，2003-03-15 和 2023-03-15 在轴上长得一模一样，分不清年月。
+ * 但最新一年是「当下」，年份属于冗余信息，重复只会挤掉刻度间距。
+ *
+ * @param lastDate 数据区间的最后一天（yyyy-MM-dd），用于判定哪个是「最新那年」
+ */
+export function mkDayLabel(lastDate?: string | null) {
+  const latestYear = lastDate ? lastDate.slice(0, 4) : null;
+  return (v: string) => {
+    const year = v.slice(0, 4);
+    if (year === latestYear) return v.slice(5, 10); // 最新那年：只显示 MM-DD
+    return `${year}-${v.slice(5, 10)}`;
+  };
+}
+
+/**
+ * 日K / 周K 的横轴标签配置（年份规则 + 首尾内对齐）。
+ *
+ * alignMinLabel/alignMaxLabel 是关键：带年份后标签从 5 字符变成 10 字符，
+ * 首尾标签默认以刻度为中心绘制，会溢出网格压到 Y 轴刻度上（"1993-11-08" 糊在 "800" 上）。
+ * 改成首标签靠左、尾标签靠右，两者都朝网格内侧展开，天然不越界。
+ */
+export function mkDayAxisLabel(lastDate?: string | null, extra?: Record<string, unknown>) {
+  return {
+    showMaxLabel: true,
+    showMinLabel: true,
+    hideOverlap: true,
+    alignMinLabel: "left" as const,
+    alignMaxLabel: "right" as const,
+    formatter: mkDayLabel(lastDate),
+    ...extra,
+  };
+}
+
+/**
  * 构建主图 xAxis 配置（category 轴）
  * - boundaryGap:false：首尾 K 线贴边，刻度必然覆盖全部数据范围
  * - interval 按数据量自适应：避免刻度重叠（数据多间隔大）
  * - showMaxLabel/showMinLabel 强制首尾日期可见
- * - formatter 按周期裁剪日期长度（日K 显示 MM-DD，月K 显示 YYYY-MM，年K 显示 YYYY）
+ * - formatter 按周期裁剪日期长度（日/周K 显示 YYYY-MM-DD，月K 显示 YYYY-MM，年K 显示 YYYY）；
+ *   日/周K 的最新一年省略年份（见 mkDayLabel）
  */
 export function mkMainAxis(opts: TimeAxisOptions) {
   const { dataLength, period, gridIndex = 0, firstDate, lastDate } = opts;
+  const dayLabel = mkDayLabel(lastDate);
   return {
     type: "category" as const,
     gridIndex,
@@ -51,15 +90,12 @@ export function mkMainAxis(opts: TimeAxisOptions) {
     axisLabel: {
       fontSize: 10,
       interval: calcInterval(dataLength),
-      showMaxLabel: true,
-      showMinLabel: true,
-      hideOverlap: true,
-      formatter: (v: string) => {
-        if (period === "month") return v.slice(0, 7);
-        if (period === "year") return v.slice(0, 4);
-        if (period === "week") return v.slice(5, 10);
-        return v.slice(5, 10); // day：MM-DD
-      },
+      ...mkDayAxisLabel(lastDate, {
+        formatter:
+          period === "month" ? (v: string) => v.slice(0, 7)
+          : period === "year" ? (v: string) => v.slice(0, 4)
+          : dayLabel,
+      }),
     },
     // 首尾日期作为 axisPointer 参考（不渲染，仅内部确认）
     ...(firstDate && lastDate ? { _first: firstDate, _last: lastDate } : {}),

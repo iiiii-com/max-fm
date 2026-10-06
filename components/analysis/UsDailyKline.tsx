@@ -5,6 +5,7 @@ import EChart from "@/components/charts/EChart";
 import VizBoundary from "@/components/gmrds/VizBoundary";
 import { echarts, type EChartsOption } from "@/components/charts/echarts";
 import { sma } from "@/lib/data/indicators";
+import { mkDayAxisLabel } from "@/lib/data/axis";
 import usMarket from "@/data/us-market.json";
 
 /**
@@ -153,7 +154,7 @@ export default function UsDailyKline() {
           data: dates,
           scale: true,
           axisLine: { lineStyle: { color: "#c9c5bd" } },
-          axisLabel: { fontSize: 9, hideOverlap: true },
+          axisLabel: mkDayAxisLabel(dates[dates.length - 1], { fontSize: 9 }),
           splitLine: { show: false },
         },
         {

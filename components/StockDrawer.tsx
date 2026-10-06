@@ -7,6 +7,7 @@ import { KlineDetailPanel, useKlineClickDetail } from "@/components/charts/Kline
 import { echarts, type EChartsOption } from "@/components/charts/echarts";
 import type { KlineBar } from "@/app/api/stock/kline/route";
 import { mkKlineTooltip, mkPctLabel } from "@/lib/data/kline-tooltip";
+import { mkDayAxisLabel } from "@/lib/data/axis";
 
 export interface DrawerStock {
   name: string;
@@ -87,7 +88,7 @@ export default function StockDrawer({ stock, onClose }: { stock: DrawerStock | n
 
   const klineOption = useMemo<EChartsOption>(() => {
     if (!bars.length) return {};
-    const dates = bars.map((b) => b.date.slice(5));
+    const dates = bars.map((b) => b.date);
     const ohlc = bars.map((b) => [b.open, b.close, b.low, b.high]);
     const closes = bars.map((b) => b.close);
     return {
@@ -96,7 +97,7 @@ export default function StockDrawer({ stock, onClose }: { stock: DrawerStock | n
       xAxis: {
         type: "category",
         data: dates,
-        axisLabel: { fontSize: 9 },
+        axisLabel: mkDayAxisLabel(dates[dates.length - 1], { fontSize: 9 }),
       },
       yAxis: {
         scale: true,

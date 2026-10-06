@@ -8,6 +8,7 @@ import { KlineDetailPanel, useKlineClickDetail } from "@/components/charts/Kline
 import { echarts, type EChartsOption } from "@/components/charts/echarts";
 import { sma, boll, macd, kdj, rsi, type OHLC } from "@/lib/data/indicators";
 import { mkPctSeries } from "@/lib/data/kline-tooltip";
+import { mkDayAxisLabel } from "@/lib/data/axis";
 
 export interface LabBar extends OHLC {
   date: string;
@@ -82,7 +83,7 @@ export default function KlineLab({
 
   const visible = useMemo(() => bars.slice(0, replayIdx), [bars, replayIdx]);
   const closes = useMemo(() => visible.map((b) => b.close), [visible]);
-  const dates = useMemo(() => visible.map((b) => b.date.slice(5)), [visible]);
+  const dates = useMemo(() => visible.map((b) => b.date), [visible]);
 
   const [selected, clearSelected, attachChart] = useKlineClickDetail(visible);
 
@@ -139,7 +140,7 @@ export default function KlineLab({
       xAxis: [
         { type: "category", data: dates, gridIndex: 0, axisLabel: { show: false }, boundaryGap: true },
         { type: "category", data: dates, gridIndex: 1, axisLabel: { show: false }, boundaryGap: true },
-        ...(hasSub ? [{ type: "category" as const, data: dates, gridIndex: 2, axisLabel: { fontSize: 9 }, boundaryGap: true }] : []),
+        ...(hasSub ? [{ type: "category" as const, data: dates, gridIndex: 2, axisLabel: mkDayAxisLabel(dates[dates.length - 1], { fontSize: 9 }), boundaryGap: true }] : []),
       ],
       yAxis: [
         { scale: true, gridIndex: 0, axisLabel: { fontSize: 10 }, splitLine: { lineStyle: { color: "rgba(128,128,128,0.12)" } } },
