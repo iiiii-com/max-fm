@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import SaaTaaPanel from "@/components/SaaTaaPanel";
 
 export default function AdviceForm() {
   const router = useRouter();
@@ -65,6 +66,7 @@ export default function AdviceForm() {
         <p className="text-sm font-medium mb-1.5">理财目标（可选）</p>
         <input value={goal} onChange={(e) => setGoal(e.target.value)} placeholder="例如：为 5 年后买房攒首付 / 养老储备 / 资产增值" className="input" />
       </div>
+      <SaaTaaPanel risk={risk} />
       {error && <p className="text-xs text-red-500">{error}</p>}
       <button onClick={submit} disabled={loading} className="w-full py-2.5 rounded-lg bg-primary text-white text-sm font-medium disabled:opacity-40">
         {loading ? "AI 生成中（约 20 秒）…" : "生成我的专属建议"}

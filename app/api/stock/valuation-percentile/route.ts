@@ -77,6 +77,17 @@ export async function GET(req: Request) {
     const pes = pts.map((p) => p.pe);
     const pbs = pts.map((p) => p.pb).filter((v): v is number => v != null && v > 0);
     const cur = pes[pes.length - 1];
+
+    // 最小样本量守卫：样本太少时分位数没有意义（3 天的「历史分位 100%」是噪声不是结论）。
+    // PB 原本就有 ≥20 的守卫，PE 漏了 —— 两侧口径必须一致，否则同一张图上一半可信一半不可信。
+    const MIN_SAMPLES = 20;
+    if (pes.length < MIN_SAMPLES) {
+      return NextResponse.json(
+        { ok: false, error: `历史估值序列仅 ${pes.length} 个交易日（需 ≥ ${MIN_SAMPLES}），不给分位数` },
+        { status: 404 }
+      );
+    }
+
     const peStat = statOf(pes);
     const last = pts[pts.length - 1];
 
@@ -92,8 +103,8 @@ export async function GET(req: Request) {
         current: { pe: Number(cur.toFixed(2)), pb: last.pb != null ? Number(last.pb.toFixed(2)) : null },
         // 保持原有 PE 统计字段（老消费方依赖），额外挂 bands
         stats: { ...peStat, period: `${pts[0]?.date} ~ ${last?.date}` },
-        pbStats: pbs.length >= 20 ? statOf(pbs) : null,
-        bands: { pe: peStat.bands, pb: pbs.length >= 20 ? quantiles([...pbs].sort((a, b) => a - b)) : null },
+        pbStats: pbs.length >= MIN_SAMPLES ? statOf(pbs) : null,
+        bands: { pe: peStat.bands, pb: pbs.length >= MIN_SAMPLES ? quantiles([...pbs].sort((a, b) => a - b)) : null },
         series: sampled.map((p) => ({ date: p.date, pe: Number(p.pe.toFixed(2)) })),
       },
       { headers: { "Cache-Control": "public, max-age=3600, s-maxage=3600" } }
