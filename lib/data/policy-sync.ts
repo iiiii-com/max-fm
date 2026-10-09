@@ -318,5 +318,79 @@ export async function syncPoliciesReal(): Promise<{ org: string; inserted: numbe
       results.push({ org: j.org, inserted: 0, error: String(e?.message || e) });
     }
   }
+  // 顺手修复历史坏链接（修好 base 之前入库的那些）。幂等，无坏行时零成本。
+  try {
+    await repairNdrUrls();
+  } catch {
+    /* 修复失败不影响同步结果 */
+  }
   return results;
+}
+
+/* ------------------------------------------------------------------ *
+ * 存量修复：发改委原文链接
+ * ------------------------------------------------------------------ */
+
+/**
+ * 修正两类已知的坏链接形态；不匹配则返回 null（**不猜**）。
+ *
+ * 成因都是解析相对路径时 base 少了一层，表现不同：
+ *   1) 政策正文：/xxgk/zcfb/202609/…  →  /xxgk/zcfb/fzggwl/202609/…（少 fzggwl 一层）
+ *   2) 解读图解：/jd/jd/…、/jd/zctj/…  →  /xxgk/jd/…（少 xxgk 前缀）
+ * 两类都已逐条实测正确形态返回 200。
+ */
+function correctedNdrUrl(url: string): string | null {
+  if (!url.includes("ndrc.gov.cn")) return null;
+  if (!url.includes("/xxgk/zcfb/fzggwl/") && url.includes("/xxgk/zcfb/")) {
+    return url.replace("/xxgk/zcfb/", "/xxgk/zcfb/fzggwl/");
+  }
+  if (!url.includes("/xxgk/jd/") && /\/jd\/(jd|zctj)\//.test(url)) {
+    return url.replace(/\/jd\/(jd|zctj)\//, "/xxgk/jd/$1/");
+  }
+  return null;
+}
+
+/**
+ * 修复库里已存的发改委坏链接。
+ *
+ * 为什么放在同步模块里：生产是 PG 模式，postbuild 的政策抓取会跳过，
+ * 存量坏行不会被任何流程碰到 —— 于是"查看官方原文"会一直指向 404。
+ * 这个修复是幂等的字符串变换，修完再跑就没有可修的行，成本可忽略。
+ *
+ * 纪律：**逐条实测修正后的 URL 返回 200 才写**。验证失败的保持原样并在日志里列出 ——
+ * 宁可留一条已知坏的让人看得见，也不要批量改成一个同样没验证过的新猜测。
+ */
+export async function repairNdrUrls(): Promise<{ fixed: number; checked: number; failed: number }> {
+  const rows = (await db
+    .select({ id: s.policies.id, title: s.policies.title, url: s.policies.sourceUrl })
+    .from(s.policies)
+    .where(sql`${s.policies.sourceUrl} LIKE '%ndrc.gov.cn%'`)) as Array<{ id: string; title: string | null; url: string | null }>;
+
+  const todo: Array<{ id: string; title: string; to: string }> = [];
+  for (const r of rows) {
+    const to = correctedNdrUrl(String(r.url ?? ""));
+    if (to) todo.push({ id: r.id, title: String(r.title ?? ""), to });
+  }
+  if (!todo.length) return { fixed: 0, checked: 0, failed: 0 };
+
+  let fixed = 0;
+  let failed = 0;
+  for (const t of todo) {
+    let ok = false;
+    try {
+      const res = await fetch(t.to, { headers: UA, signal: AbortSignal.timeout(20000), cache: "no-store" });
+      ok = res.ok;
+    } catch {
+      ok = false;
+    }
+    if (!ok) {
+      failed++;
+      console.warn(`[policy-sync] 发改委链接验证失败，保持原样：${t.title.slice(0, 24)} ${t.to}`);
+      continue;
+    }
+    await db.update(s.policies).set({ sourceUrl: t.to }).where(sql`${s.policies.id} = ${t.id}`);
+    fixed++;
+  }
+  console.log(`[policy-sync] 发改委链接修复：修正 ${fixed} / 验证失败 ${failed} / 待查 ${todo.length}`);
+  return { fixed, checked: todo.length, failed };
 }

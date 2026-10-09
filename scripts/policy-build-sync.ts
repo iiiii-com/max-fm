@@ -14,7 +14,19 @@ import { isPg } from "../lib/db";
 async function main() {
   console.log("[policy-build-sync] start", new Date().toISOString());
   if (isPg) {
-    console.log("[policy-build-sync] DATABASE_URL 已配置（PG 模式），跳过构建时同步（由定时任务持久化写入）");
+    /**
+     * PG 模式下政策正文同步由定时任务负责，但**存量坏链接的修复**放在这里：
+     * 它是幂等的字符串变换（只碰匹配已知坏形态的行），修完再跑就没有可修的行，
+     * 成本可忽略；而定时任务之外没有任何流程会碰到这些历史数据。
+     */
+    console.log("[policy-build-sync] DATABASE_URL 已配置（PG 模式），正文同步交由定时任务；本次只修复存量链接");
+    try {
+      const { repairNdrUrls } = await import("../lib/data/policy-sync");
+      const r = await repairNdrUrls();
+      console.log(`[policy-build-sync] 链接修复：修正 ${r.fixed} / 失败 ${r.failed} / 待查 ${r.checked}`);
+    } catch (e) {
+      console.error("[policy-build-sync] 链接修复失败（不阻塞构建）:", e instanceof Error ? e.message : e);
+    }
     return;
   }
   try {
