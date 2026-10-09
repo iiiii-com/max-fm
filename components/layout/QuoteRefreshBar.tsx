@@ -1,13 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRefresh, REFRESH_INTERVAL } from "@/lib/hooks/refresh";
 import { RefreshCw, Radio, Clock } from "lucide-react";
 
-/** 行情刷新控制条：自动刷新开关 + 最近更新时间 + 手动刷新 */
+/**
+ * 行情刷新控制条：自动刷新开关 + 最近更新时间 + 手动刷新。
+ *
+ * 时间必须**只在客户端渲染**：
+ * lastUpdated 是挂载时才确定的（Date.now()），且 getHours() 取的是本地时区 ——
+ * 服务端（Vercel 跑在 UTC）与客户端（用户本地时区）算出来的时刻必然不同，
+ * 直接渲染会触发 hydration mismatch，React 随后在客户端重建整棵树。
+ * 重建过程中图表容器会被卸载重建，表现就是"K 线有时候不显示"。
+ * 因此 SSR 阶段先输出占位符，挂载后再显示真实时间。
+ */
 export default function QuoteRefreshBar() {
   const { enabled, toggle, bump, lastUpdated } = useRefresh();
   const [spinning, setSpinning] = useState(false);
+  /** 挂载前一律显示占位符，避免服务端/客户端时间不一致 */
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   const manual = () => {
     setSpinning(true);
@@ -38,9 +50,9 @@ export default function QuoteRefreshBar() {
           自动刷新 {enabled ? "开" : "关"}
         </button>
       </div>
-      <span className="hidden sm:flex items-center gap-1">
+      <span className="hidden sm:flex items-center gap-1" suppressHydrationWarning>
         <Clock className="w-3.5 h-3.5" />
-        {hhmmss}
+        {mounted ? hhmmss : "--:--:--"}
       </span>
       <button
         onClick={manual}

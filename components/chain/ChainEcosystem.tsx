@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { echarts, type EChartsOption } from "@/components/charts/echarts";
+import { echarts, initResponsiveChart, type EChartsOption } from "@/components/charts/echarts";
 import { STATIC_CHAINS } from "@/lib/data/chains";
 import { resolveChartTheme, readVar, withAlpha, TOOLTIP, ANIM_DURATION } from "@/lib/charts/theme";
 
@@ -43,7 +43,7 @@ export default function ChainEcosystem({ height = 520 }: { height?: number }) {
     // tooltip 与卡片、轴标签、图例全都不一致 —— 而 lib/charts/theme.ts
     // 正是为消灭这个模式才建的。
     echarts.registerTheme(THEME_NAME, resolveChartTheme());
-    const chart = echarts.init(ref.current, THEME_NAME);
+    const { chart, dispose } = initResponsiveChart(ref.current, THEME_NAME);
     // canvas 不解析 var()：主题色必须先解析成具体值（见 lib/charts/theme.ts 的说明）
     const ink = readVar("--foreground", "#1a1a1a");
     const border = readVar("--border", "#e2e0dc");
@@ -106,11 +106,8 @@ export default function ChainEcosystem({ height = 520 }: { height?: number }) {
       const id = params?.data?.id;
       if (id) router.push(`/industry?tab=chains&chain=${encodeURIComponent(id)}`);
     });
-    const onResize = () => chart.resize();
-    window.addEventListener("resize", onResize);
     return () => {
-      window.removeEventListener("resize", onResize);
-      chart.dispose();
+      dispose();
       chartRef.current = null;
     };
   }, [router]);

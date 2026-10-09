@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { echarts, type EChartsOption } from "@/components/charts/echarts";
+import { echarts, initResponsiveChart, type EChartsOption } from "@/components/charts/echarts";
 import ProGate from "@/components/ProGate";
 import { resolveChartTheme, readVar, withAlpha, TOOLTIP, ANIM_DURATION, GRID_DEFAULT, seriesColors } from "@/lib/charts/theme";
 
@@ -59,7 +59,7 @@ export default function ChainComparePanel({ enabled }: { enabled: boolean }) {
   useEffect(() => {
     if (!ref.current || !d) return;
     echarts.registerTheme("mx-chain-compare", resolveChartTheme());
-    const chart = echarts.init(ref.current, "mx-chain-compare");
+    const { chart, dispose } = initResponsiveChart(ref.current, "mx-chain-compare");
     chartRef.current = chart;
 
     const muted = readVar("--muted", "#6b6862");
@@ -89,11 +89,8 @@ export default function ChainComparePanel({ enabled }: { enabled: boolean }) {
       })),
     };
     chart.setOption(option);
-    const onResize = () => chart.resize();
-    window.addEventListener("resize", onResize);
     return () => {
-      window.removeEventListener("resize", onResize);
-      chart.dispose();
+      dispose();
       chartRef.current = null;
     };
   }, [d]);

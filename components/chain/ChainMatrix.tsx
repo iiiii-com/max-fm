@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { echarts, type EChartsOption } from "@/components/charts/echarts";
+import { echarts, initResponsiveChart, type EChartsOption } from "@/components/charts/echarts";
 import { STATIC_CHAINS } from "@/lib/data/chains";
 import { relationMatrix } from "@/lib/data/chainGraph";
 import { resolveChartTheme, readVar, withAlpha, TOOLTIP, ANIM_DURATION } from "@/lib/charts/theme";
@@ -99,7 +99,7 @@ export default function ChainMatrix({ height = 760 }: { height?: number }) {
   useEffect(() => {
     if (!ref.current) return;
     echarts.registerTheme(THEME_NAME, resolveChartTheme());
-    const chart = echarts.init(ref.current, THEME_NAME);
+    const { chart, dispose } = initResponsiveChart(ref.current, THEME_NAME);
     chartRef.current = chart;
 
     /**
@@ -190,11 +190,8 @@ export default function ChainMatrix({ height = 760 }: { height?: number }) {
       const id = view.ids[j];
       if (id) router.push(`/industry?tab=chains&chain=${encodeURIComponent(id)}`);
     });
-    const onResize = () => chart.resize();
-    window.addEventListener("resize", onResize);
     return () => {
-      window.removeEventListener("resize", onResize);
-      chart.dispose();
+      dispose();
       chartRef.current = null;
     };
   }, [view, router]);

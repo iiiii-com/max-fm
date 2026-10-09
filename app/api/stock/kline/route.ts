@@ -41,42 +41,58 @@ export async function GET(req: Request) {
   const days = Math.min(8000, Math.max(10, Number(searchParams.get("days") ?? 2500)));
   const [mkt, code] = secid.split(".");
 
-  // ---- 源1：东方财富 ----
-  try {
-    const url = `https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=${encodeURIComponent(
-      secid
-    )}&klt=${KLT[period]}&fqt=1&beg=19900101&end=20500101&fields1=f1,f2,f3&fields2=f51,f52,f53,f54,f55,f56,f57`;
-    const res = await fetch(url, {
-      next: { revalidate: 120 },
-      headers: { Referer: "https://quote.eastmoney.com/", "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" },
-    });
-    if (!res.ok) throw new Error(`em ${res.status}`);
-    const json = await res.json();
-    const raw: string[] = json?.data?.klines ?? [];
-    if (!Array.isArray(raw) || !raw.length) throw new Error("empty");
-    const name = String(json?.data?.name ?? secid);
-    const klines: KlineBar[] = raw.slice(-days).map((row) => {
-      const [date, open, close, high, low, volume, amount] = row.split(",");
-      return {
-        date, open: Number(open), close: Number(close), high: Number(high), low: Number(low),
-        volume: Math.round(Number(volume)), amount: Math.round(Number(amount)),
-      };
-    });
-    // 回传实际覆盖区间，前端据此显示区间而不是猜
-    return NextResponse.json({
-      name, code: String(json?.data?.code ?? code), secid, period, klines,
-      total: raw.length,
-      span: klines.length ? { from: klines[0].date, to: klines[klines.length - 1].date } : null,
-    });
-  } catch {
-    /* fallthrough */
+  // ---- 源1：东方财富（fqt=1 前复权优先，失败再试 fqt=0 不复权）----
+  /**
+   * 为什么要逐个试 fqt：部分标的（ETF/基金）在前复权口径下东财返回空数组，
+   * 而个股正常 —— 表现就是"个股 K 线好好的，ETF 专区一片空白"。
+   * lib/data/sector-kline.ts 的 pullKlines 对同一类问题早已采用同样写法，这里对齐。
+   * 注意 fqt 会影响历史价格（分红除权），所以回传里注明实际用的是哪个口径。
+   */
+  for (const fqt of [1, 0]) {
+    try {
+      const url = `https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=${encodeURIComponent(
+        secid
+      )}&klt=${KLT[period]}&fqt=${fqt}&beg=19900101&end=20500101&fields1=f1,f2,f3&fields2=f51,f52,f53,f54,f55,f56,f57`;
+      const res = await fetch(url, {
+        next: { revalidate: 120 },
+        headers: { Referer: "https://quote.eastmoney.com/", "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" },
+      });
+      if (!res.ok) throw new Error(`em ${res.status}`);
+      const json = await res.json();
+      const raw: string[] = json?.data?.klines ?? [];
+      if (!Array.isArray(raw) || !raw.length) throw new Error("empty");
+      const name = String(json?.data?.name ?? secid);
+      const klines: KlineBar[] = raw.slice(-days).map((row) => {
+        const [date, open, close, high, low, volume, amount] = row.split(",");
+        return {
+          date, open: Number(open), close: Number(close), high: Number(high), low: Number(low),
+          volume: Math.round(Number(volume)), amount: Math.round(Number(amount)),
+        };
+      });
+      // 回传实际覆盖区间与复权口径，前端据此显示而不是猜
+      return NextResponse.json({
+        name, code: String(json?.data?.code ?? code), secid, period, klines,
+        total: raw.length,
+        adjust: fqt === 1 ? "前复权" : "不复权",
+        span: klines.length ? { from: klines[0].date, to: klines[klines.length - 1].date } : null,
+      });
+    } catch {
+      /* 换下一个 fqt，或落到新浪兜底 */
+    }
   }
 
   // ---- 源2：新浪（A 股/ETF 日线，周/月聚合）----
   if (mkt === "1" || mkt === "0") {
     try {
       const sym = `${mkt === "1" ? "sh" : "sz"}${code}`;
-      const need = period === "day" ? days : Math.min(500, days * 5);
+      /**
+       * datalen 必须封顶：实测新浪该接口 datalen=1800 正常、2000 起返回空
+       * （响应体只剩 62 字节的 JSONP 外壳）。
+       * 原先日线直接传 days（默认 2500），于是新浪兜底**必然失败**，
+       * 东财一旦取不到就整个 502 —— 这就是 ETF 日线打不开的直接原因。
+       */
+      const SINA_MAX = 1800;
+      const need = period === "day" ? Math.min(SINA_MAX, days) : Math.min(500, days * 5);
       const url = `https://quotes.sina.cn/cn/api/jsonp_v2.php/var%20_=/CN_MarketDataService.getKLineData?symbol=${sym}&scale=240&ma=no&datalen=${need}`;
       const res = await fetch(url, {
         next: { revalidate: 120 },
@@ -92,7 +108,12 @@ export async function GET(req: Request) {
       }));
       if (period !== "day") bars = aggregateBars(bars, period);
       const klines: KlineBar[] = bars.slice(-days).map((b) => ({ ...b, amount: 0 }));
-      return NextResponse.json({ name: `${sym}`, code, secid, period, klines });
+      return NextResponse.json({
+        name: `${sym}`, code, secid, period, klines,
+        source: "新浪",
+        // 与东财分支保持同样的区间回传，前端不必猜覆盖到哪一天
+        span: klines.length ? { from: klines[0].date, to: klines[klines.length - 1].date } : null,
+      });
     } catch {
       /* fallthrough */
     }

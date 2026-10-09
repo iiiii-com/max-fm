@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { echarts, type EChartsOption } from "./echarts";
+import { echarts, initResponsiveChart, type EChartsOption } from "./echarts";
 import { useTheme } from "@/components/theme-provider";
 import { resolveChartTheme } from "@/lib/charts/theme";
 
@@ -43,27 +43,27 @@ export default function EChart({
     // 后者与站点主题脱钩：站点换肤后图表不跟随，切换明暗对图表也无效。
     // 变量在 effect 内读取，确保拿到的是 .dark 类切换后的生效值。
     echarts.registerTheme(THEME_NAME, resolveChartTheme());
-    const chart = echarts.init(ref.current, THEME_NAME);
+    /**
+     * 用 initResponsiveChart 而不是裸 echarts.init + window.resize：
+     * 容器在 init 时若高度为 0（隐藏的 tab、未完成布局、异步内容未撑开），
+     * ECharts 会按 0×0 渲染且不会自己恢复 —— 这就是"K 线有时候不显示"的成因。
+     * ResizeObserver 盯容器本身，容器一有尺寸就重画。
+     */
+    const { chart, dispose } = initResponsiveChart(ref.current, THEME_NAME);
     innerRef.current = chart;
     if (chartRef) chartRef.current = chart;
     // 画布保持透明，露出卡片底色
     chart.setOption({ backgroundColor: "transparent", ...option });
-    const onResize = () => chart.resize();
-    window.addEventListener("resize", onResize);
     if (onDataZoom) chart.on("datazoom", onDataZoom);
     if (onClick) chart.on("click", onClick);
     onReady?.(chart);
     return () => {
-      window.removeEventListener("resize", onResize);
       if (onDataZoom) chart.off("datazoom", onDataZoom);
       if (onClick) {
         try { chart.off("click", onClick); } catch { /* ignore */ }
       }
-      try {
-        chart.dispose();
-      } catch {
-        /* 组件已卸载时 dispose 可能抛 removeChild NotFoundError，忽略 */
-      }
+      // dispose 内部会先断开 ResizeObserver 再销毁实例
+      dispose();
       innerRef.current = null;
       if (chartRef) chartRef.current = null;
     };

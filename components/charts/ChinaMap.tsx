@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { echarts, type EChartsOption } from "./echarts";
+import { echarts, initResponsiveChart, type EChartsOption } from "./echarts";
 import { useTheme } from "@/components/theme-provider";
 
 /**
@@ -78,21 +78,18 @@ export default function ChinaMap({
   // 初始化只需一次（必须等地图数据就绪，否则 geo 组件无法渲染）；option 更新由下方 effect 处理
   useEffect(() => {
     if (!ref.current || geoState !== "ready") return;
-    const chart = echarts.init(ref.current, theme === "dark" ? "dark" : undefined);
+    const { chart, dispose } = initResponsiveChart(ref.current, theme === "dark" ? "dark" : undefined);
     chartRef.current = chart;
     chart.setOption(option);
     // resize 防抖：滚轮/动画触发的容器尺寸变化不重复重绘
-    const onResize = debounce(() => chart.resize(), 150);
-    window.addEventListener("resize", onResize);
     const handlers = Object.entries(onEvents || {}).map(([evt, fn]) => {
       chart.on(evt, fn as any);
       return [evt, fn] as const;
     });
     onReady?.(chart);
     return () => {
-      window.removeEventListener("resize", onResize);
       for (const [evt, fn] of handlers) chart.off(evt as any, fn as any);
-      chart.dispose();
+      dispose();
       chartRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

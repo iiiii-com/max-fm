@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { echarts, type EChartsOption } from "@/components/charts/echarts";
+import { echarts, initResponsiveChart, type EChartsOption } from "@/components/charts/echarts";
 import { useTheme } from "@/components/theme-provider";
 import { useWatchlist } from "@/lib/hooks/useWatchlist";
 import type { KlineBar } from "@/app/api/stock/kline/route";
@@ -146,14 +146,11 @@ function ChartInner({ option, theme }: { option: EChartsOption; theme: string })
   const chartRef = useRef2();
   useEffect(() => {
     if (!ref) return;
-    const chart = echarts.init(ref, theme === "dark" ? "dark" : undefined);
+    const { chart, dispose } = initResponsiveChart(ref, theme === "dark" ? "dark" : undefined);
     chartRef.current = chart;
     chart.setOption(option, true);
-    const onResize = () => chart.resize();
-    window.addEventListener("resize", onResize);
     return () => {
-      window.removeEventListener("resize", onResize);
-      chart.dispose();
+      dispose();
       chartRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

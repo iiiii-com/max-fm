@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { echarts, type EChartsOption } from "@/components/charts/echarts";
+import { echarts, initResponsiveChart, type EChartsOption } from "@/components/charts/echarts";
 import { Card, Badge } from "@/components/ui";
 import { resolveChartTheme, readVar, withAlpha, TOOLTIP, ANIM_DURATION, GRID_DEFAULT } from "@/lib/charts/theme";
 import ProGate from "@/components/ProGate";
@@ -81,7 +81,7 @@ export default function ChainIndexPanel({ slug }: { slug: string }) {
   useEffect(() => {
     if (!ref.current || !d) return;
     echarts.registerTheme(THEME_NAME, resolveChartTheme());
-    const chart = echarts.init(ref.current, THEME_NAME);
+    const { chart, dispose } = initResponsiveChart(ref.current, THEME_NAME);
     chartRef.current = chart;
 
     // canvas 不认识 var()：所有颜色先解析成具体值
@@ -138,11 +138,8 @@ export default function ChainIndexPanel({ slug }: { slug: string }) {
       color: [primary, muted],
     };
     chart.setOption(option);
-    const onResize = () => chart.resize();
-    window.addEventListener("resize", onResize);
     return () => {
-      window.removeEventListener("resize", onResize);
-      chart.dispose();
+      dispose();
       chartRef.current = null;
     };
     // up/down 在此仅声明语义色，实际未用于本图；保留以免未来加涨跌标注时再解析一次

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { echarts, type EChartsOption } from "@/components/charts/echarts";
+import { echarts, initResponsiveChart, type EChartsOption } from "@/components/charts/echarts";
 import { resolveChartTheme, readVar, withAlpha, TOOLTIP, ANIM_DURATION } from "@/lib/charts/theme";
 
 export interface StageRow {
@@ -38,7 +38,7 @@ export default function ChainStagePanel({
   useEffect(() => {
     if (!ref.current) return;
     echarts.registerTheme("mx-chain-stage", resolveChartTheme());
-    const chart = echarts.init(ref.current, "mx-chain-stage");
+    const { chart, dispose } = initResponsiveChart(ref.current, "mx-chain-stage");
     chartRef.current = chart;
 
     const muted = readVar("--muted", "#6b6862");
@@ -109,11 +109,8 @@ export default function ChainStagePanel({
       ],
     };
     chart.setOption(option);
-    const onResize = () => chart.resize();
-    window.addEventListener("resize", onResize);
     return () => {
-      window.removeEventListener("resize", onResize);
-      chart.dispose();
+      dispose();
       chartRef.current = null;
     };
   }, [stages, chainRet]);

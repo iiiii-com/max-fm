@@ -257,7 +257,14 @@ async function syncFromMof(): Promise<number> {
 
 async function syncFromNdr(): Promise<number> {
   const html = await fetchViaCurl("https://www.ndrc.gov.cn/xxgk/zcfb/fzggwl/");
-  const items = await parseListPage(html, "https://www.ndrc.gov.cn/xxgk/zcfb/");
+  /**
+   * base 必须是**列表页自身的目录**（fzggwl/），不能是它的上一级（zcfb/）。
+   * 列表页里的 href 是相对路径 `./202609/t20260928_1407859.html`，
+   * 少一层就会解析成 `…/zcfb/202609/…` —— 域名真实、路径规整、点开 404，
+   * 而这种"看起来完全正常"的坏链接比留空更糟：用户会以为是网站挂了。
+   * mof / pbc 两处用的都是列表页自身目录，这里是唯一写错的一处。
+   */
+  const items = await parseListPage(html, "https://www.ndrc.gov.cn/xxgk/zcfb/fzggwl/");
   let inserted = 0;
   for (const it of items) {
     const exists = await db.select({ id: s.policies.id }).from(s.policies)

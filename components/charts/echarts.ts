@@ -39,3 +39,43 @@ echarts.use([
 
 export { echarts };
 export type { EChartsOption } from "echarts";
+
+/**
+ * 初始化图表并让它在容器尺寸变化时自动 resize。
+ *
+ * **为什么必须用 ResizeObserver，不能只监听 window.resize**：
+ * ECharts 在 `init` 时按容器当前尺寸建画布。若那一刻容器高度为 0
+ * （隐藏的 tab、尚未完成布局、父级 display:none、异步内容还没撑开），
+ * 它会按 0×0 渲染并且**不会自己恢复** —— 之后既不报错也不重画，
+ * 表现就是"K 线有时候不显示"，而刷新或改窗口大小又好了。
+ * window.resize 只在浏览器窗口变化时触发，覆盖不到上面这些情况；
+ * ResizeObserver 盯的是容器本身，容器一拿到尺寸就重画。
+ *
+ * 返回 dispose 供调用方在卸载时一并断开 observer，避免观察已卸载的节点。
+ */
+export function initResponsiveChart(
+  el: HTMLElement,
+  theme?: string
+): { chart: echarts.ECharts; dispose: () => void } {
+  const chart = echarts.init(el, theme);
+  const ro = new ResizeObserver(() => {
+    // 尺寸仍为 0 时 resize 没有意义（ECharts 只会再警告一次），跳过等下次
+    if (el.clientWidth > 0 && el.clientHeight > 0) chart.resize();
+  });
+  ro.observe(el);
+  return {
+    chart,
+    dispose: () => {
+      try {
+        ro.disconnect();
+      } catch {
+        /* 忽略 */
+      }
+      try {
+        chart.dispose();
+      } catch {
+        /* 卸载竞态下 dispose 可能抛 removeChild NotFoundError，忽略 */
+      }
+    },
+  };
+}

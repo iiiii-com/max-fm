@@ -1201,7 +1201,7 @@ export const STATIC_CHAINS: StaticChain[] = [
       {
         stage: "中游", name: "生物制造设备", products: "发酵罐、层析系统与下游纯化",
         companies: [
-          { name: "东富龙", secid: "1.300171", role: "制药装备" },
+          { name: "东富龙", secid: "0.300171", role: "制药装备" },
           { name: "森松国际", secid: "1.2155", role: "工程与装备" },
           { name: "楚天科技", secid: "0.300358", role: "制药装备" },
         ],
@@ -1286,8 +1286,8 @@ export const STATIC_CHAINS: StaticChain[] = [
         stage: "上游", name: "核心材料与部件", products: "生物材料、精密部件与传感器",
         companies: [
           { name: "微电生理", secid: "1.688351", role: "介入器械部件" },
-          { name: "南微医学", secid: "0.688029", role: "内镜耗材" },
-          { name: "正海生物", secid: "1.300653", role: "再生材料" },
+          { name: "南微医学", secid: "1.688029", role: "内镜耗材" },
+          { name: "正海生物", secid: "0.300653", role: "再生材料" },
         ],
       },
       {
@@ -1367,7 +1367,7 @@ export const STATIC_CHAINS: StaticChain[] = [
       {
         stage: "下游", name: "宠物医疗与保险", products: "宠物医院、疫苗与保险",
         companies: [
-          { name: "瑞普生物", secid: "1.300119", role: "动物疫苗" },
+          { name: "瑞普生物", secid: "0.300119", role: "动物疫苗" },
           { name: "中牧股份", secid: "1.600195", role: "兽用生物制品" },
           { name: "生物股份", secid: "1.600201", role: "动物疫苗" },
         ],
@@ -1440,7 +1440,7 @@ export const STATIC_CHAINS: StaticChain[] = [
       {
         stage: "上游", name: "钠盐与正极材料", products: "碳酸钠、钠离子正极与电解液",
         companies: [
-          { name: "中盐化工", secid: "0.600328", role: "纯碱与钠盐" },
+          { name: "中盐化工", secid: "1.600328", role: "纯碱与钠盐" },
           { name: "振华新材", secid: "1.603707", role: "正极材料" },
           { name: "容百科技", secid: "1.688005", role: "正极材料" },
         ],
