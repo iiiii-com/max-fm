@@ -45,7 +45,7 @@ export interface ProFeature {
 }
 
 /** 分区枚举要定义在 ProFeature 之前（interface 里用到） */
-export const PRO_GROUP_ORDER = ["深度解读", "组合风控", "批量计算", "研究留档"] as const;
+export const PRO_GROUP_ORDER = ["深度解读", "产业研究", "组合风控", "批量计算", "研究留档"] as const;
 export type ProGroup = (typeof PRO_GROUP_ORDER)[number];
 
 /**
@@ -75,6 +75,24 @@ export const PRO_FEATURES: ProFeature[] = [
     free: "目标比例、TAA 偏离区间、各资产年化波动与样本窗口",
     pro: "相关矩阵、最小方差对照、等权/逆波动率/最小方差三种口径的波动率对比",
     modules: ["/advice"],
+    ready: true,
+  },
+  {
+    key: "chain-index",
+    name: "产业链指数",
+    group: "产业研究",
+    free: "产业链结构：上中下游环节、代表公司、供需说明、跨链关联",
+    pro: "用链上代表公司真实收盘价等权合成的链指数：区间收益、年化波动、最大回撤、相对沪深300 强弱，以及成员区间收益与覆盖率明细",
+    modules: ["/industry"],
+    ready: true,
+  },
+  {
+    key: "chain-compare",
+    name: "多链对比",
+    group: "产业研究",
+    free: "逐条打开产业链，看结构与单链表现",
+    pro: "多条链指数同窗口并排：区间收益排行、波动对照、两两相关性，用于找轮动与相对强弱",
+    modules: ["/pro"],
     ready: true,
   },
   {

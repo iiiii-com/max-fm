@@ -120,10 +120,44 @@ const FALLBACK = {
 };
 
 /** 从 :root 读取当前生效的令牌值（跟随 .dark 切换） */
-function readVar(name: string, fb: string): string {
+/**
+ * 读取并**解析** CSS 变量为具体颜色值。
+ *
+ * 必须导出的理由：ECharts 画在 canvas 上，canvas 的颜色解析器不认识 `var(--x)`。
+ * 把 `var(--primary)` 直接拼进 color-mix / rgba 里会静默变成透明 ——
+ * 图表照常渲染、坐标轴照常出现，只是图形不见了，极难察觉。
+ * 凡是需要在 canvas 颜色表达式里用到主题色，都要先经这里解析。
+ */
+export function readVar(name: string, fb: string): string {
   if (typeof window === "undefined") return fb;
   const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   return v || fb;
+}
+
+/**
+ * 给颜色加透明度，输出 **rgba()**。
+ *
+ * 为什么不用 color-mix()：ECharts 走 zrender 的颜色解析器，只认
+ * hex / rgb / hsl / 具名色，**不认 color-mix()** —— 传进去会解析成 null
+ * 然后静默变成透明：图照样渲染、坐标轴照常出现，只有图形不见了。
+ * （本文件里原先用 color-mix 拼网格线颜色，同样是静默失效。）
+ *
+ * 支持 #rgb / #rrggbb / rgb()/rgba() 三种输入；解析不了就原样返回，
+ * 宁可颜色不透明，也不要静默消失。
+ */
+export function withAlpha(color: string, alpha: number): string {
+  const a = Math.max(0, Math.min(1, alpha));
+  const c = (color ?? "").trim();
+  const hex = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(c);
+  if (hex) {
+    let h = hex[1];
+    if (h.length === 3) h = h.split("").map((x) => x + x).join("");
+    const n = parseInt(h, 16);
+    return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
+  }
+  const rgb = /^rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/i.exec(c);
+  if (rgb) return `rgba(${Math.round(+rgb[1])}, ${Math.round(+rgb[2])}, ${Math.round(+rgb[3])}, ${a})`;
+  return c;
 }
 
 export interface ResolvedTheme {

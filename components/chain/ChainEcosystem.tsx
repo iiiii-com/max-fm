@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { echarts, type EChartsOption } from "@/components/charts/echarts";
 import { STATIC_CHAINS } from "@/lib/data/chains";
-import { resolveChartTheme, TOOLTIP, ANIM_DURATION, INK, BORDER, signColor } from "@/lib/charts/theme";
+import { resolveChartTheme, readVar, withAlpha, TOOLTIP, ANIM_DURATION } from "@/lib/charts/theme";
 
 /**
  * 画进这张关系图的链。
@@ -44,6 +44,10 @@ export default function ChainEcosystem({ height = 520 }: { height?: number }) {
     // 正是为消灭这个模式才建的。
     echarts.registerTheme(THEME_NAME, resolveChartTheme());
     const chart = echarts.init(ref.current, THEME_NAME);
+    // canvas 不解析 var()：主题色必须先解析成具体值（见 lib/charts/theme.ts 的说明）
+    const ink = readVar("--foreground", "#1a1a1a");
+    const border = readVar("--border", "#e2e0dc");
+    const muted = readVar("--muted", "#6b6862");
     chartRef.current = chart;
 
     const byId = new Map(STATIC_CHAINS.map((c) => [c.id, c]));
@@ -79,7 +83,7 @@ export default function ChainEcosystem({ height = 520 }: { height?: number }) {
         ...TOOLTIP,
         trigger: "item",
         // nameOf 未来可能接 DB，formatter 拼 HTML 前必须转义，否则成为注入面
-        formatter: (p: any) => `<b>${esc(p?.data?.name ?? p?.name)}</b><br/><span style="color:var(--muted)">点击查看产业链详情</span>`,
+        formatter: (p: any) => `<b>${esc(p?.data?.name ?? p?.name)}</b><br/><span style="color:${muted}">点击查看产业链详情</span>`,
       },
       series: [{
         type: "graph",
@@ -89,10 +93,10 @@ export default function ChainEcosystem({ height = 520 }: { height?: number }) {
         animationDuration: ANIM_DURATION,
         data: nodes,
         links: edges,
-        label: { show: true, position: "bottom", fontSize: 10, color: INK },
+        label: { show: true, position: "bottom", fontSize: 10, color: ink },
         lineStyle: { color: "source", curveness: 0.18, opacity: 0.45, width: 1 },
         // 描边用分隔线色而非纯白：深色模式下纯白描边会在深底上糊成一团
-        itemStyle: { color: signColor(0, INK), borderColor: BORDER, borderWidth: 1 },
+        itemStyle: { color: ink, borderColor: border, borderWidth: 1 },
         emphasis: { focus: "adjacency" },
         force: { repulsion: 420, edgeLength: 110, gravity: 0.08 },
       }],

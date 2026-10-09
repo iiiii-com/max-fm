@@ -6,6 +6,7 @@ import { isPro, PLAN_LABEL, proFeaturesByGroup, PRO_FEATURES } from "@/lib/plan"
 import SectorRankTable from "@/components/pro/SectorRankTable";
 import ExportButtons from "@/components/pro/ExportButtons";
 import PolicyDeepList from "@/components/pro/PolicyDeepList";
+import ChainComparePanel from "@/components/pro/ChainComparePanel";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "专业版工作台 | Max 财经" };
@@ -109,6 +110,7 @@ export default async function ProPage() {
 
           {/* 分区内直接可用的操作面：能在这里做的事就别让用户再跳一次 */}
           {g.group === "深度解读" && <PolicyDeepList enabled={pro} />}
+          {g.group === "产业研究" && <ChainComparePanel enabled={pro} />}
           {g.group === "批量计算" && <SectorRankTable enabled={pro} />}
           {g.group === "研究留档" && <ExportButtons enabled={pro} />}
         </section>

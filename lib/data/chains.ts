@@ -1430,7 +1430,12 @@ export const STATIC_CHAINS: StaticChain[] = [
     prosperity: "中景气",
     marketSize: "站内不提供规模数字",
     outlook: "以低成本与安全性切入储能与低速车，对锂电形成补充而非全面替代",
-    relates: ["nev", "storage", "battery-materials", "steelcoal", "computing"],
+    // 原为 ["nev", "storage", "battery-materials", "steelcoal", "computing"]，
+    // 但 battery-materials 这条链在站内并不存在 —— 悬空引用会让"钠电上游材料"
+    // 这条关系在所有视图里静默消失（力导向图与关系矩阵都只画存在的节点）。
+    // 钠电上游（钠盐/正极/负极/隔膜）与 nev 的「锂电材料」段重叠，关系已由 nev 承载，
+    // 因此直接去掉悬空项，而不是新建一条与 nev 重复的链。
+    relates: ["nev", "storage", "steelcoal", "computing"],
     segments: [
       {
         stage: "上游", name: "钠盐与正极材料", products: "碳酸钠、钠离子正极与电解液",

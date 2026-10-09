@@ -7,6 +7,7 @@ import { fmtDate } from "@/lib/utils";
 import { bootstrap } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { isPro } from "@/lib/plan";
+import { chainsHitBy } from "@/lib/data/chainPolicyHints";
 
 export const dynamic = "force-dynamic";
 
@@ -27,20 +28,6 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
  * 实际上审计条例只会收紧审计监督。规则：只用**指向具体产业**的强特征词，
  * 并且在 UI 上明确标注这是「关键词命中」，不宣称政策利好该行业。
  */
-const SECTOR_HINTS: Array<{ label: string; slug: string; words: string[] }> = [
-  { label: "新能源汽车", slug: "nev", words: ["新能源汽车", "动力电池", "充电桩", "购置税"] },
-  { label: "半导体", slug: "semiconductor", words: ["集成电路", "晶圆", "半导体", "芯片"] },
-  { label: "人工智能", slug: "ai", words: ["人工智能", "大模型", "算力"] },
-  { label: "房地产", slug: "realestate", words: ["商品房", "楼市", "住房公积金", "房地产", "房贷"] },
-  { label: "医药生物", slug: "pharma", words: ["集中采购", "医保", "创新药", "医疗器械"] },
-  { label: "光伏", slug: "solar", words: ["光伏", "风电", "可再生能源装机"] },
-  { label: "机器人", slug: "robot", words: ["人形机器人", "机器人产业"] },
-  { label: "银行保险", slug: "finance", words: ["资本充足率", "存款准备金", "偿付能力", "不良贷款率"] },
-  { label: "消费", slug: "baijiu", words: ["以旧换新", "消费券", "家电下乡", "促消费"] },
-  { label: "农业食品", slug: "agrifood", words: ["粮食", "种业", "耕地", "农产品"] },
-  { label: "军工", slug: "defense", words: ["国防科技", "军民融合", "装备采购"] },
-  { label: "低空经济", slug: "lowaltitude", words: ["低空经济", "通用航空", "无人机"] },
-];
 
 /** 政策类别 → 影响方向（研究框架设定，供投资者参考） */
 const IMPACT_MAP: Record<string, string[]> = {
@@ -71,7 +58,8 @@ export default async function PolicyDetailPage({ params }: { params: Promise<{ i
   const deepExists = !!(a?.professional || a?.detail);
   // 命中判定只用标题 + 摘要 + 原文，避免把「解读文本」里的泛词也算进来
   const corpus = `${p.title} ${p.summary ?? ""} ${p.content ?? ""}`;
-  const sectorHits = SECTOR_HINTS.filter((s) => s.words.some((w) => corpus.includes(w)));
+  // 关键词表已抽到 lib/data/chainPolicyHints.ts，与链详情页的反向查询共用同一份
+  const sectorHits = chainsHitBy(corpus);
   const impacts = IMPACT_MAP[p.category ?? ""] ?? [];
 
   return (

@@ -22,9 +22,22 @@ export interface PriceSeries {
  * 按**共同日期**对齐多条价格序列，并算出日收益率。
  * 任一资产缺失的交易日整行剔除 —— 收益率必须同期，否则协方差没有意义。
  */
-export function alignReturns(series: PriceSeries[]): { dates: string[]; returns: number[][] } {
+export function alignReturns(
+  series: PriceSeries[]
+): { dates: string[]; returns: number[][]; firstDate: string | null } {
   const usable = series.filter((s) => s.dates.length >= 2 && s.dates.length === s.closes.length);
-  if (!usable.length) return { dates: [], returns: [] };
+  if (!usable.length) return { dates: [], returns: [], firstDate: null };
+
+  /**
+   * 日期必须是 YYYY-MM-DD。下面用**字典序**排序求共同交易日，
+   * 只有 ISO 格式的字典序才等于时间序 —— 喂进 "2026-01-01-0" 这类自造格式
+   * 会静默打乱顺序，收益率随之错位、复利结果全错，而且不会报任何错。
+   * 这类输入只可能来自上游数据错误，所以直接抛错而不是猜。
+   */
+  for (const s of usable) {
+    const bad = s.dates.find((d) => !/^\d{4}-\d{2}-\d{2}$/.test(d));
+    if (bad) throw new Error(`日期必须为 YYYY-MM-DD 格式，收到「${bad}」（资产 ${s.asset}）`);
+  }
 
   // date -> 各资产该日收盘价
   const maps = usable.map((s) => {
@@ -34,7 +47,7 @@ export function alignReturns(series: PriceSeries[]): { dates: string[]; returns:
   });
 
   const common = [...maps[0].keys()].filter((d) => maps.every((m) => m.has(d))).sort();
-  if (common.length < 2) return { dates: [], returns: [] };
+  if (common.length < 2) return { dates: [], returns: [], firstDate: null };
 
   const returns: number[][] = usable.map((_, k) => {
     const out: number[] = [];
@@ -49,7 +62,16 @@ export function alignReturns(series: PriceSeries[]): { dates: string[]; returns:
 
   // 停牌过滤后各资产长度可能不同，协方差只在等长时成立
   const n = Math.min(...returns.map((r) => r.length));
-  return { dates: common.slice(1, 1 + n), returns: returns.map((r) => r.slice(0, n)) };
+  /**
+   * 注意返回的是「收益率对应的日期」：第 t 个收益是 common[t] → common[t+1]。
+   * 因此**不含**共同窗口的首日 —— 要画净值/指数曲线必须另外拿 firstDate 当起点，
+   * 否则整条曲线会错位一天（链指数就踩过这个坑）。
+   */
+  return {
+    dates: common.slice(1, 1 + n),
+    returns: returns.map((r) => r.slice(0, n)),
+    firstDate: common[0],
+  };
 }
 
 /** 样本协方差矩阵 × 年化因子 */

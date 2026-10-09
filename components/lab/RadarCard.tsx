@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import EChart from "@/components/charts/EChart";
 import type { EChartsOption } from "@/components/charts/echarts";
+import { readVar } from "@/lib/charts/theme";
 
 interface TrendPoint {
   period: string;
@@ -131,15 +132,22 @@ export default function RadarCard({ secid, isIndex }: { secid: string; isIndex: 
   const radar = useMemo(() => (trend ? radarFromTrend(trend) : null), [trend]);
   const dims = radar?.dims ?? null;
 
+  /**
+   * canvas 不解析 CSS 变量：var(--x) 直接进 ECharts 会静默失效（轴名变默认色、系列线画不出）。
+   * 服务端渲染时 readVar 返回兜底色，客户端解析成真实令牌值 —— 两者都是合法颜色，
+   * 且 option 不进 DOM，因此不产生 hydration 差异。
+   */
   const option = useMemo<EChartsOption>(() => {
     if (!dims) return {};
+    const muted = readVar("--muted", "#6b6862");
+    const accent = readVar("--primary", "#1a1a1a");
     return {
       animation: false,
       radar: {
         indicator: dims.map((d) => ({ name: d.name, max: 100 })),
         radius: "62%",
         center: ["50%", "52%"],
-        axisName: { fontSize: 10, color: "var(--muted)" },
+        axisName: { fontSize: 10, color: muted },
         splitArea: { areaStyle: { color: ["rgba(128,128,128,0.03)", "rgba(128,128,128,0.06)"] } },
       },
       series: [
@@ -150,8 +158,8 @@ export default function RadarCard({ secid, isIndex }: { secid: string; isIndex: 
               value: dims.map((d) => d.value ?? 0),
               name: "财务质量",
               areaStyle: { color: "rgba(200,16,46,0.18)" },
-              lineStyle: { color: "var(--primary)", width: 2 },
-              itemStyle: { color: "var(--primary)" },
+              lineStyle: { color: accent, width: 2 },
+              itemStyle: { color: accent },
             },
           ],
         },

@@ -241,6 +241,15 @@ export const macroTemperatures = t("macro_temperature");
 export const temperatureAnalyses = t("temperature_analyses");
 export const taskLogs = t("task_logs");
 export const historyEvents = t("history_events");
+/**
+ * 个股日线缓存（一只标的存**一行**，序列以 JSON 放在 detail 列）。
+ *
+ * 为什么不按「一行一根 K 线」存：385 家公司 × 500 根 = 19 万行，
+ * 而这张表是全站最宽的表（共用超集列清单，每行上千字节），
+ * 落成 19 万行接近 200MB 只为存 6MB 的有效数据。
+ * 取数时本来也总是整段取，所以整段存一行反而更贴合访问模式。
+ */
+export const dailyBars = t("daily_bars");
 
 export type EconomicIndicator = typeof economicIndicators.$inferSelect;
 export type Policy = typeof policies.$inferSelect;

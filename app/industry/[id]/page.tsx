@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getChainBySlug, getChains, getChainNodes, getChainMetrics } from "@/lib/data/queries";
+import { getChainBySlug, getChains, getChainNodes, getChainMetrics, getPoliciesForChain } from "@/lib/data/queries";
 import { Card, Badge, SectionTitle } from "@/components/ui";
 import ChainSwimlane from "@/components/chain/ChainSwimlane";
 import ChainInsightPanel from "@/components/chain/ChainInsightPanel";
 import ChainPositionPanel from "@/components/chain/ChainPositionPanel";
 import ChainCityProsPanel from "@/components/chain/ChainCityProsPanel";
 import ChainDeepDivePanel from "@/components/chain/ChainDeepDivePanel";
+import ChainIndexPanel from "@/components/chain/ChainIndexPanel";
 import ChainNodeDetailPanel from "@/components/chain/ChainNodeDetailPanel";
 import { LEVELS, levelOrder, realNodes } from "@/lib/data/chainLevels";
 import { safeJsonArray } from "@/lib/utils";
@@ -22,7 +23,11 @@ export default async function ChainDetailPage({ params }: { params: Promise<{ id
   await bootstrap();
   const chain = await getChainBySlug(id);
   if (!chain) notFound();
-  const [nodesRaw, chains] = await Promise.all([getChainNodes(chain.id), getChains()]);
+  const [nodesRaw, chains, relatedPolicies] = await Promise.all([
+    getChainNodes(chain.id),
+    getChains(),
+    getPoliciesForChain(chain.slug, 6),
+  ]);
   // 只取通过「单位 + 时点 + 来源 + 口径」四件套校验的指标，其余不进 UI
   const metrics = await getChainMetrics([chain.slug]);
 
@@ -121,7 +126,57 @@ export default async function ChainDetailPage({ params }: { params: Promise<{ id
         </Card>
       </section>
 
+      <section>
+        <SectionTitle
+          title="链指数（真实收盘价等权合成）"
+          sub="用链上代表公司的真实日线等权合成，基点 1000，只使用全体成员的共同交易日。口径、覆盖率与被剔除成员全部印在面板里，可逐步复算 —— 这是全页唯一一个能用来做相对强弱与回撤比较的量化序列"
+        />
+        <ChainIndexPanel slug={chain.slug} />
+        <p className="mt-2 text-[11px] text-muted leading-relaxed">
+          想看多条链在同一窗口的相对强弱与相关性？用
+          <Link href="/pro" className="mx-1 text-primary hover:underline">专业版工作台</Link>
+          的「多链对比」。
+        </p>
+      </section>
+
       <ChainInsightPanel slug={chain.slug} />
+
+      {/* 政策面：反向关联用与政策页同一份关键词表，命中词一并列出以便核对 */}
+      <section>
+        <SectionTitle
+          title="涉及这条链的政策"
+          sub="按政策标题与原文的关键词匹配得出，并列出命中的具体词以便核对。关键词命中只用于定位原文涉及的领域，不代表该政策利好这个行业"
+        />
+        {relatedPolicies.length ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {relatedPolicies.map((p) => (
+              <Link key={p.id} href={`/policy/${p.id}`} className="hover:opacity-90 transition-opacity">
+                <Card className="p-3 h-full">
+                  <div className="flex items-start justify-between gap-2 mb-1">
+                    <span className="text-sm font-medium leading-snug line-clamp-2">{p.title}</span>
+                    <span className="text-[10px] text-muted shrink-0">{p.publishDate ?? ""}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
+                    {p.category && <Badge tone="gray">{p.category}</Badge>}
+                    {p.hitWords.map((w) => (
+                      <span key={w} className="text-[10px] px-1.5 py-0.5 rounded bg-primary/8 text-primary border border-primary/20">
+                        {w}
+                      </span>
+                    ))}
+                  </div>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <Card className="p-4">
+            <p className="text-xs text-muted leading-relaxed">
+              站内暂无涉及这条链的政策命中。关键词表只覆盖指向具体产业的强特征词，
+              命中不到不等于没有相关政策 —— 也可能是措辞不在表内，这是关键词法的已知局限。
+            </p>
+          </Card>
+        )}
+      </section>
 
       <ChainPositionPanel slug={chain.slug} />
 

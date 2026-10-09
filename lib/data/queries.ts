@@ -2,6 +2,7 @@ import { db, parseJson } from "@/lib/db";
 import * as s from "@/lib/db/schema";
 import { eq, desc, asc, and, like, inArray } from "drizzle-orm";
 import { validMetrics } from "@/lib/data/chainMetrics";
+import { hitWords } from "@/lib/data/chainPolicyHints";
 import { buildChainIndex } from "@/lib/data/chainIndex";
 
 export const CATEGORY_COLORS: Record<string, string> = {
@@ -228,6 +229,43 @@ export async function getPolicyAnalysisIds(): Promise<Set<string>> {
     .select({ uid: s.policyAnalyses.uid, popular: s.policyAnalyses.popular, professional: s.policyAnalyses.professional })
     .from(s.policyAnalyses)) as any[];
   return new Set(rows.filter((r) => r?.popular && r?.professional).map((r) => String(r.uid)));
+}
+
+/**
+ * 反向关联：哪些政策涉及这条产业链。
+ *
+ * 与政策详情页共用 lib/data/chainPolicyHints.ts 的同一份关键词表 ——
+ * 两处各写一份必然漂移，出现"政策页说涉及、链页说没有"的自相矛盾。
+ *
+ * 命中口径：只用**标题 + 摘要 + 原文**做匹配，不含 AI 解读文本
+ * （解读里出现的词会把政策原本没提的行业也算成命中）。
+ * 返回命中的具体词，UI 上可说明"因为哪几个词命中"，比只给结论可核对。
+ */
+export async function getPoliciesForChain(slug: string, limit = 6) {
+  const rows = (await db.select().from(s.policies).orderBy(desc(s.policies.publishDate))) as any[];
+  const out: Array<{
+    id: string;
+    title: string;
+    department: string | null;
+    category: string | null;
+    publishDate: string | null;
+    hitWords: string[];
+  }> = [];
+  for (const p of rows) {
+    const corpus = `${p.title ?? ""} ${p.summary ?? ""} ${p.content ?? ""}`;
+    const hits = hitWords(corpus, slug);
+    if (!hits.length) continue;
+    out.push({
+      id: String(p.id),
+      title: String(p.title ?? ""),
+      department: p.department ?? null,
+      category: p.category ?? null,
+      publishDate: p.publishDate ?? null,
+      hitWords: hits,
+    });
+    if (out.length >= limit) break;
+  }
+  return out;
 }
 
 /**

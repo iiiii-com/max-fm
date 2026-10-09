@@ -140,4 +140,33 @@ const pro = { plan: "pro" };
   assert.ok(exportFeature?.ready, "导出已实现，注册表必须标 ready（否则 pricing 页会写「规划中」而实际能用）");
 }
 
-console.log("plan-gate: 10 组断言全过");
+// 产业研究分区：链指数与多链对比都必须是服务端计算型能力，且各自有门禁 key
+{
+  const chain = PRO_FEATURES.filter((f) => f.group === "产业研究");
+  assert.ok(chain.length >= 2, "产业研究分区应至少有链指数与多链对比两项");
+  assert.ok(PRO_FEATURE_MAP["chain-index"]?.ready, "链指数已实现");
+  assert.ok(PRO_FEATURE_MAP["chain-compare"]?.ready, "多链对比已实现");
+  // 免费说明必须写清"能看到什么"，不能写成"看不到"
+  for (const f of chain) {
+    assert.ok(f.free.length > 8, `${f.key} 的免费说明过于简略`);
+    assert.ok(!/看不到|不可用/.test(f.free), `${f.key} 的免费说明不能写成"看不到"`);
+  }
+}
+
+// 门槛必须落在服务端：链指数与多链对比的 API 路由里必须调用 proGate
+{
+  const fs = await import("node:fs");
+  for (const [key, file] of [
+    ["chain-index", "app/api/chain/index/route.ts"],
+    ["chain-compare", "app/api/chain/compare/route.ts"],
+  ]) {
+    const src = fs.readFileSync(new URL(`../${file}`, import.meta.url), "utf8");
+    assert.ok(
+      // 注意别用 [^)]* —— proGate(await getSession(), "key") 的参数里本身含括号
+      new RegExp(`proGate\\([^\\n]*"${key}"`).test(src),
+      `${file} 必须用 proGate("${key}") 做服务端门禁 —— 只在前端藏等于没锁`
+    );
+  }
+}
+
+console.log("plan-gate: 12 组断言全过");
