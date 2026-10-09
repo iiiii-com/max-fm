@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { echarts, type EChartsOption } from "@/components/charts/echarts";
 import { STATIC_CHAINS } from "@/lib/data/chains";
@@ -31,11 +31,47 @@ export default function ChainMatrix({ height = 760 }: { height?: number }) {
   const ref = useRef<HTMLDivElement>(null);
   const chartRef = useRef<echarts.ECharts | null>(null);
   const router = useRouter();
+  /** 行序：默认按关联数（枢纽在上），可切回原始书写顺序 */
+  const [order, setOrder] = useState<"degree" | "source">("degree");
 
   const { ids, matrix, labels, stats } = useMemo(() => {
-    const { ids, matrix } = relationMatrix(STATIC_CHAINS);
+    const { ids: rawIds, matrix: rawMatrix } = relationMatrix(STATIC_CHAINS);
     const byId = new Map(STATIC_CHAINS.map((c) => [c.id, c]));
+
+    /**
+     * 按度数重排。
+     *
+     * 为什么默认用度数序：原始顺序是人工整理产业链时的书写顺序，与关系密度无关，
+     * 于是关系矩阵看起来像均匀撒了一把点，看不出结构。按度数排序后，
+     * 枢纽链（工程机械/通信设备/物流）集中在左上角形成一块**致密区**，
+     * 边缘链落在右下角 —— 社群结构一眼可见。
+     *
+     * 度数用无向口径（出边 ∪ 入边去重），与 ChainGraphInsights 的枢纽榜一致，
+     * 否则两处的"关联数"会对不上。
+     */
+    const degreeOf = (id: string) => {
+      const idx = rawIds.indexOf(id);
+      let n = 0;
+      for (let j = 0; j < rawIds.length; j++) {
+        if (j === idx) continue;
+        if (rawMatrix[idx][j] > 0 || rawMatrix[j][idx] > 0) n++;
+      }
+      return n;
+    };
+
+    const orderIdx = rawIds
+      .map((id, i) => ({ id, i }))
+      .sort((a, b) => {
+        const d = degreeOf(b.id) - degreeOf(a.id);
+        // 度数相同时按名称稳定排序，避免每次渲染顺序抖动
+        return d !== 0 ? d : a.id.localeCompare(b.id);
+      })
+      .map((x) => x.i);
+
+    const ids = orderIdx.map((i) => rawIds[i]);
+    const matrix = orderIdx.map((i) => orderIdx.map((j) => rawMatrix[i][j]));
     const labels = ids.map((id) => shortName(byId.get(id)?.name ?? id));
+
     let mutual = 0;
     let oneway = 0;
     for (let i = 0; i < ids.length; i++)
@@ -46,6 +82,19 @@ export default function ChainMatrix({ height = 760 }: { height?: number }) {
     // 双向在矩阵里会成对出现，计数除以 2 才是"对数"
     return { ids, matrix, labels, stats: { mutual: mutual / 2, oneway } };
   }, []);
+
+  /** 切回原始书写顺序（对照用） */
+  const sourceOrder = useMemo(() => {
+    const { ids: rawIds, matrix: rawMatrix } = relationMatrix(STATIC_CHAINS);
+    const byId = new Map(STATIC_CHAINS.map((c) => [c.id, c]));
+    return {
+      ids: rawIds,
+      matrix: rawMatrix,
+      labels: rawIds.map((id) => shortName(byId.get(id)?.name ?? id)),
+    };
+  }, []);
+
+  const view = order === "degree" ? { ids, matrix, labels } : sourceOrder;
 
   useEffect(() => {
     if (!ref.current) return;
@@ -77,9 +126,9 @@ export default function ChainMatrix({ height = 760 }: { height?: number }) {
     // （缺了会直接抛 "Heatmap must use with visualMap"），所以两档浓度由
     // visualMap.inRange 给 —— 取值只有 1/2，色带两端正好就是那两种颜色。
     const data: Array<[number, number, number]> = [];
-    for (let i = 0; i < ids.length; i++) {
-      for (let j = 0; j < ids.length; j++) {
-        const v = matrix[i][j];
+    for (let i = 0; i < view.ids.length; i++) {
+      for (let j = 0; j < view.ids.length; j++) {
+        const v = view.matrix[i][j];
         if (v === 2 || v === 1) data.push([j, i, v]);
       }
     }
@@ -91,8 +140,8 @@ export default function ChainMatrix({ height = 760 }: { height?: number }) {
         trigger: "item",
         formatter: (p: any) => {
           const [j, i, v] = p.data.value as [number, number, number];
-          const a = labels[i];
-          const b = labels[j];
+          const a = view.labels[i];
+          const b = view.labels[j];
           const kind = v === 2 ? "双向关联（互相标注）" : "单向关联（仅一方标注）";
           const dir = v === 2 ? `${a} ⇄ ${b}` : `${a} → ${b}`;
           return `<b>${esc(dir)}</b><br/><span style="color:${muted}">${esc(kind)}</span><br/><span style="color:${muted};font-size:10px">点击查看 ${esc(b)}</span>`;
@@ -110,7 +159,7 @@ export default function ChainMatrix({ height = 760 }: { height?: number }) {
       },
       xAxis: {
         type: "category",
-        data: labels,
+        data: view.labels,
         splitArea: { show: false },
         axisLabel: { fontSize: 9, color: muted, rotate: 90, interval: 0 },
         axisTick: { show: false },
@@ -118,7 +167,7 @@ export default function ChainMatrix({ height = 760 }: { height?: number }) {
       },
       yAxis: {
         type: "category",
-        data: labels,
+        data: view.labels,
         splitArea: { show: false },
         axisLabel: { fontSize: 9, color: muted, interval: 0 },
         axisTick: { show: false },
@@ -138,7 +187,7 @@ export default function ChainMatrix({ height = 760 }: { height?: number }) {
     chart.setOption(option);
     chart.on("click", (params: any) => {
       const [j] = params?.data?.value ?? [];
-      const id = ids[j];
+      const id = view.ids[j];
       if (id) router.push(`/industry?tab=chains&chain=${encodeURIComponent(id)}`);
     });
     const onResize = () => chart.resize();
@@ -148,7 +197,7 @@ export default function ChainMatrix({ height = 760 }: { height?: number }) {
       chart.dispose();
       chartRef.current = null;
     };
-  }, [ids, matrix, labels, router]);
+  }, [view, router]);
 
   return (
     <div>
@@ -169,6 +218,26 @@ export default function ChainMatrix({ height = 760 }: { height?: number }) {
         </span>
         <span className="text-[11px] text-muted">
           纵轴指向横轴；空白 = 未标注关联
+        </span>
+        {/* 行序可切：度数序看结构，原始序对照 chains.ts 的书写顺序 */}
+        <span className="inline-flex items-center gap-1 ml-auto">
+          <span className="text-[11px] text-muted">行序</span>
+          {([
+            ["degree", "按关联数"],
+            ["source", "按原始顺序"],
+          ] as const).map(([key, label]) => (
+            <button
+              key={key}
+              onClick={() => setOrder(key)}
+              className={`text-[10px] px-2 py-0.5 rounded border transition-colors ${
+                order === key
+                  ? "border-primary/40 bg-primary/10 text-primary font-semibold"
+                  : "border-border text-muted hover:border-primary/30"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
         </span>
       </div>
       <div ref={ref} style={{ height, width: "100%" }} />
