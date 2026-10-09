@@ -25,6 +25,8 @@ import {
   BookOpenCheck,
   Wrench,
   TestTubes,
+  Gem,
+  Scale,
 } from "lucide-react";
 
 /**
@@ -118,6 +120,21 @@ export const NAV: NavGroup[] = [
       { href: "/gmrds/toolkit", label: "经典工具箱", desc: "K线 / 雷达 / 估值 / 回撤", icon: Wrench },
     ],
   },
+  {
+    /**
+     * 专业版必须是**一级导航**：它的能力分散在政策、组合、板块、导出各处，
+     * 没有一个统一入口的话，用户只会看到零散的锁定提示，
+     * 拼不出"专业版到底是什么"这件事 —— 那壁垒就等于不存在。
+     */
+    href: "/pro",
+    label: "专业版",
+    desc: "深度解读 · 组合风控 · 批量计算 · 研究留档",
+    icon: Gem,
+    children: [
+      { href: "/pro", label: "工作台", desc: "四个分区 · 能力与入口", icon: LayoutGrid },
+      { href: "/pricing", label: "能力对照", desc: "普通版与专业版逐项对比", icon: Scale },
+    ],
+  },
 ];
 
 /** 独立工具页（不进主导航下拉，用于面包屑与页脚） */
@@ -143,13 +160,20 @@ export function isGroupActive(href: string, pathname: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-/** 子模块默认视图标签（板块首页面包屑用） */
+/**
+ * 板块首页的末级标签。
+ *
+ * 不再逐个板块写死（原先 /market /industry /history 三个特例，其余一律回退「概览」），
+ * 那会让面包屑和导航下拉各写一份标签然后慢慢漂移 ——
+ * 实际就漂了：/macro 在下拉里叫「宏观仪表盘」，面包屑却显示「概览」；
+ * /gmrds 下拉叫「体系总览」，面包屑也是「概览」。
+ *
+ * 现在的规则只有一条：板块首页若有**同名子项**（href 与板块一致），就用它的标签，
+ * 于是面包屑与下拉永远是同一个词，改一处就同步。
+ */
 function groupDefaultLabel(group: NavGroup): string {
-  if (group.href === "/market") return "大盘指数";
-  if (group.href === "/industry") return "产业链全景";
-  if (group.href === "/history") return "牛熊周期";
-  // 无下级的板块直接用板块名，避免出现「首页 / 产业地图 / 概览」这种冗余层级
-  if (group.children.length === 0) return group.label;
+  const self = group.children.find((c) => c.href === group.href);
+  if (self) return self.label;
   return "概览";
 }
 
@@ -175,6 +199,8 @@ export function breadcrumbsFor(pathname: string, searchParams?: URLSearchParams 
         const child = group.children.find((c) => c.href === `${group.href}?tab=${tab}`);
         return [...base, gCrumb, { label: child?.label ?? groupDefaultLabel(group) }];
       }
+      // 无下级的板块只有一层：再追加一个同名层级会变成「首页 / 产业地图 / 产业地图」
+      if (group.children.length === 0) return [...base, gCrumb];
       return [...base, gCrumb, { label: groupDefaultLabel(group) }];
     }
 
