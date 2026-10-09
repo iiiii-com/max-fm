@@ -6,6 +6,7 @@ import { eq, and } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
 import { aiGenerate, hasAI } from "@/lib/ai";
 import { getPolicyWithAnalysis } from "@/lib/data/queries";
+import { proGate, isPro } from "@/lib/plan";
 import { VALID_INDICATOR_NAMES } from "@/lib/data/macro-indicators";
 
 export const dynamic = "force-dynamic";
@@ -59,6 +60,11 @@ export async function POST(req: Request) {
   }
   if (!id) id = new URL(req.url).searchParams.get("id")?.trim() ?? "";
   if (!id) return NextResponse.json({ error: "缺少政策 id" }, { status: 400 });
+
+  // 生成是真实的 AI 算力消耗，而且产出的就是专业版那一层内容 —— 这条链路归专业版。
+  // 普通版仍可读取已生成的普通人视角（见 GET），只是不能按需生成。
+  const gate = proGate(await getSession(), "policy-deep");
+  if (gate) return NextResponse.json(gate.body, { status: gate.status });
 
   const row = await getPolicyWithAnalysis(id);
   if (!row?.policy) return NextResponse.json({ error: "政策不存在" }, { status: 404 });
@@ -164,19 +170,30 @@ export async function POST(req: Request) {
   return NextResponse.json({ ok: true, cached: false, analysis: { popular, professional, detail, dataLinks } });
 }
 
-/** 查询某政策的解读状态（供前端轮询） */
+/** 查询某政策的解读状态（供前端轮询）。
+ *  专业机构视角与趋势研判属专业版能力：非专业版这里**也要裁掉**，
+ *  否则页面上的锁定态形同虚设 —— 直接 curl 这个接口就拿到全文了。 */
 export async function GET(req: Request) {
   const id = new URL(req.url).searchParams.get("id")?.trim() ?? "";
   if (!id) return NextResponse.json({ error: "缺少 id" }, { status: 400 });
   const row = await getPolicyWithAnalysis(id);
   if (!row?.policy) return NextResponse.json({ error: "政策不存在" }, { status: 404 });
   const a = row.analysis as any;
+  const pro = isPro(await getSession());
+  const hasDeep = !!(a?.professional || a?.detail);
   return NextResponse.json({
     ok: true,
     status: a?.popular && a?.professional ? "ready" : "missing",
     aiAvailable: hasAI(),
+    pro,
+    locked: !pro && hasDeep,
     analysis: a
-      ? { popular: a.popular, professional: a.professional, detail: a.detail ?? null, dataLinks: a.dataLinks ?? null }
+      ? {
+          popular: a.popular,
+          professional: pro ? a.professional : null,
+          detail: pro ? (a.detail ?? null) : null,
+          dataLinks: a.dataLinks ?? null,
+        }
       : null,
   });
 }

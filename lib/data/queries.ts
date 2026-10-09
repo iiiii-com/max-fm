@@ -230,6 +230,45 @@ export async function getPolicyAnalysisIds(): Promise<Set<string>> {
   return new Set(rows.filter((r) => r?.popular && r?.professional).map((r) => String(r.uid)));
 }
 
+/**
+ * 已产出「专业机构视角」的政策列表（专业版工作台的深度解读分区用）。
+ *
+ * 只返回**专业层真的存在**的条目：工作台上列出来的每一项都必须是点进去就能读的，
+ * 否则这个分区就退化成一个"看起来有内容"的摆设。
+ * 摘要只取机构视角的开头若干字，够判断"这条要不要读"，不把全文送到列表页。
+ */
+export async function getPoliciesWithDeepAnalysis(limit = 6) {
+  const rows = (await db
+    .select({
+      uid: s.policyAnalyses.uid,
+      professional: s.policyAnalyses.professional,
+      detail: s.policyAnalyses.detail,
+      updatedAt: s.policyAnalyses.updatedAt,
+      title: s.policies.title,
+      department: s.policies.department,
+      category: s.policies.category,
+      publishDate: s.policies.publishDate,
+    })
+    .from(s.policyAnalyses)
+    .leftJoin(s.policies, eq(s.policies.id, s.policyAnalyses.uid))
+    .orderBy(desc(s.policyAnalyses.updatedAt))
+    .limit(limit * 2)) as any[];
+
+  return rows
+    .filter((r) => r?.uid && r?.professional)
+    .slice(0, limit)
+    .map((r) => ({
+      id: String(r.uid),
+      title: String(r.title ?? "（政策原文缺失）"),
+      department: r.department ?? null,
+      category: r.category ?? null,
+      publishDate: r.publishDate ?? null,
+      hasDetail: !!r.detail,
+      excerpt: String(r.professional).replace(/[#*`>\-\n\r]/g, " ").replace(/\s+/g, " ").trim().slice(0, 96),
+      updatedAt: r.updatedAt ?? null,
+    }));
+}
+
 export async function getUserFeelings(userId: string) {
   return db
     .select()

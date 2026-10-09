@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import ProGate from "@/components/ProGate";
 
 /** 目标比例 → 战术偏离带宽（SAA 战略比例 / TAA 择时偏离） */
 interface RiskPayload {
@@ -10,10 +11,15 @@ interface RiskPayload {
   window: { from: string; to: string; sessions: number; tradingDaysPerYear: number };
   assets: Array<{ key: string; name: string; vol: number; target: number; band: { low: number; high: number } }>;
   nonEquity: { bond: number; gold: number; cash: number };
-  equityRisk: { equalWeight: number; inverseVol: number; minVariance: number; minVarianceWeights: number[] };
-  corr: number[][];
+  /** 专业版才有：三种口径的波动率对照 */
+  equityRisk?: { equalWeight: number; inverseVol: number; minVariance: number; minVarianceWeights: number[] };
+  /** 专业版才有：相关矩阵 */
+  corr?: number[][];
   missing: string[];
   note: string;
+  pro: boolean;
+  /** 被服务端裁掉的字段名，用于显示锁定态而不是空白 */
+  locked: string[];
 }
 
 const pct = (v: number) => `${(v * 100).toFixed(1)}%`;
@@ -101,31 +107,45 @@ export default function SaaTaaPanel({ risk }: { risk: number }) {
       </table>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-        <div>
-          <p className="text-[10px] font-bold tracking-wider text-primary mb-1">权益部分相关性（同期日收益）</p>
-          <table className="w-full text-[10px] font-mono">
-            <tbody>
-              {d.assets.map((row, i) => (
-                <tr key={row.key}>
-                  <td className="text-muted py-0.5 pr-2">{row.name.slice(0, 6)}</td>
-                  {d.assets.map((_, j) => (
-                    <td key={j} className="text-right py-0.5">
-                      {i === j ? "—" : d.corr[i][j].toFixed(2)}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div>
-          <p className="text-[10px] font-bold tracking-wider text-primary mb-1">权益组合年化波动（三种口径）</p>
-          <ul className="text-[10px] font-mono space-y-0.5">
-            <li>等权 {pct(d.equityRisk.equalWeight)}</li>
-            <li className="font-semibold">逆波动率（SAA 采用）{pct(d.equityRisk.inverseVol)}</li>
-            <li>最小方差 {pct(d.equityRisk.minVariance)}</li>
-          </ul>
-        </div>
+        {d.corr && d.assets.length > 1 ? (
+          <div>
+            <p className="text-[10px] font-bold tracking-wider text-primary mb-1">权益部分相关性（同期日收益）</p>
+            <table className="w-full text-[10px] font-mono">
+              <tbody>
+                {d.assets.map((row, i) => (
+                  <tr key={row.key}>
+                    <td className="text-muted py-0.5 pr-2">{row.name.slice(0, 6)}</td>
+                    {d.assets.map((_, j) => (
+                      <td key={j} className="text-right py-0.5">
+                        {i === j ? "—" : d.corr![i][j].toFixed(2)}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div>
+            <p className="text-[10px] font-bold tracking-wider text-primary mb-1">权益部分相关性（同期日收益）</p>
+            <ProGate feature="portfolio-cov" compact />
+          </div>
+        )}
+        {d.equityRisk ? (
+          <div>
+            <p className="text-[10px] font-bold tracking-wider text-primary mb-1">权益组合年化波动（三种口径）</p>
+            <ul className="text-[10px] font-mono space-y-0.5">
+              <li>等权 {pct(d.equityRisk.equalWeight)}</li>
+              <li className="font-semibold">逆波动率（SAA 采用）{pct(d.equityRisk.inverseVol)}</li>
+              <li>最小方差 {pct(d.equityRisk.minVariance)}</li>
+            </ul>
+          </div>
+        ) : (
+          <div>
+            <p className="text-[10px] font-bold tracking-wider text-primary mb-1">权益组合年化波动（三种口径）</p>
+            <ProGate feature="portfolio-cov" compact />
+          </div>
+        )}
       </div>
 
       <p className="text-[10px] text-muted leading-relaxed border-t border-border/60 pt-2">

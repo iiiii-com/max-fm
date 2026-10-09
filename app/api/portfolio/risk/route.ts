@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { fetchIndexKlineMulti } from "@/lib/data/index-kline";
+import { getSession } from "@/lib/auth";
+import { isPro, maskForPro } from "@/lib/plan";
 import {
   alignReturns, annualCovariance, annualVol, correlationMatrix,
   inverseVolShare, minVarianceWeights, portfolioVol, taaBand,
@@ -95,19 +97,38 @@ export async function GET(req: Request) {
     minVarianceWeights: minVar.map((v) => Number(v.toFixed(4))),
   };
 
+  /**
+   * 版本裁剪：免费给「配多少」，专业给「为什么这么配、换个配法会怎样」。
+   * 刻意**不裁** window / vol / missing —— 那是判断结论可不可信的依据，
+   * 藏掉口径会让免费版变成一个不可验证的数字，这与站内"每个数字可追到来源"的原则冲突。
+   */
+  const session = await getSession();
+  const pro = isPro(session);
+  const { data: gated, locked } = maskForPro(
+    session,
+    { equityRisk, corr },
+    ["equityRisk", "corr"]
+  );
+
+  const payload = {
+    ok: true,
+    updated: new Date().toISOString(),
+    window: { from: dates[0], to: dates[dates.length - 1], sessions: dates.length, tradingDaysPerYear: TRADING_DAYS },
+    assets,
+    nonEquity: { bond: total.bond, gold: total.gold, cash: Number((1 - total.equity - total.bond - total.gold).toFixed(4)) },
+    vol: vol.map((v) => Number(v.toFixed(4))),
+    missing,
+    pro,
+    locked,
+    note: "债券/黄金/现金比例沿用风险偏好框架设定，非回测结论；权益内部比例由协方差矩阵自算。",
+  };
+
   return NextResponse.json(
+    { ...payload, ...gated },
     {
-      ok: true,
-      updated: new Date().toISOString(),
-      window: { from: dates[0], to: dates[dates.length - 1], sessions: dates.length, tradingDaysPerYear: TRADING_DAYS },
-      assets,
-      nonEquity: { bond: total.bond, gold: total.gold, cash: Number((1 - total.equity - total.bond - total.gold).toFixed(4)) },
-      equityRisk,
-      vol: vol.map((v) => Number(v.toFixed(4))),
-      corr,
-      missing,
-      note: "债券/黄金/现金比例沿用风险偏好框架设定，非回测结论；权益内部比例由上表协方差矩阵自算。",
-    },
-    { headers: { "Cache-Control": "public, max-age=3600, s-maxage=3600" } }
+      // 响应按用户版本裁剪，**不能**公开缓存：否则 CDN 会把专业版明细发给免费用户，
+      // 或把裁剪版发给专业版。只能 private，且只缓存在各自浏览器里。
+      headers: { "Cache-Control": "private, max-age=1800" },
+    }
   );
 }

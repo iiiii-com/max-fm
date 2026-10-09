@@ -3,6 +3,9 @@ import { redirect } from "next/navigation";
 import { getSession, getUserFromDb } from "@/lib/auth";
 import { getUserAdvice, getUserFeelings, getWatchlist } from "@/lib/data/queries";
 import { Badge, Card, SectionTitle } from "@/components/ui";
+import WatchlistDiagnosis from "@/components/WatchlistDiagnosis";
+import AdminPlanPanel from "@/components/AdminPlanPanel";
+import { isAdmin } from "@/lib/plan";
 import ChangePasswordCard from "@/components/ChangePasswordCard";
 import { fmtDateTime } from "@/lib/utils";
 import { bootstrap } from "@/lib/db";
@@ -124,7 +127,7 @@ export default async function AccountPage() {
       <section>
         <SectionTitle title="我的自选" sub={`${watch.length} 个标的`} />
         {watch.length ? (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 mb-4">
             {watch.map((w: any) => (
               <span key={w.id} className="px-3 py-1.5 rounded-lg border border-border text-sm bg-card">
                 {w.name} <span className="text-xs text-muted font-mono ml-1">{w.code}</span>
@@ -132,7 +135,7 @@ export default async function AccountPage() {
             ))}
           </div>
         ) : (
-          <Card className="p-4 text-sm text-muted">
+          <Card className="p-4 text-sm text-muted mb-4">
             {/* 旧文案指向并不存在的「投资分析」页；改为指向真实存在的两个入口，并统一按钮叫法 */}
             在 <Link href="/stock" className="text-primary underline">个股行情</Link> 或{" "}
             <Link href="/etf" className="text-primary underline">ETF 专区</Link>{" "}
@@ -140,7 +143,21 @@ export default async function AccountPage() {
             <Link href="/sector" className="text-primary underline">板块中心</Link> 收藏。
           </Card>
         )}
+
+        {/* 组合级诊断：单看每个标的回答不了"整组一起波动多大、谁和谁同涨同跌" */}
+        {watch.length >= 2 && <WatchlistDiagnosis />}
       </section>
+
+      {/* 管理员区：只有白名单邮箱可见；真正的边界在服务端 adminGate */}
+      {isAdmin(session) && (
+        <section>
+          <SectionTitle
+            title="账号与版本管理"
+            sub="管理员可见 · 开通/取消专业版"
+          />
+          <AdminPlanPanel />
+        </section>
+      )}
 
       <ChangePasswordCard />
     </div>

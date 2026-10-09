@@ -5,6 +5,8 @@ import { Card, Badge } from "@/components/ui";
 import { PolicyAnalysisPanels } from "@/components/policy-analysis-panels";
 import { fmtDate } from "@/lib/utils";
 import { bootstrap } from "@/lib/db";
+import { getSession } from "@/lib/auth";
+import { isPro } from "@/lib/plan";
 
 export const dynamic = "force-dynamic";
 
@@ -57,10 +59,16 @@ const IMPACT_MAP: Record<string, string[]> = {
 export default async function PolicyDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   await bootstrap();
-  const [row, others] = await Promise.all([getPolicyWithAnalysis(id), getPolicies()]);
+  const [row, others, session] = await Promise.all([getPolicyWithAnalysis(id), getPolicies(), getSession()]);
   if (!row) notFound();
   const { policy: p, analysis } = row;
   const a = analysis as any;
+  /**
+   * 专业机构视角与趋势研判属专业版内容，服务端按版本裁剪。
+   * 页面层的锁定只是展示 —— 真正的边界在服务端，否则 curl 一下就绕过了。
+   */
+  const pro = isPro(session);
+  const deepExists = !!(a?.professional || a?.detail);
   // 命中判定只用标题 + 摘要 + 原文，避免把「解读文本」里的泛词也算进来
   const corpus = `${p.title} ${p.summary ?? ""} ${p.content ?? ""}`;
   const sectorHits = SECTOR_HINTS.filter((s) => s.words.some((w) => corpus.includes(w)));
@@ -89,9 +97,11 @@ export default async function PolicyDetailPage({ params }: { params: Promise<{ i
       <PolicyAnalysisPanels
         id={id}
         popular={a?.popular ?? null}
-        professional={a?.professional ?? null}
-        detail={a?.detail ?? null}
+        professional={pro ? (a?.professional ?? null) : null}
+        detail={pro ? (a?.detail ?? null) : null}
         dataLinks={a?.dataLinks ?? null}
+        pro={pro}
+        deepExists={deepExists}
         sectorHits={sectorHits}
       />
 
