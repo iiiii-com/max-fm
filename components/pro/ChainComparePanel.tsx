@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { initialZoom } from "@/lib/data/axis";
 import { echarts, initResponsiveChart, type EChartsOption } from "@/components/charts/echarts";
 import ProGate from "@/components/ProGate";
 import { resolveChartTheme, readVar, withAlpha, TOOLTIP, ANIM_DURATION, GRID_DEFAULT, seriesColors } from "@/lib/charts/theme";
@@ -79,7 +80,7 @@ export default function ChainComparePanel({ enabled }: { enabled: boolean }) {
         axisLabel: { color: muted, fontSize: 9 },
         splitLine: { lineStyle: { color: withAlpha(fg, 0.08), type: "dashed" } },
       },
-      dataZoom: [{ type: "inside", start: 0, end: 100 }, { type: "slider", height: 14, bottom: 6, start: 0, end: 100 }],
+      dataZoom: [{ type: "inside", start: initialZoom(d.curves[0]?.points.length ?? 0, 250).start, end: 100 }, { type: "slider", height: 14, bottom: 6, start: initialZoom(d.curves[0]?.points.length ?? 0, 250).start, end: 100 }],
       series: d.curves.map((c) => ({
         name: c.name,
         type: "line" as const,

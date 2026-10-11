@@ -8,7 +8,7 @@ import { echarts, type EChartsOption } from "@/components/charts/echarts";
 import { sma } from "@/lib/data/indicators";
 import { mkPctSeries } from "@/lib/data/kline-tooltip";
 import { scanSignals, type ScanBar } from "@/lib/data/rule-engine";
-import { mkDayAxisLabel } from "@/lib/data/axis";
+import { mkDayAxisLabel, initialZoom } from "@/lib/data/axis";
 
 /**
  * 买卖点扫描器：真实行情 + 规则引擎（判断标准 + 经典形态）
@@ -44,8 +44,8 @@ export default function BuySellScanner({ bars, height = 360 }: { bars: ScanBar[]
       xAxis: { type: "category", data: dates, axisLabel: mkDayAxisLabel(dates[dates.length - 1], { fontSize: 10 }) },
       yAxis: { scale: true, axisLabel: { fontSize: 10 }, splitLine: { lineStyle: { color: "#f4f3f0" } } },
       dataZoom: [
-        { type: "inside", start: 0, end: 100 },
-        { type: "slider", height: 14, bottom: 2, start: 0, end: 100 },
+        { type: "inside", start: initialZoom(dates.length, 250).start, end: 100 },
+        { type: "slider", height: 14, bottom: 2, start: initialZoom(dates.length, 250).start, end: 100 },
       ],
       series: [
         {

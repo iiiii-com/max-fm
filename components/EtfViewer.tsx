@@ -6,7 +6,7 @@ import { useWatchlist } from "@/lib/hooks/useWatchlist";
 import { useRefresh } from "@/lib/hooks/refresh";
 import { THEME_ETFS, ETF_CAT_TONE, type ThemeEtf } from "@/lib/data/leaders";
 import type { KlineBar } from "@/app/api/stock/kline/route";
-import { mkMainAxis, mkSubAxis } from "@/lib/data/axis";
+import { mkMainAxis, mkSubAxis, initialZoom } from "@/lib/data/axis";
 import LeaderKlineGrid from "@/components/LeaderKlineGrid";
 import AnnotatableChart from "@/components/charts/AnnotatableChart";
 import { KlineDetailPanel } from "@/components/charts/KlineDetail";
@@ -170,8 +170,8 @@ export default function EtfViewer() {
         { type: "value", gridIndex: 1, axisLabel: { fontSize: 9 }, splitLine: { show: false } },
       ],
       dataZoom: [
-        { type: "inside", xAxisIndex: [0, 1], start: vRange?.[0] ?? 0, end: vRange?.[1] ?? 100, zoomOnMouseWheel: true },
-        { type: "slider", xAxisIndex: [0, 1], height: 16, bottom: 4, start: vRange?.[0] ?? 0, end: vRange?.[1] ?? 100 },
+        { type: "inside", xAxisIndex: [0, 1], start: vRange?.[0] ?? initialZoom(bars.length, 250).start, end: vRange?.[1] ?? 100, zoomOnMouseWheel: true },
+        { type: "slider", xAxisIndex: [0, 1], height: 16, bottom: 4, start: vRange?.[0] ?? initialZoom(bars.length, 250).start, end: vRange?.[1] ?? 100 },
       ],
       series: [
         {

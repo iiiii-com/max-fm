@@ -28,6 +28,9 @@ const REAL_MARKS = [
  * 交互式 K 线实验台：多周期切换 / 指标叠加(MA/BOLL/MACD) / 行情回放 / 买卖点
  * 真实数据驱动（上证日线 → 周/月聚合）。
  */
+/** 初始可视根数：250 根约一年交易日，是「看当下走势」的常用跨度。窗口外的点被 dataZoom 的 filterMode 过滤，不参与渲染。 */
+const INITIAL_BARS = 250;
+
 export default function InteractiveKlineLab({
   data,
   height = 420,
@@ -77,6 +80,16 @@ export default function InteractiveKlineLab({
     if (playCount == null) return bars;
     return bars.slice(Math.max(0, bars.length - playCount));
   }, [bars, playCount]);
+
+  /**
+   * 初始可视窗口：最近 INITIAL_BARS 根。
+   * 用百分比表达（dataZoom 的口径），根数不足时退回全量。
+   */
+  const initialZoom = useMemo(() => {
+    const n = visible.length;
+    if (n <= INITIAL_BARS) return { start: 0, end: 100 };
+    return { start: Math.max(0, 100 - (INITIAL_BARS / n) * 100), end: 100 };
+  }, [visible.length]);
 
   const [selected, clearSelected, attachChart] = useKlineClickDetail(visible);
 
@@ -182,12 +195,23 @@ export default function InteractiveKlineLab({
       xAxis: xAxes,
       yAxis: yAxes,
       dataZoom: [
-        { type: "inside", xAxisIndex: Array.from({ length: nGrid }, (_, i) => i), start: 0, end: 100 },
-        { type: "slider", xAxisIndex: Array.from({ length: nGrid }, (_, i) => i), height: 14, bottom: 2, start: 0, end: 100 },
+        /**
+         * 初始窗口必须是「最近一段」，不能是 0~100 全量。
+         *
+         * 为什么：本站个股取 8000 根日线。dataZoom 的默认 filterMode 会把
+         * **窗口内**的每个点都变成 zrender 图元 —— 8000 根蜡烛 ×(1 蜡烛 + MA5/20/60)
+         * 加上 MACD/RSI/KDJ 副图，一次要建数万个图元并逐帧遍历。
+         * 实测移动端（4× CPU 降速）因此产生 19 次长任务、3513ms 阻塞。
+         *
+         * 只把最近 ~250 根放进初始窗口，图元数降两个数量级；
+         * 用户想回看更早的直接拖动 slider（窗口外的点被 filterMode 过滤，不参与渲染）。
+         */
+        { type: "inside", xAxisIndex: Array.from({ length: nGrid }, (_, i) => i), ...initialZoom },
+        { type: "slider", xAxisIndex: Array.from({ length: nGrid }, (_, i) => i), height: 14, bottom: 2, ...initialZoom },
       ],
       series,
     };
-  }, [visible, showMA, showBoll, showMacd, showRsi, showKdj, showMarks, period, pctCfg]);
+  }, [visible, showMA, showBoll, showMacd, showRsi, showKdj, showMarks, period, pctCfg, initialZoom]);
 
   return (
     <div className="rounded-xl border border-border bg-card p-4">

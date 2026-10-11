@@ -6,7 +6,7 @@ import EChart from "@/components/charts/EChart";
 import { KlineDetailPanel, useKlineClickDetail } from "@/components/charts/KlineDetail";
 import { echarts, type EChartsOption } from "@/components/charts/echarts";
 import { mkPctSeries } from "@/lib/data/kline-tooltip";
-import { mkDayAxisLabel } from "@/lib/data/axis";
+import { mkDayAxisLabel, initialZoom } from "@/lib/data/axis";
 
 export interface KlinePoint {
   date: string;
@@ -88,8 +88,8 @@ export default function KlinePatternChart({
         splitLine: { lineStyle: { color: "#f4f3f0" } },
       },
       dataZoom: [
-        { type: "inside", start: 0, end: 100 },
-        { type: "slider", height: 14, bottom: 4, start: 0, end: 100 },
+        { type: "inside", start: initialZoom(dates.length, 250).start, end: 100 },
+        { type: "slider", height: 14, bottom: 4, start: initialZoom(dates.length, 250).start, end: 100 },
       ],
       series: [
         {

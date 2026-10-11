@@ -12,7 +12,7 @@ import { usePctPrefs, type PctPrefs } from "@/components/charts/pct-prefs";
 import DecisionQuiz from "./DecisionQuiz";
 import PanicGauge from "./PanicGauge";
 import BullBearPosition from "./BullBearPosition";
-import { mkMainAxis, mkSubAxis } from "@/lib/data/axis";
+import { mkMainAxis, mkSubAxis, initialZoom } from "@/lib/data/axis";
 import { mkKlineTooltip, mkPctLabel } from "@/lib/data/kline-tooltip";
 import type { Crisis, CrisisStage, InvestorMove, Regime } from "@/lib/data/crisis/types";
 import { STAGE_STRATEGIES } from "@/lib/data/crisis/strategies";
@@ -147,8 +147,8 @@ function mkCandleOption(bars: Bar[], opts: { markData?: any[]; markArea?: any[];
 
   if (opts.dataZoom) {
     base.dataZoom = [
-      { type: "inside", xAxisIndex: [0, 1], start: 0, end: 100 },
-      { type: "slider", xAxisIndex: [0, 1], height: 14, bottom: 2, start: 0, end: 100 },
+      { type: "inside", xAxisIndex: [0, 1], start: initialZoom(dates.length, 250).start, end: 100 },
+      { type: "slider", xAxisIndex: [0, 1], height: 14, bottom: 2, start: initialZoom(dates.length, 250).start, end: 100 },
     ];
   }
 

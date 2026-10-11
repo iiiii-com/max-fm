@@ -112,6 +112,22 @@ export function mkSubAxis(dataLength: number, gridIndex: number) {
   };
 }
 
+/**
+ * dataZoom 的初始可视窗口：最近 targetBars 根，用百分比口径表达。
+ *
+ * 为什么不能默认 0~100：dataZoom 的 filterMode 会把**窗口内**的每个点都变成
+ * zrender 图元。本站个股日线取到 8000 根，全量入窗意味着一次要建数万个图元
+ * （蜡烛 + MA5/20/60 + 副图指标），并逐帧遍历。
+ * 实测移动端（4× CPU 降速）单页因此产生 19 次长任务、3513ms 阻塞。
+ *
+ * 只把最近一段放进初始窗口，图元数降一到两个数量级；用户拖 slider 即可回看更早，
+ * 窗口外的点被 filterMode 过滤，不参与渲染。
+ */
+export function initialZoom(dataLength: number, targetBars = 250): { start: number; end: number } {
+  if (!Number.isFinite(dataLength) || dataLength <= targetBars) return { start: 0, end: 100 };
+  return { start: Math.max(0, 100 - (targetBars / dataLength) * 100), end: 100 };
+}
+
 /** 构建 dataZoom：默认全量显示（start:0 end:100），缩放/平移不丢失任何时段 */
 export function mkFullZoom(xAxisIndex: number[] | number, height = 16) {
   const idx = Array.isArray(xAxisIndex) ? xAxisIndex : [xAxisIndex];

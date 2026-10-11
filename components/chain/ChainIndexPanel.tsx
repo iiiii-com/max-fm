@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { initialZoom } from "@/lib/data/axis";
 import { echarts, initResponsiveChart, type EChartsOption } from "@/components/charts/echarts";
 import { Card, Badge } from "@/components/ui";
 import { resolveChartTheme, readVar, withAlpha, TOOLTIP, ANIM_DURATION, GRID_DEFAULT } from "@/lib/charts/theme";
@@ -130,8 +131,8 @@ export default function ChainIndexPanel({ slug }: { slug: string }) {
         splitLine: { lineStyle: { color: withAlpha(readVar("--foreground", "#1a1a1a"), 0.08), type: "dashed" } },
       },
       dataZoom: [
-        { type: "inside", start: 0, end: 100 },
-        { type: "slider", height: 14, bottom: 6, start: 0, end: 100 },
+        { type: "inside", start: initialZoom(d.points.length, 250).start, end: 100 },
+        { type: "slider", height: 14, bottom: 6, start: initialZoom(d.points.length, 250).start, end: 100 },
       ],
       series,
       // up/down 仅用于 tooltip 的涨跌着色，不参与曲线本身
