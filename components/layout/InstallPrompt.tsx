@@ -14,15 +14,20 @@ import { Download, X, Share, Plus } from "lucide-react";
  *  - iOS Safari：**不支持 beforeinstallprompt**，也没有任何 API 能触发安装，
  *    只能引导用户「分享 → 添加到主屏幕」。给按钮是没用的，必须给步骤图。
  *
- * 另外三条纪律：
+ * 另外四条纪律：
  *  1) 已在独立窗口运行时不再提示（display-mode: standalone），否则装完还一直劝装；
- *  2) 用户点「不再提示」就记住，不要每次访问都弹 —— 反复劝装是最招人烦的模式；
- *  3) 只在生产环境注册 SW：开发时 SW 会把 dev 资源缓存住，改了代码不生效，
- *     是最容易浪费半天的一类问题。
+ *  2) 用户点「暂不」就记住，不要每次访问都弹 —— 反复劝装是最招人烦的模式；
+ *  3) SW 在 **load 之后立刻**注册，不再延迟 2 秒：Chrome 判定"可安装"要求 SW
+ *     已注册并接管，延迟注册会连带推迟安装提示出现；
+ *  4) 即使自动提示被拒过、或浏览器压根不触发 beforeinstallprompt（部分国产浏览器会屏蔽），
+ *     用户仍要能**主动**找到入口 —— 所以监听自定义事件 mx:install，
+ *     由页脚的常驻按钮触发，绕过"已拒绝"的记忆。
  */
 const DISMISS_KEY = "mx-install-dismissed-at";
-/** 拒绝后多久不再提示（天） */
+/** 拒绝后多久不再自动提示（天） */
 const DISMISS_DAYS = 30;
+/** 页脚常驻入口用它把卡片调出来 */
+export const INSTALL_EVENT = "mx:install";
 
 type BIPEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> };
 
@@ -30,18 +35,25 @@ export default function InstallPrompt() {
   const [deferred, setDeferred] = useState<BIPEvent | null>(null);
   const [show, setShow] = useState(false);
   const [iosHint, setIosHint] = useState(false);
+  /** 由用户主动唤起（而非浏览器自动提示）——此时关闭不计入"拒绝" */
+  const [manual, setManual] = useState(false);
 
-  // 注册 Service Worker（仅生产）
+  // 注册 Service Worker（仅生产）：load 后立刻注册，不延迟
   useEffect(() => {
     if (process.env.NODE_ENV !== "production") return;
     if (!("serviceWorker" in navigator)) return;
-    // 等页面空闲再注册，不跟首屏抢主线程
-    const id = window.setTimeout(() => {
+    const register = () => {
       navigator.serviceWorker.register("/sw.js").catch(() => {
         /* 注册失败不影响站点功能 */
       });
-    }, 2000);
-    return () => window.clearTimeout(id);
+    };
+    // load 已过就直接注册；否则等 load（此时首屏已画完，不会抢主线程）
+    if (document.readyState === "complete") {
+      register();
+      return;
+    }
+    window.addEventListener("load", register, { once: true });
+    return () => window.removeEventListener("load", register);
   }, []);
 
   useEffect(() => {
@@ -51,32 +63,50 @@ export default function InstallPrompt() {
       (window.navigator as unknown as { standalone?: boolean }).standalone === true;
     if (standalone) return;
 
-    // 用户近期拒绝过 → 不再打扰
-    const dismissed = Number(localStorage.getItem(DISMISS_KEY) ?? 0);
-    if (dismissed && Date.now() - dismissed < DISMISS_DAYS * 86400000) return;
+    const isIos =
+      /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.userAgent.includes("Macintosh") && "ontouchend" in document);
+    const isSafari = /Safari/.test(navigator.userAgent) && !/CriOS|FxiOS|EdgiOS/.test(navigator.userAgent);
+    const recentlyDismissed = () => {
+      const t = Number(localStorage.getItem(DISMISS_KEY) ?? 0);
+      return t > 0 && Date.now() - t < DISMISS_DAYS * 86400000;
+    };
 
     const onBIP = (e: Event) => {
       e.preventDefault(); // 拦掉浏览器自带的迷你提示，用我们自己的入口
       setDeferred(e as BIPEvent);
-      setShow(true);
+      if (!recentlyDismissed()) {
+        setManual(false);
+        setShow(true);
+      }
     };
     window.addEventListener("beforeinstallprompt", onBIP);
 
     // iOS Safari：没有 BIP，只能给手动步骤
-    const ua = window.navigator.userAgent;
-    const isIos = /iPad|iPhone|iPod/.test(ua) || (ua.includes("Macintosh") && "ontouchend" in document);
-    const isSafari = /Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS/.test(ua);
     if (isIos && isSafari) {
       setIosHint(true);
-      setShow(true);
+      if (!recentlyDismissed()) setShow(true);
     }
 
-    return () => window.removeEventListener("beforeinstallprompt", onBIP);
+    // 页脚常驻入口：用户主动唤起，绕过"已拒绝"的记忆
+    const onManual = () => {
+      setManual(true);
+      setIosHint(isIos && isSafari);
+      setShow(true);
+    };
+    window.addEventListener(INSTALL_EVENT, onManual);
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onBIP);
+      window.removeEventListener(INSTALL_EVENT, onManual);
+    };
   }, []);
 
   const dismiss = () => {
-    localStorage.setItem(DISMISS_KEY, String(Date.now()));
+    // 只有自动提示被关掉才记入"暂不"；用户主动点开的关掉不算拒绝
+    if (!manual) localStorage.setItem(DISMISS_KEY, String(Date.now()));
     setShow(false);
+    setManual(false);
   };
 
   const install = async () => {
@@ -85,6 +115,7 @@ export default function InstallPrompt() {
     const { outcome } = await deferred.userChoice;
     setDeferred(null);
     setShow(false);
+    setManual(false);
     // 用户拒绝时也记一笔，避免马上再弹
     if (outcome !== "accepted") localStorage.setItem(DISMISS_KEY, String(Date.now()));
   };
@@ -113,7 +144,7 @@ export default function InstallPrompt() {
                   iOS 不提供网页触发安装的接口，只能这样手动添加 —— 不是本站缺功能。
                 </p>
               </>
-            ) : (
+            ) : deferred ? (
               <>
                 <p className="text-[11px] text-muted leading-relaxed mt-1">
                   装成独立窗口的应用：没有地址栏，从桌面/主屏直接打开，支持离线外壳。
@@ -131,6 +162,11 @@ export default function InstallPrompt() {
                   </button>
                 </div>
               </>
+            ) : (
+              <p className="text-[11px] text-muted leading-relaxed mt-1">
+                你的浏览器没有提供安装接口（部分国产浏览器会屏蔽）。可以改用 Chrome / Edge，
+                或在浏览器菜单里找「添加到主屏幕」。
+              </p>
             )}
           </div>
           <button onClick={dismiss} className="p-1 text-muted hover:text-foreground shrink-0" aria-label="关闭">

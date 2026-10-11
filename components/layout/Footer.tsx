@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { NAV, FOOTER_UTILITY } from "./nav";
+import FooterInstallLink from "./FooterInstallLink";
 
 export default function Footer() {
   return (
@@ -33,6 +34,8 @@ export default function Footer() {
             <p className="text-xs">AI 自动生成的内容仅供参考，不构成任何投资建议。数据来源于公开渠道，可能存在延迟或误差。</p>
           </div>
           <nav className="flex gap-4 text-xs">
+            {/* 常驻安装入口：不依赖浏览器是否弹 beforeinstallprompt */}
+            <FooterInstallLink />
             {FOOTER_UTILITY.map((l) => (
               <Link key={l.href} href={l.href} className="hover:text-foreground">
                 {l.label}
