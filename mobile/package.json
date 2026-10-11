@@ -1,0 +1,17 @@
+{
+  "name": "max-mobile",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Max 财经 · 手机 App（Capacitor 外壳，加载线上站点）",
+  "scripts": {
+    "sync": "cap sync android",
+    "open": "cap open android",
+    "apk": "cd android && gradlew.bat assembleDebug",
+    "apk:release": "cd android && gradlew.bat assembleRelease"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/cli": "^8.5.3",
+    "@capacitor/core": "^8.5.3"
+  }
+}

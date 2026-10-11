@@ -71,3 +71,9 @@ validate.log
 .superpowers/
 
 --full-page
+
+# ---- 手机 App（Capacitor）与桌面客户端（Electron）----
+# 两者的依赖与构建产物都不进仓库；android/ 原生工程要提交（图标、清单等定制在那里）
+mobile/node_modules/
+desktop/node_modules/
+desktop/dist/

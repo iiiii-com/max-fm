@@ -1,0 +1,15 @@
+﻿{
+  "appId": "ink.lune.max",
+  "appName": "Max 财经",
+  "webDir": "www",
+  "server": {
+    "url": "https://www.lune.ink",
+    "cleartext": false,
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": false,
+    "webContentsDebuggingEnabled": false
+  },
+  "backgroundColor": "#ffffff"
+}
