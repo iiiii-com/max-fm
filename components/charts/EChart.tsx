@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { echarts, initResponsiveChart, type EChartsOption } from "./echarts";
 import { useTheme } from "@/components/theme-provider";
 import { resolveChartTheme } from "@/lib/charts/theme";
@@ -17,6 +17,8 @@ export default function EChart({
   onClick,
   onReady,
   children,
+  /** 进入视口前不初始化图表（默认开启）。首屏外的图表不必抢主线程 */
+  lazy = true,
 }: {
   option: EChartsOption;
   height?: number | string;
@@ -31,14 +33,46 @@ export default function EChart({
   onReady?: (chart: echarts.ECharts) => void;
   /** 渲染进图表容器内部（如 SVG 画线覆盖层）——子元素事件冒泡经过容器，ECharts 可同时收到滚轮/拖拽 */
   children?: React.ReactNode;
+  lazy?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const innerRef = useRef<echarts.ECharts | null>(null);
   const { theme } = useTheme();
+  /**
+   * 是否已进入（或接近）视口。
+   *
+   * 为什么要这个门：重页面（ETF 专区、工具箱、产业地图）一次挂 7~12 个 ECharts 实例，
+   * 每个都要建 canvas、算布局、画轴 —— 全部挤在首屏那几百毫秒里，
+   * 桌面端表现为开页卡一下，移动端（CPU 弱得多）表现为白屏更久。
+   * 首屏外的图表用户根本看不到，没必要抢这段时间。
+   * rootMargin 提前 300px 预热，滚到时已经画好，不会看到空白。
+   */
+  const [visible, setVisible] = useState(!lazy);
+
+  useEffect(() => {
+    if (visible || !lazy || !ref.current) return;
+    const el = ref.current;
+    // 不支持 IntersectionObserver 时直接放行，不能因为优化把图弄没
+    if (typeof IntersectionObserver === "undefined") {
+      setVisible(true);
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          setVisible(true);
+          io.disconnect();
+        }
+      },
+      { rootMargin: "300px 0px" }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [visible, lazy]);
 
   // 初始化只需一次；option 更新由下方 effect 处理
   useEffect(() => {
-    if (!ref.current) return;
+    if (!visible || !ref.current) return;
     // 主题按当前 CSS 令牌实时构建，而不是硬编码 ECharts 内置 dark ——
     // 后者与站点主题脱钩：站点换肤后图表不跟随，切换明暗对图表也无效。
     // 变量在 effect 内读取，确保拿到的是 .dark 类切换后的生效值。
@@ -68,7 +102,7 @@ export default function EChart({
       if (chartRef) chartRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [theme]);
+  }, [theme, visible]);
 
   useEffect(() => {
     innerRef.current?.setOption(option, { notMerge: false });

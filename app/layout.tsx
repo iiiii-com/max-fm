@@ -6,6 +6,7 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import Breadcrumbs from "@/components/layout/Breadcrumbs";
 import ShellChrome from "@/components/layout/ShellChrome";
+import InstallPrompt from "@/components/layout/InstallPrompt";
 import { RefreshProvider } from "@/lib/hooks/refresh";
 import { ThemeProvider } from "@/components/theme-provider";
 import { getSession } from "@/lib/auth";
@@ -23,6 +24,29 @@ const ibmPlexMono = IBM_Plex_Mono({
 export const metadata: Metadata = {
   title: { default: "Max 财经数据平台", template: "%s | Max 财经数据平台" },
   description: "AI 驱动的全方位财经数据分析平台：政策解读、宏观经济、投资分析、中国经济分布图、产业链分析、个人理财建议。",
+  manifest: "/manifest.webmanifest",
+  /**
+   * iOS 不读 manifest 的 display，必须靠这些 apple-* 元信息才能"添加到主屏幕"后
+   * 以独立窗口打开。statusBarStyle 用 default（黑字）而不是 black-translucent：
+   * 后者会让内容顶到状态栏下面，与站点的 safe-top 内边距叠在一起。
+   */
+  appleWebApp: {
+    capable: true,
+    title: "Max 财经",
+    statusBarStyle: "default",
+  },
+  icons: {
+    icon: [{ url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
+  },
+  /**
+   * Next 16 的 appleWebApp.capable 只输出 apple-mobile-web-app-title 与
+   * -status-bar-style，**不输出 apple-mobile-web-app-capable** —— 而正是这一条
+   * 决定 iOS 从主屏打开时是否以独立窗口运行（缺了它仍会带 Safari 地址栏，
+   * 等于装了个网页快捷方式而不是 App）。所以手动补上。
+   * 同时不再重复声明 mobile-web-app-capable：那一条 appleWebApp.capable 已经输出。
+   */
+  other: { "apple-mobile-web-app-capable": "yes" },
 };
 
 /** 移动端视口配置：viewport-fit=cover 支持刘海屏安全区；不禁用用户缩放（WCAG 1.4.4），
@@ -59,6 +83,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <ShellChrome header={<Header user={user} />} breadcrumbs={<Breadcrumbs />} footer={<Footer />}>
               {children}
             </ShellChrome>
+            <InstallPrompt />
           </RefreshProvider>
         </ThemeProvider>
       </body>
