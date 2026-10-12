@@ -128,6 +128,22 @@ export function initialZoom(dataLength: number, targetBars = 250): { start: numb
   return { start: Math.max(0, 100 - (targetBars / dataLength) * 100), end: 100 };
 }
 
+/**
+ * 按容器宽度算出「该显示多少根 K 线」。
+ *
+ * 为什么不能所有屏都用同一个根数：
+ *   桌面 1600px 显示 250 根 → 每根约 6px，看得清；
+ *   手机 390px 显示 250 根 → 每根约 1.5px，蜡烛糊成一片，根本读不出形态。
+ *   而用户一旦捏合放大，根数骤减、坐标轴与副图跟着跳，就是"放大不和谐"的来源。
+ *   按宽度反推根数（默认每根至少 6px），两端一开始就都是可读的密度。
+ *
+ * 上限 250（约一年交易日，常用跨度），下限 50（再少看不出趋势形态）。
+ */
+export function responsiveBars(containerWidth: number, pxPerBar = 6, min = 50, max = 250): number {
+  if (!Number.isFinite(containerWidth) || containerWidth <= 0) return max;
+  return Math.round(Math.min(max, Math.max(min, containerWidth / pxPerBar)));
+}
+
 /** 构建 dataZoom：默认全量显示（start:0 end:100），缩放/平移不丢失任何时段 */
 export function mkFullZoom(xAxisIndex: number[] | number, height = 16) {
   const idx = Array.isArray(xAxisIndex) ? xAxisIndex : [xAxisIndex];

@@ -75,17 +75,25 @@ export default function InstallPrompt() {
     const onBIP = (e: Event) => {
       e.preventDefault(); // 拦掉浏览器自带的迷你提示，用我们自己的入口
       setDeferred(e as BIPEvent);
-      if (!recentlyDismissed()) {
+      /**
+       * 窄屏不自动弹卡片。
+       *
+       * 手机上这张卡片固定在底部，会盖住 K 线图与控制区 —— 用户正在看行情时
+       * 被一个"装到桌面"的浮层挡住，是实打实的干扰。
+       * 窄屏只保留页脚的常驻入口（用户想要时自己点），自动提示留给大屏。
+       */
+      const narrow = window.innerWidth < 640;
+      if (!narrow && !recentlyDismissed()) {
         setManual(false);
         setShow(true);
       }
     };
     window.addEventListener("beforeinstallprompt", onBIP);
 
-    // iOS Safari：没有 BIP，只能给手动步骤
+    // iOS Safari：没有 BIP，只能给手动步骤。同样不在窄屏自动弹，避免遮挡内容。
     if (isIos && isSafari) {
       setIosHint(true);
-      if (!recentlyDismissed()) setShow(true);
+      if (window.innerWidth >= 640 && !recentlyDismissed()) setShow(true);
     }
 
     // 页脚常驻入口：用户主动唤起，绕过"已拒绝"的记忆

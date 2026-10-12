@@ -161,6 +161,20 @@ body {
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
   }
+
+  /**
+   * 图表画布例外：touch-action 必须是 pan-y，不能沿用上面的 manipulation。
+   *
+   * manipulation 允许浏览器接管捏合 → 用户在 K 线上捏合时**整个页面被放大**
+   * （实测 1× → 5×），而图表本身的缩放完全没响应，就是"放大不和谐"。
+   *
+   * pan-y 的含义：纵向拖拽仍交给浏览器（在图表上滑动照样能滚页面，这是必须保留的），
+   * 捏合与横向拖拽交给图表 —— 前者触发 dataZoom 缩放，后者平移数据窗口。
+   * 页面缩放没有因此被禁用（在图表以外的任何地方仍可双指缩放），不违反 WCAG 1.4.4。
+   */
+  canvas {
+    touch-action: pan-y;
+  }
 }
 
   /* 触控热区：移动端按钮/链接最小 40px 高度 */

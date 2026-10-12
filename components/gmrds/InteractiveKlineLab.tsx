@@ -7,7 +7,8 @@ import { KlineDetailPanel, useKlineClickDetail } from "@/components/charts/Kline
 import { echarts, type EChartsOption } from "@/components/charts/echarts";
 import { sma, boll, macd, rsi, kdj, aggregateBars } from "@/lib/data/indicators";
 import { mkPctSeries } from "@/lib/data/kline-tooltip";
-import { mkDayAxisLabel } from "@/lib/data/axis";
+import { mkDayAxisLabel, initialZoom as zoomOf, responsiveBars } from "@/lib/data/axis";
+import { useViewportWidth } from "@/lib/hooks/useViewport";
 
 export interface LabBar {
   date: string;
@@ -82,14 +83,19 @@ export default function InteractiveKlineLab({
   }, [bars, playCount]);
 
   /**
-   * 初始可视窗口：最近 INITIAL_BARS 根。
-   * 用百分比表达（dataZoom 的口径），根数不足时退回全量。
+   * 初始可视根数按**可用宽度**决定，而不是所有屏都用同一个数。
+   *
+   * 桌面 1600px 显示 250 根 → 每根约 6px，看得清；
+   * 手机 390px 显示 250 根 → 每根约 1.5px，蜡烛糊成一片，形态读不出来；
+   * 用户一捏合放大，根数骤减、坐标轴与副图跟着跳 —— 这就是"放大不和谐"的来源。
+   * 按宽度反推（每根至少 6px），两端一开始就是可读密度。
    */
-  const initialZoom = useMemo(() => {
-    const n = visible.length;
-    if (n <= INITIAL_BARS) return { start: 0, end: 100 };
-    return { start: Math.max(0, 100 - (INITIAL_BARS / n) * 100), end: 100 };
-  }, [visible.length]);
+  const vw = useViewportWidth();
+  const chartWidth = Math.max(240, Math.min(vw, 1400) - (vw < 640 ? 24 : 80));
+  const initialZoom = useMemo(
+    () => zoomOf(visible.length, responsiveBars(chartWidth)),
+    [visible.length, chartWidth]
+  );
 
   const [selected, clearSelected, attachChart] = useKlineClickDetail(visible);
 
@@ -156,12 +162,22 @@ export default function InteractiveKlineLab({
 
     // 动态 grid 布局：K线 / 成交量 / [MACD] / [RSI·KDJ]
     const nGrid = 2 + (hasMacd ? 1 : 0) + (hasOsc ? 1 : 0);
+    /**
+     * 窄屏把左侧留给 Y 轴刻度的宽度收窄（56 → 44），并把主图占比抬高：
+     * 手机上本来就只有 390px 宽，56px 的轴区加 14px 右边距吃掉 18% 的宽度，
+     * 再被副图分掉一半高度，主图会小到看不清形态。
+     */
+    const narrow = chartWidth < 520;
+    const axLeft = narrow ? 44 : 56;
+    const axRight = narrow ? 8 : 14;
+    const mainH = hasMacd || hasOsc ? (narrow ? "50%" : "44%") : narrow ? "70%" : "64%";
+    const volTop = hasMacd || hasOsc ? (narrow ? "60%" : "54%") : narrow ? "78%" : "72%";
     const grid: any[] = [
-      { left: 56, right: 14, top: 34, height: hasMacd || hasOsc ? "44%" : "64%" },
-      { left: 56, right: 14, top: hasMacd || hasOsc ? "54%" : "72%", height: "14%" },
+      { left: axLeft, right: axRight, top: 34, height: mainH },
+      { left: axLeft, right: axRight, top: volTop, height: narrow ? "12%" : "14%" },
     ];
-    if (hasMacd) grid.push({ left: 56, right: 14, top: "70%", height: "12%" });
-    if (hasOsc) grid.push({ left: 56, right: 14, top: hasMacd ? "84%" : "70%", height: "12%" });
+    if (hasMacd) grid.push({ left: axLeft, right: axRight, top: narrow ? "76%" : "70%", height: narrow ? "10%" : "12%" });
+    if (hasOsc) grid.push({ left: axLeft, right: axRight, top: hasMacd ? (narrow ? "88%" : "84%") : narrow ? "76%" : "70%", height: narrow ? "10%" : "12%" });
     const dayAxisLabel = mkDayAxisLabel(dates[dates.length - 1], { fontSize: 10 });
     const xAxes: any[] = [
       { type: "category", data: dates, axisLabel: dayAxisLabel },
@@ -190,7 +206,14 @@ export default function InteractiveKlineLab({
           return `<b>${b.date}</b> <span style="color:${col}">${pct >= 0 ? "+" : ""}${pct.toFixed(2)}%</span><br/>开 ${b.open} 收 ${b.close}<br/>高 ${b.high} 低 ${b.low}`;
         },
       },
-      legend: { top: 2, right: 6, type: "scroll", textStyle: { fontSize: 10 }, data: series.map((s) => s.name) },
+      legend: {
+        top: 2,
+        right: 6,
+        type: "scroll",
+        textStyle: { fontSize: narrow ? 9 : 10 },
+        // 窄屏图例挤成一行反而看不清，只保留最常看的两项（K线与成交量）
+        data: narrow ? ["K线", "成交量"] : series.map((s) => s.name),
+      },
       grid,
       xAxis: xAxes,
       yAxis: yAxes,
@@ -207,11 +230,11 @@ export default function InteractiveKlineLab({
          * 用户想回看更早的直接拖动 slider（窗口外的点被 filterMode 过滤，不参与渲染）。
          */
         { type: "inside", xAxisIndex: Array.from({ length: nGrid }, (_, i) => i), ...initialZoom },
-        { type: "slider", xAxisIndex: Array.from({ length: nGrid }, (_, i) => i), height: 14, bottom: 2, ...initialZoom },
+        { type: "slider", xAxisIndex: Array.from({ length: nGrid }, (_, i) => i), height: narrow ? 10 : 14, bottom: 2, ...initialZoom },
       ],
       series,
     };
-  }, [visible, showMA, showBoll, showMacd, showRsi, showKdj, showMarks, period, pctCfg, initialZoom]);
+  }, [visible, showMA, showBoll, showMacd, showRsi, showKdj, showMarks, period, pctCfg, initialZoom, chartWidth]);
 
   return (
     <div className="rounded-xl border border-border bg-card p-4">
@@ -264,7 +287,7 @@ export default function InteractiveKlineLab({
         </span>
       </div>
       <div className="relative">
-        <EChart option={option} height={height} onReady={attachChart} />
+        <EChart option={option} height={chartWidth < 520 ? Math.max(height, 460) : height} onReady={attachChart} />
         {selected && (
           <div className="absolute left-2 top-2 z-10">
             <KlineDetailPanel
