@@ -54,7 +54,13 @@ export async function GET(req: Request) {
         secid
       )}&klt=${KLT[period]}&fqt=${fqt}&beg=19900101&end=20500101&fields1=f1,f2,f3&fields2=f51,f52,f53,f54,f55,f56,f57`;
       const res = await fetch(url, {
-        next: { revalidate: 120 },
+        /**
+         * 行情数据必须 no-store，不能用 next.revalidate。
+         * revalidate 是 stale-while-revalidate 语义：窗口过期后的**第一个请求仍返回旧缓存**，
+         * 只在后台刷新。于是用户每次访问都拿到"上一次刷新的快照"，永远差一版 ——
+         * 表现就是"K 线不能及时更新最新的记录"，而上游其实是实时的。
+         */
+        cache: "no-store",
         headers: { Referer: "https://quote.eastmoney.com/", "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" },
       });
       if (!res.ok) throw new Error(`em ${res.status}`);
@@ -95,7 +101,7 @@ export async function GET(req: Request) {
       const need = period === "day" ? Math.min(SINA_MAX, days) : Math.min(500, days * 5);
       const url = `https://quotes.sina.cn/cn/api/jsonp_v2.php/var%20_=/CN_MarketDataService.getKLineData?symbol=${sym}&scale=240&ma=no&datalen=${need}`;
       const res = await fetch(url, {
-        next: { revalidate: 120 },
+        cache: "no-store",
         headers: { Referer: "https://finance.sina.com.cn/", "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" },
       });
       const text = await res.text();
@@ -169,7 +175,7 @@ export async function GET(req: Request) {
     const param = mkt === "100" && TENCENT_SYMBOLS[code] ? TENCENT_SYMBOLS[code] : `${prefix}${code}`;
     const url = `https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param=${param},${period},,,${days},qfq`;
     const res = await fetch(url, {
-      next: { revalidate: 120 },
+      cache: "no-store",
       headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" },
     });
     if (!res.ok) throw new Error(`tx ${res.status}`);

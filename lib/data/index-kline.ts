@@ -50,7 +50,7 @@ export async function fetchEastmoneyIndex(secid: string, days: number): Promise<
       secid
     )}&klt=101&fqt=0&beg=19900101&end=20500101&lmt=${days}&fields1=f1,f2,f3&fields2=f51,f52,f53,f54,f55,f56`;
     const res = await fetch(url, {
-      next: { revalidate: 120 },
+      cache: "no-store",
       headers: { Referer: "https://quote.eastmoney.com/", "User-Agent": UA },
       signal: AbortSignal.timeout(10000),
     });
@@ -82,7 +82,7 @@ export async function fetchSinaCnIndex(secid: string, days: number): Promise<Ind
   try {
     const url = `https://quotes.sina.cn/cn/api/jsonp_v2.php/var%20_=/CN_MarketDataService.getKLineData?symbol=${sym}&scale=240&ma=no&datalen=${days}`;
     const res = await fetch(url, {
-      next: { revalidate: 120 },
+      cache: "no-store",
       headers: { Referer: "https://finance.sina.com.cn/", "User-Agent": UA },
       signal: AbortSignal.timeout(10000),
     });
@@ -113,7 +113,7 @@ export async function fetchSinaUsIndex(code: string, days: number): Promise<Inde
     const res = await fetch(url, {
       headers: { "User-Agent": UA, Referer: "https://finance.sina.com.cn" },
       signal: AbortSignal.timeout(12000),
-      next: { revalidate: 300 },
+      cache: "no-store",
     });
     const text = await res.text();
     const start = text.indexOf("[");
@@ -143,7 +143,7 @@ export async function fetchTencentIndex(code: string, days: number): Promise<Ind
     const res = await fetch(url, {
       headers: { "User-Agent": UA },
       signal: AbortSignal.timeout(10000),
-      next: { revalidate: 120 },
+      cache: "no-store",
     });
     const json = await res.json();
     const node = json?.data?.[sym];

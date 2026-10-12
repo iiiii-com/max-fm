@@ -124,7 +124,7 @@ export async function fetchQuotes(): Promise<Quote[]> {
   try {
     const secids = INDEX_SECIDS.map((x) => x.secid).join(",");
     const url = `https://push2.eastmoney.com/api/qt/ulist.np/get?secids=${secids}&fields=f2,f3,f4,f12,f14,f15,f16,f17,f5,f6&fltt=2&invt=2`;
-    const res = await fetch(url, { next: { revalidate: 15 } });
+    const res = await fetch(url, { cache: "no-store" });
     if (!res.ok) throw new Error(`quote api ${res.status}`);
     const json = await res.json();
     const list = json?.data?.diff || [];
@@ -155,7 +155,7 @@ export async function fetchGlobalQuotes(): Promise<Quote[]> {
   try {
     const secids = GLOBAL_SECIDS.map((x) => x.secid).join(",");
     const url = `https://push2.eastmoney.com/api/qt/ulist.np/get?secids=${secids}&fields=f2,f3,f4,f12,f14,f15,f16,f17,f5,f6&fltt=2&invt=2`;
-    const res = await fetch(url, { next: { revalidate: 30 } });
+    const res = await fetch(url, { cache: "no-store" });
     if (!res.ok) throw new Error(`global quote api ${res.status}`);
     const json = await res.json();
     const list = json?.data?.diff || [];
@@ -180,7 +180,7 @@ export async function fetchGlobalQuotes(): Promise<Quote[]> {
 export async function fetchSectors(): Promise<Quote[]> {
   try {
     const url = `https://push2.eastmoney.com/api/qt/clist/get?pn=1&pz=12&po=1&np=1&fltt=2&invt=2&fid=f3&fs=m:90+t:2&fields=f2,f3,f4,f12,f14,f6`;
-    const res = await fetch(url, { next: { revalidate: 60 } });
+    const res = await fetch(url, { cache: "no-store" });
     if (!res.ok) throw new Error(`sector api ${res.status}`);
     const json = await res.json();
     const list = json?.data?.diff || [];

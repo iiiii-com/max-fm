@@ -12,7 +12,7 @@ async function fetchSinaQuotes(symbols: string[]): Promise<Map<string, HeatQuote
   try {
     const url = `https://hq.sinajs.cn/list=${symbols.join(",")}`;
     const res = await fetch(url, {
-      next: { revalidate: 20 },
+      cache: "no-store",
       headers: { Referer: "https://finance.sina.com.cn/", "User-Agent": UA },
       signal: AbortSignal.timeout(8000),
     });
@@ -35,7 +35,7 @@ async function fetchEastmoneyQuotes(secids: string[]): Promise<Map<string, HeatQ
   try {
     const url = `https://push2.eastmoney.com/api/qt/ulist.np/get?secids=${secids.join(",")}&fields=f2,f3,f4,f12,f14&fltt=2&invt=2`;
     const res = await fetch(url, {
-      next: { revalidate: 20 },
+      cache: "no-store",
       headers: { "User-Agent": UA },
       signal: AbortSignal.timeout(8000),
     });
