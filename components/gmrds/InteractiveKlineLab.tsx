@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { mkKlineTooltip } from "@/lib/data/kline-tooltip";
+import { usePref } from "@/lib/hooks/usePref";
 import { usePctPrefs } from "@/components/charts/pct-prefs";
 import EChart from "@/components/charts/EChart";
 import { KlineDetailPanel, useKlineClickDetail } from "@/components/charts/KlineDetail";
@@ -49,6 +51,8 @@ export default function InteractiveKlineLab({
   const [showRsi, setShowRsi] = useState(false);
   const [showKdj, setShowKdj] = useState(false);
   const [showMarks, setShowMarks] = useState(true);
+  /** 悬停信息卡片：默认开；嫌打扰可关掉，选择持久化 */
+  const [showTip, setShowTip] = usePref("max-kline-tip", true);
   // 每日涨跌幅标注：此前写死 show:true
   const { pct: pctCfg, pctToggle } = usePctPrefs();
   // 回放：visibleCount = 当前显示根数（null = 全部）
@@ -98,6 +102,9 @@ export default function InteractiveKlineLab({
   );
 
   const [selected, clearSelected, attachChart] = useKlineClickDetail(visible);
+
+  /** 图表实际高度：窄屏给更高。渲染与 grid 计算必须用同一个值，否则副图会压到主图外面 */
+  const chartHeight = chartWidth < 520 ? Math.max(height, 460) : height;
 
   const option = useMemo<EChartsOption>(() => {
     const dates = visible.map((b) => b.date);
@@ -162,22 +169,35 @@ export default function InteractiveKlineLab({
 
     // 动态 grid 布局：K线 / 成交量 / [MACD] / [RSI·KDJ]
     const nGrid = 2 + (hasMacd ? 1 : 0) + (hasOsc ? 1 : 0);
-    /**
-     * 窄屏把左侧留给 Y 轴刻度的宽度收窄（56 → 44），并把主图占比抬高：
-     * 手机上本来就只有 390px 宽，56px 的轴区加 14px 右边距吃掉 18% 的宽度，
-     * 再被副图分掉一半高度，主图会小到看不清形态。
-     */
     const narrow = chartWidth < 520;
+
+    /**
+     * 按**像素**分配高度，不用百分比。
+     *
+     * 原先全是百分比（主图 44%、成交量 14%、MACD 12%），算下来 430px 里：
+     *   主图 189px、成交量 60px、MACD 52px，**底部却空着 77px（18%）**。
+     *   空间分给了"不存在的东西"，主图反而被挤扁 —— 这就是"比例不符合逻辑"。
+     *
+     * 现在的规则：副图给**固定的合理高度**（够看清柱子与指标线即可），
+     * 主图吃掉剩下的全部。总高变化时只有主图伸缩，副图不会跟着忽大忽小。
+     * 底部预留 = 末个副图的 x 轴标签 + dataZoom 滑块。
+     */
+    // 高度由外层 chartHeight 统一提供（渲染与 grid 计算必须同源，否则会错位）
+    const TOP = 34; // 图例
+    const BOTTOM_RESERVE = narrow ? 40 : 46; // x 轴标签 + 滑块
+    const GAP = 14; // 主图与副图、副图之间的间隙（x 轴标签要占位置）
+    const SUB_H = narrow ? 46 : 50; // 单个副图高度（够看清柱子与指标线即可，主图优先）
+    const subCount = (hasMacd ? 1 : 0) + (hasOsc ? 1 : 0);
+    const mainH = Math.max(140, chartHeight - TOP - BOTTOM_RESERVE - subCount * (SUB_H + GAP));
+
     const axLeft = narrow ? 44 : 56;
     const axRight = narrow ? 8 : 14;
-    const mainH = hasMacd || hasOsc ? (narrow ? "50%" : "44%") : narrow ? "70%" : "64%";
-    const volTop = hasMacd || hasOsc ? (narrow ? "60%" : "54%") : narrow ? "78%" : "72%";
     const grid: any[] = [
-      { left: axLeft, right: axRight, top: 34, height: mainH },
-      { left: axLeft, right: axRight, top: volTop, height: narrow ? "12%" : "14%" },
+      { left: axLeft, right: axRight, top: TOP, height: mainH },
+      { left: axLeft, right: axRight, top: TOP + mainH + GAP, height: SUB_H },
     ];
-    if (hasMacd) grid.push({ left: axLeft, right: axRight, top: narrow ? "76%" : "70%", height: narrow ? "10%" : "12%" });
-    if (hasOsc) grid.push({ left: axLeft, right: axRight, top: hasMacd ? (narrow ? "88%" : "84%") : narrow ? "76%" : "70%", height: narrow ? "10%" : "12%" });
+    if (hasMacd) grid.push({ left: axLeft, right: axRight, top: TOP + mainH + 2 * (SUB_H + GAP), height: SUB_H });
+    if (hasOsc) grid.push({ left: axLeft, right: axRight, top: TOP + mainH + (hasMacd ? 3 : 2) * (SUB_H + GAP), height: SUB_H });
     const dayAxisLabel = mkDayAxisLabel(dates[dates.length - 1], { fontSize: 10 });
     const xAxes: any[] = [
       { type: "category", data: dates, axisLabel: dayAxisLabel },
@@ -192,9 +212,18 @@ export default function InteractiveKlineLab({
 
     return {
       animation: false,
-      tooltip: {
-        trigger: "axis", axisPointer: { type: "cross" },
-        backgroundColor: "rgba(255,255,255,0.96)", borderColor: "#e2e0dc", textStyle: { color: "#e2e0dc", fontSize: 12 },
+      /**
+       * 用共享工厂而不是内联配置。
+       *
+       * 这里原先是**自己一份** tooltip 配置，于是共享工厂里那些修复
+       * （enterable/hideDelay/transitionDuration）对它全部无效 ——
+       * 用户报的"悬停卡片停留太久"正是发生在这一份上。
+       * 而且它的 textStyle.color 是 #e2e0dc（浅灰白）配白底卡片，
+       * 「开 收 高 低」那几行几乎看不清。
+       * 现在统一走 mkKlineTooltip：指针穿透、去留干脆、文字可读、位置避让。
+       */
+      tooltip: mkKlineTooltip({
+        show: showTip,
         formatter: (params: any) => {
           const arr = Array.isArray(params) ? params : [params];
           const i = arr[0]?.dataIndex ?? 0;
@@ -205,7 +234,7 @@ export default function InteractiveKlineLab({
           const col = pct >= 0 ? "#c0392b" : "#1e8449";
           return `<b>${b.date}</b> <span style="color:${col}">${pct >= 0 ? "+" : ""}${pct.toFixed(2)}%</span><br/>开 ${b.open} 收 ${b.close}<br/>高 ${b.high} 低 ${b.low}`;
         },
-      },
+      }),
       legend: {
         top: 2,
         right: 6,
@@ -234,7 +263,7 @@ export default function InteractiveKlineLab({
       ],
       series,
     };
-  }, [visible, showMA, showBoll, showMacd, showRsi, showKdj, showMarks, period, pctCfg, initialZoom, chartWidth]);
+  }, [visible, showMA, showBoll, showMacd, showRsi, showKdj, showMarks, showTip, period, pctCfg, initialZoom, chartWidth, chartHeight]);
 
   return (
     <div className="rounded-xl border border-border bg-card p-4">
@@ -256,6 +285,7 @@ export default function InteractiveKlineLab({
           ["RSI", showRsi, setShowRsi],
           ["KDJ", showKdj, setShowKdj],
           ["买卖点", showMarks, setShowMarks],
+          ["悬停卡", showTip, setShowTip],
         ].map(([label, on, set]: any) => (
           <button key={label} onClick={() => set(!on)}
             className={`px-2 py-1 rounded text-[11px] border ${on ? "border-primary/40 text-primary bg-primary/10" : "border-border text-muted"}`}>
@@ -287,7 +317,7 @@ export default function InteractiveKlineLab({
         </span>
       </div>
       <div className="relative">
-        <EChart option={option} height={chartWidth < 520 ? Math.max(height, 460) : height} onReady={attachChart} />
+        <EChart option={option} height={chartHeight} onReady={attachChart} />
         {selected && (
           <div className="absolute left-2 top-2 z-10">
             <KlineDetailPanel

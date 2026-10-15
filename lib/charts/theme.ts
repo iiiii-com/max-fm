@@ -68,6 +68,16 @@ export const AXIS_LABEL = MUTED;
 export const SPLIT_LINE = "rgba(26, 26, 26, 0.08)";
 
 /** 统一的 tooltip 样式 */
+/**
+ * 全站 tooltip 基线。
+ *
+ * 三条设置都是踩过才加的（K 线悬停卡片"停留太久"就是这个原因）：
+ *  - enterable: false —— ECharts 5+ 默认 true，tooltip 的 DOM 会捕获鼠标事件；
+ *    卡片一旦挡住指针就会自我维持，直到指针移开很远才消失。
+ *    关掉后指针穿透，卡片只由图表上的位置决定去留。
+ *  - hideDelay 40ms —— 默认 100ms，移开后还要等一下才走。
+ *  - transitionDuration 0.15s —— 默认 0.4s，淡出慢，叠加 hideDelay 后残留近半秒。
+ */
 export const TOOLTIP = {
   backgroundColor: CARD,
   borderColor: BORDER,
@@ -75,6 +85,9 @@ export const TOOLTIP = {
   padding: [8, 12] as [number, number],
   textStyle: { color: INK, fontSize: 12 },
   extraCssText: "box-shadow: 0 4px 16px rgba(26,26,26,.1); border-radius: 2px;",
+  enterable: false,
+  hideDelay: 40,
+  transitionDuration: 0.15,
 };
 
 /** 统一的图例样式 */

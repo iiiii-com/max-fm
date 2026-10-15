@@ -131,7 +131,7 @@ export default function StockDeepView({ secid }: { secid: string }) {
             <h2 className="flex items-center gap-2 font-bold text-lg tracking-tight mb-2">
               <TrendingUp className="w-4.5 h-4.5 text-primary" /> K 线分析
             </h2>
-            {bars?.length ? <InteractiveKlineLab data={bars} height={430} /> : <p className="text-sm text-muted">K 线数据暂不可用</p>}
+            {bars?.length ? <InteractiveKlineLab data={bars} height={470} /> : <p className="text-sm text-muted">K 线数据暂不可用</p>}
           </section>
 
           {/* 盘口 · 分时 · 量能 */}

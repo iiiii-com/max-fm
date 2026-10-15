@@ -4,8 +4,22 @@ import type { EChartsOption } from "echarts";
  * 统一 K 线悬停卡片工厂：
  * - position 跟随鼠标并偏移，避免卡片遮挡鼠标所在 K 线
  * - formatter 精简为最小必要信息（开高低收/涨跌/成交量）
- * - showDelay 300ms：快速滑动不弹窗，停留才显示
  * - confine 防止溢出
+ *
+ * 关于「卡片停留太久」的三条设置（都是踩过才加的）：
+ *
+ * 1) **enterable: false** —— 这是主因。ECharts 5+ 默认 enterable=true，
+ *    tooltip 的 DOM 会**捕获鼠标事件**。而 position 把卡片放在光标右下 14px，
+ *    鼠标沿图移动时很容易滑到卡片上；一旦滑上去，图表就收不到 mousemove，
+ *    卡片自己把自己"钉"住，直到指针移开很远才消失 —— 表现就是"停留时间太长"。
+ *    关掉后指针永远穿透卡片，卡片只由图表上的位置决定去留。
+ *
+ * 2) **showDelay 从 300ms 降到 60ms** —— 300ms 的意图是"快速划过不弹窗"，
+ *    但 ECharts 的 showDelay 同样作用于**内容更新**：在相邻两根 K 线之间移动时，
+ *    卡片会先显示旧数据、延迟后才刷新，看起来像"卡住不动"。60ms 足够过滤快速扫过。
+ *
+ * 3) **hideDelay 40ms + transitionDuration 0.15s** —— 默认 hideDelay 100ms
+ *    再叠加默认 0.4s 淡出动画，实际残留约半秒，拖泥带水。
  */
 export function mkKlineTooltip(opts?: {
   bars?: Array<{ date: string; open?: number; close: number; high?: number; low?: number; volume?: number }>;
@@ -41,6 +55,9 @@ export function mkKlineTooltip(opts?: {
   });
 
   return {
+    // 悬停卡片开关：由外部状态（控制条上的「悬停卡」）控制。
+    // 关掉时 ECharts 连十字准星一起停 —— 这正是"不想被打扰"时要的效果。
+    show: opts?.show ?? true,
     trigger: "axis",
     axisPointer: { type: "cross" },
     backgroundColor: "rgba(255,255,255,0.95)",
@@ -50,8 +67,11 @@ export function mkKlineTooltip(opts?: {
     textStyle: { color: "#1e293b", fontSize: 12 },
     extraCssText: "box-shadow:0 4px 16px rgba(0,0,0,0.12);border-radius:8px;backdrop-filter:blur(4px)",
     confine: true,
-    showDelay: 300,
-    hideDelay: 100,
+    // 指针必须能穿透卡片，否则卡片会被自己"钉"住（详见文件头的说明）
+    enterable: false,
+    showDelay: 60,
+    hideDelay: 40,
+    transitionDuration: 0.15,
     // 跟随鼠标并偏移到右上方，不遮挡当前悬停 K 线
     position: (point: number[], params: any, dom: HTMLElement) => {
       const w = dom.offsetWidth || 160;
