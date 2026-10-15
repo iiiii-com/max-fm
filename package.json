@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "seed": "tsx scripts/seed.ts",
-    "postbuild": "tsx scripts/policy-build-sync.ts"
+    "postbuild": "tsx scripts/policy-build-sync.ts && tsx scripts/chain-sector-sync.ts"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^3.0.31",
