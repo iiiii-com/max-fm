@@ -8,6 +8,8 @@ import { fetchQuotes, fetchSectors } from "@/lib/data/quotes";
 import { syncMacroReal, computeMacroTemperature, backfillMacroTemperatureHistory } from "@/lib/data/macro-sync";
 import { syncPoliciesReal } from "@/lib/data/policy-sync";
 import { ensureMonthlyReports } from "@/lib/data/monthly-report";
+// 任务写库后必须让读缓存失效，否则页面在 TTL 内仍然显示同步前的旧数据。
+import { invalidateDataCache } from "@/lib/data/cache";
 // 行情面板的定时预取：直接把三个接口的 GET 处理器跑一遍，让它们走各自完整的
 // 「取数 → 归一化 → 落库快照/内存快照」路径，避免在任务里重写一套取数逻辑而产生口径分叉。
 import { GET as fundRankGET } from "@/app/api/market/fund-rank/route";
@@ -45,6 +47,10 @@ export async function GET(req: Request) {
     } catch (e: any) {
       results.push(`${name}: FAIL (${e?.message})`);
       await db.insert(s.taskLogs).values({ id: uid("log"), taskName: name, status: "failed", detail: String(e?.message || e), durationMs: Date.now() - t0, tokens: 0, createdAt: now() } as any);
+    } finally {
+      // 无论成功失败都清读缓存：成功要让新数据立刻可见，
+      // 失败也可能有部分写成功（例如 macro-sync 单个指标失败但其它已落库）。
+      invalidateDataCache();
     }
   };
 

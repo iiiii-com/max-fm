@@ -1,5 +1,5 @@
 ﻿import Link from "next/link";
-import { getPolicies, getPolicyAnalysisIds } from "@/lib/data/queries";
+import { getPolicyList, getPolicyAnalysisIds } from "@/lib/data/queries";
 import { Card, Badge, SectionTitle } from "@/components/ui";
 import { fmtDate, fmtDateTime } from "@/lib/utils";
 import { bootstrap } from "@/lib/db";
@@ -44,7 +44,7 @@ export default async function PolicyPage({
 }) {
   const { cat, page } = await searchParams;
   await bootstrap();
-  const [all, analyzedIds] = await Promise.all([getPolicies(), getPolicyAnalysisIds()]);
+  const [all, analyzedIds] = await Promise.all([getPolicyList(), getPolicyAnalysisIds()]);
 
   // 最近同步时间 = 最新入库时间（updatedAt 为毫秒时间戳）
   const lastSync = all.length

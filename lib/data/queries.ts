@@ -1,9 +1,46 @@
-import { db, parseJson } from "@/lib/db";
+import { db, parseJson, dbDegradedRecently } from "@/lib/db";
 import * as s from "@/lib/db/schema";
-import { eq, desc, asc, and, like, inArray } from "drizzle-orm";
+import { eq, ne, desc, asc, and, like, inArray } from "drizzle-orm";
 import { validMetrics } from "@/lib/data/chainMetrics";
 import { hitWords } from "@/lib/data/chainPolicyHints";
 import { buildChainIndex } from "@/lib/data/chainIndex";
+import { cached } from "@/lib/data/cache";
+
+/**
+ * 降级期间不要把「空结果」写进缓存。
+ * （数据库挂掉时读操作被包装成空数组，若缓存 10 分钟，恢复后用户仍会看到空数据）
+ */
+const skipWhenDegraded = () => dbDegradedRecently();
+
+/**
+ * 宏观指标序列的「图表最小集」：只取 type/date/value 三列。
+ *
+ * /macro 只需要给每项指标画 (date, value) 折线，但原 `getIndicators()` 是全表全字段
+ * （60+ 列 × 4571 行 = 6.0MB JSON）。Neon 免费版每月只有 5GB 公网传输，
+ * 一次 /macro 就吃掉 6MB → 约 857 次访问即封顶。投影到 3 列后体积约 1/40。
+ */
+export interface MacroSeriesRow {
+  type: string;
+  date: string;
+  value: number | null;
+}
+
+export async function getMacroSeries(): Promise<MacroSeriesRow[]> {
+  return cached(
+    "macro:series",
+    10 * 60_000,
+    async () =>
+      (await db
+        .select({
+          type: s.economicIndicators.type,
+          date: s.economicIndicators.date,
+          value: s.economicIndicators.value,
+        })
+        .from(s.economicIndicators)
+        .orderBy(asc(s.economicIndicators.date))) as MacroSeriesRow[],
+    { skipIf: skipWhenDegraded }
+  );
+}
 
 export const CATEGORY_COLORS: Record<string, string> = {
   物价: "#dc2626", 景气: "#ea580c", 货币: "#2563eb", 外贸: "#0d9488",
@@ -11,7 +48,13 @@ export const CATEGORY_COLORS: Record<string, string> = {
 };
 
 export async function getIndicators() {
-  return db.select().from(s.economicIndicators).orderBy(asc(s.economicIndicators.date));
+  // 月频数据，10 分钟缓存足够；主要收益是别让 /macro 与月报生成各自整表重拉
+  return cached(
+    "macro:indicators:full",
+    10 * 60_000,
+    async () => db.select().from(s.economicIndicators).orderBy(asc(s.economicIndicators.date)),
+    { skipIf: skipWhenDegraded }
+  );
 }
 
 /**
@@ -42,24 +85,31 @@ export interface MacroProvenance {
 }
 
 export async function getMacroProvenance(): Promise<MacroProvenance> {
-  const rows = (await db
-    .select({ type: s.economicIndicators.type, source: s.economicIndicators.source, updatedAt: s.economicIndicators.updatedAt })
-    .from(s.economicIndicators)) as Array<{ type: string; source: string | null; updatedAt: number | null }>;
-  let synced = 0;
-  let lastSyncedAt: number | null = null;
-  const byType: MacroProvenance["byType"] = {};
-  for (const r of rows) {
-    const isSynced = !!r.source && MACRO_SYNCED_SOURCES.has(r.source);
-    if (isSynced) {
-      synced += 1;
-      const t = Number(r.updatedAt ?? 0);
-      if (Number.isFinite(t) && t > 0 && (lastSyncedAt == null || t > lastSyncedAt)) lastSyncedAt = t;
-    }
-    // 同类型多行时以「已同步」优先，避免一个类型被示例行覆盖判断
-    const prev = byType[r.type];
-    if (!prev || (!prev.synced && isSynced)) byType[r.type] = { source: r.source ?? null, synced: isSynced };
-  }
-  return { total: rows.length, synced, seed: rows.length - synced, lastSyncedAt, byType };
+  return cached(
+    "macro:provenance",
+    10 * 60_000,
+    async () => {
+      const rows = (await db
+        .select({ type: s.economicIndicators.type, source: s.economicIndicators.source, updatedAt: s.economicIndicators.updatedAt })
+        .from(s.economicIndicators)) as Array<{ type: string; source: string | null; updatedAt: number | null }>;
+      let synced = 0;
+      let lastSyncedAt: number | null = null;
+      const byType: MacroProvenance["byType"] = {};
+      for (const r of rows) {
+        const isSynced = !!r.source && MACRO_SYNCED_SOURCES.has(r.source);
+        if (isSynced) {
+          synced += 1;
+          const t = Number(r.updatedAt ?? 0);
+          if (Number.isFinite(t) && t > 0 && (lastSyncedAt == null || t > lastSyncedAt)) lastSyncedAt = t;
+        }
+        // 同类型多行时以「已同步」优先，避免一个类型被示例行覆盖判断
+        const prev = byType[r.type];
+        if (!prev || (!prev.synced && isSynced)) byType[r.type] = { source: r.source ?? null, synced: isSynced };
+      }
+      return { total: rows.length, synced, seed: rows.length - synced, lastSyncedAt, byType };
+    },
+    { skipIf: skipWhenDegraded }
+  );
 }
 
 export async function getLatestIndicator(name: string) {
@@ -83,7 +133,42 @@ export async function getIndicatorSeries(type: string, limit = 120) {
 }
 
 export async function getPolicies() {
-  return db.select().from(s.policies).orderBy(desc(s.policies.publishDate));
+  return cached(
+    "policy:all:full",
+    2 * 60_000,
+    async () => db.select().from(s.policies).orderBy(desc(s.policies.publishDate)),
+    { skipIf: skipWhenDegraded }
+  );
+}
+
+/**
+ * 政策列表页专用的「列表字段」投影。
+ *
+ * 原实现用 `db.select()` 取整行（60+ 列，含 content/answers 等大文本），189 行 = 1.29MB。
+ * 但列表页实际只渲染 id/title/summary/category/department/source/publishDate/sourceUrl/updatedAt，
+ * 正文只在详情页用。投影后单次传输约几十 KB。
+ */
+export async function getPolicyList() {
+  return cached(
+    "policy:list",
+    2 * 60_000,
+    async () =>
+      db
+        .select({
+          id: s.policies.id,
+          title: s.policies.title,
+          summary: s.policies.summary,
+          category: s.policies.category,
+          department: s.policies.department,
+          source: s.policies.source,
+          publishDate: s.policies.publishDate,
+          sourceUrl: s.policies.sourceUrl,
+          updatedAt: s.policies.updatedAt,
+        })
+        .from(s.policies)
+        .orderBy(desc(s.policies.publishDate)),
+    { skipIf: skipWhenDegraded }
+  );
 }
 
 export async function getPolicyWithAnalysis(id: string) {
@@ -94,9 +179,17 @@ export async function getPolicyWithAnalysis(id: string) {
 }
 
 export async function getArticles(type?: string, limit = 30) {
-  const q = db.select().from(s.articles).where(eq(s.articles.status, "published"));
-  const all = type ? await q.where(eq(s.articles.type, type)) : await q;
-  return all.sort((a: any, b: any) => (b.publishDate ?? "").localeCompare(a.publishDate ?? "")).slice(0, limit);
+  // 文章列表改动频率低，1 分钟缓存（同一进程内 / 与 /policy 等页面共享）
+  return cached(
+    `articles:${type ?? "all"}:${limit}`,
+    60_000,
+    async () => {
+      const q = db.select().from(s.articles).where(eq(s.articles.status, "published"));
+      const all = type ? await q.where(eq(s.articles.type, type)) : await q;
+      return all.sort((a: any, b: any) => (b.publishDate ?? "").localeCompare(a.publishDate ?? "")).slice(0, limit);
+    },
+    { skipIf: skipWhenDegraded }
+  );
 }
 
 export async function getArticleBySlug(slug: string) {
@@ -123,12 +216,27 @@ export async function getProvinceHistoryAll() {
 }
 
 export async function getChains() {
-  return db.select().from(s.industryChains);
+  // 产业链是静态配置型数据（40 条），30 分钟缓存足够
+  return cached(
+    "chain:list",
+    30 * 60_000,
+    async () => db.select().from(s.industryChains),
+    { skipIf: skipWhenDegraded }
+  );
 }
 
 export async function getChainNodes(chainId?: string) {
-  const q = db.select().from(s.chainNodes);
-  return chainId ? q.where(eq(s.chainNodes.chainId, chainId)) : q;
+  // 产业链节点是静态配置型数据（221 条），30 分钟缓存足够；
+  // 按 chainId 过滤时用独立缓存键，避免不同链互相覆盖。
+  return cached(
+    `chain:nodes:${chainId ?? "all"}`,
+    30 * 60_000,
+    async () => {
+      const q = db.select().from(s.chainNodes);
+      return chainId ? q.where(eq(s.chainNodes.chainId, chainId)) : q;
+    },
+    { skipIf: skipWhenDegraded }
+  );
 }
 
 /**
@@ -169,19 +277,27 @@ export async function getHistoryEvent(slug: string) {
  * 无数据时调用方必须显式显示「暂无问卷数据」。
  */
 export async function getFeelingAggregates() {
-  const rows = await db.select().from(s.feelingAggregates);
-  const overall = rows.find((r: any) => r.dimension === "overall");
-  const avg = Number(overall?.avgScore);
-  const n = Number(overall?.sampleCount) || 0;
-  return {
-    /** 体感温度（0–100）；无有效样本时为 null */
-    overall: n > 0 && Number.isFinite(avg) ? avg : null,
-    sampleCount: n,
-    updatedAt: overall?.updatedAt ?? null,
-    byAge: rows.filter((r: any) => r.dimension === "age_group"),
-    byOccupation: rows.filter((r: any) => r.dimension === "occupation"),
-    byRegion: rows.filter((r: any) => r.dimension === "region"),
-  };
+  // 聚合表只有几十行，但每个页面（首页/宏观/体感）都会读；缓存 2 分钟减少唤醒
+  return cached(
+    "feeling:aggregates",
+    2 * 60_000,
+    async () => {
+      const rows = await db.select().from(s.feelingAggregates);
+      const overall = rows.find((r: any) => r.dimension === "overall");
+      const avg = Number(overall?.avgScore);
+      const n = Number(overall?.sampleCount) || 0;
+      return {
+        /** 体感温度（0–100）；无有效样本时为 null */
+        overall: n > 0 && Number.isFinite(avg) ? avg : null,
+        sampleCount: n,
+        updatedAt: overall?.updatedAt ?? null,
+        byAge: rows.filter((r: any) => r.dimension === "age_group"),
+        byOccupation: rows.filter((r: any) => r.dimension === "occupation"),
+        byRegion: rows.filter((r: any) => r.dimension === "region"),
+      };
+    },
+    { skipIf: skipWhenDegraded }
+  );
 }
 
 /**
@@ -247,7 +363,13 @@ export const fmtDiff = (v: number | null | undefined): string =>
   v == null || !Number.isFinite(Number(v)) ? "—" : `${v > 0 ? "+" : ""}${Math.round(Number(v))}`;
 
 export async function getTemperatures() {
-  return db.select().from(s.macroTemperatures).orderBy(asc(s.macroTemperatures.date));
+  // 月度温度序列，改动频率低；缓存 5 分钟（Neon 按查询次数/传输量计费）
+  return cached(
+    "macro:temperatures",
+    5 * 60_000,
+    async () => db.select().from(s.macroTemperatures).orderBy(asc(s.macroTemperatures.date)),
+    { skipIf: skipWhenDegraded }
+  );
 }
 
 export async function getTemperatureAnalysis() {
@@ -375,33 +497,78 @@ export async function searchAll(q: string) {
 }
 
 export async function getTaskLogs(limit = 20) {
-  return db.select().from(s.taskLogs).orderBy(desc(s.taskLogs.createdAt)).limit(limit);
+  // 过滤掉 bootstrap 写下的「库结构版本标记」行（name='__schema'），
+  // 它是内部簿记，不该出现在任务日志列表里。
+  return db
+    .select()
+    .from(s.taskLogs)
+    .where(ne(s.taskLogs.name, "__schema"))
+    .orderBy(desc(s.taskLogs.createdAt))
+    .limit(limit);
 }
 
 export async function getRecentAggregated(): Promise<{
   latestGdp: number; latestCpi: number; latestPmi: number; latestM2: number;
   latestHouseprice: number; latestExport: number; latestUnemp: number; latestLoans: number;
 }> {
-  const [gdp, cpi, pmi, m2, houseprice, export_, unemp, loans] = await Promise.all([
-    getLatestIndicator("GDP 同比增速"),
-    getLatestIndicator("CPI 同比"),
-    getLatestIndicator("制造业 PMI"),
-    getLatestIndicator("M2 同比增速"),
-    getLatestIndicator("百城房价指数同比"),
-    getLatestIndicator("出口同比"),
-    getLatestIndicator("城镇调查失业率"),
-    getLatestIndicator("新增人民币贷款"),
-  ]);
-  return {
-    latestGdp: gdp?.value ?? 5.2,
-    latestCpi: cpi?.value ?? 1.4,
-    latestPmi: pmi?.value ?? 50.4,
-    latestM2: m2?.value ?? 8.8,
-    latestHouseprice: houseprice?.value ?? 0.5,
-    latestExport: export_?.value ?? 6.0,
-    latestUnemp: unemp?.value ?? 5.0,
-    latestLoans: loans?.value ?? 2.0,
-  };
+  /**
+   * 旧实现串行/并行地调 8 次 `getLatestIndicator()` = 8 条 SQL，
+   * 而首页每次渲染都要跑一遍 —— Neon 免费版是按「查询次数不直接计费、但算力唤醒时长计费」
+   * 与传输量计费的，8 条查询意味着 8 次唤醒机会。这里合并成 1 条：
+   * 一次取回 8 个指标的全部行（每项约 200 行，共 ~1600 行，只投影 3 列），在内存里取各自最新。
+   */
+  return cached(
+    "macro:recent-aggregated",
+    2 * 60_000,
+    async () => {
+      const names = [
+        "GDP 同比增速",
+        "CPI 同比",
+        "制造业 PMI",
+        "M2 同比增速",
+        "百城房价指数同比",
+        "出口同比",
+        "城镇调查失业率",
+        "新增人民币贷款",
+      ];
+      const rows = (await db
+        .select({
+          name: s.economicIndicators.name,
+          date: s.economicIndicators.date,
+          value: s.economicIndicators.value,
+        })
+        .from(s.economicIndicators)
+        .where(inArray(s.economicIndicators.name, names))
+        .orderBy(desc(s.economicIndicators.date))) as Array<{ name: string; date: string; value: number | null }>;
+
+      // 按 name 取「日期最新的一条」（rows 已按 date desc 排序，首个即最新）
+      const latest = new Map<string, { date: string; value: number | null }>();
+      for (const r of rows) {
+        if (!latest.has(r.name)) latest.set(r.name, { date: r.date, value: r.value });
+      }
+      const pick = (name: string) => latest.get(name) ?? null;
+
+      const gdp = pick("GDP 同比增速");
+      const cpi = pick("CPI 同比");
+      const pmi = pick("制造业 PMI");
+      const m2 = pick("M2 同比增速");
+      const houseprice = pick("百城房价指数同比");
+      const export_ = pick("出口同比");
+      const unemp = pick("城镇调查失业率");
+      const loans = pick("新增人民币贷款");
+      return {
+        latestGdp: gdp?.value ?? 5.2,
+        latestCpi: cpi?.value ?? 1.4,
+        latestPmi: pmi?.value ?? 50.4,
+        latestM2: m2?.value ?? 8.8,
+        latestHouseprice: houseprice?.value ?? 0.5,
+        latestExport: export_?.value ?? 6.0,
+        latestUnemp: unemp?.value ?? 5.0,
+        latestLoans: loans?.value ?? 2.0,
+      };
+    },
+    { skipIf: skipWhenDegraded }
+  );
 }
 
 export { parseJson };

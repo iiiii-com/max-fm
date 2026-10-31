@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getIndicators, getTemperatures, getFeelingAggregates, getMacroProvenance } from "@/lib/data/queries";
+import { getMacroSeries, getTemperatures, getFeelingAggregates, getMacroProvenance } from "@/lib/data/queries";
 import { SectionTitle, Card } from "@/components/ui";
 import { TrendCard } from "@/components/charts/IndicatorLine";
 import MacroIndicatorBoard from "@/components/macro/MacroIndicatorBoard";
@@ -40,8 +40,10 @@ function momOf(s: Array<{ date: string; value: number }>): number | null {
 
 export default async function MacroPage() {
   await bootstrap();
+  // 只取 type/date/value 三列（图表最小集）：原全表全字段 4571 行 ≈ 6MB，
+  // Neon 免费版每月仅 5GB 传输，一次 /macro 就会吃掉大半。
   const [inds, temps, feeling, provenance] = await Promise.all([
-    getIndicators(),
+    getMacroSeries(),
     getTemperatures(),
     getFeelingAggregates(),
     getMacroProvenance(),

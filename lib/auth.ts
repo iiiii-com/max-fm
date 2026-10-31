@@ -2,8 +2,30 @@ import { SignJWT, jwtVerify, type JWTPayload } from "jose";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
-import { db } from "@/lib/db";
+import { db, dbDegradedRecently } from "@/lib/db";
 import * as s from "@/lib/db/schema";
+
+/**
+ * 进程内用户行缓存（Neon 计费优化）。
+ *
+ * `app/layout.tsx` 每个页面渲染都会 `await getSession()`，而 getSession 除了验签还要
+ * 查一次 users 表（校验 sessionVersion + 取最新 plan/riskLevel）。生产库是 Neon，
+ * 它按「活跃算力时长 + 公网传输」计费：一次页面浏览 = 一次查询 = 一次唤醒窗口，
+ * 匿名流量大的时候光这一条查询就能把免费额度吃光。
+ *
+ * 这里缓存 60 秒：
+ *   - 安全影响可控：改密码/退出全部设备都会 bumpSessionVersion → 主动清缓存，
+ *     最坏情况下「其它设备上的旧会话」最多多活 60 秒（原本靠 JWT 也已能活 12 小时）；
+ *   - 数据库降级期间不写缓存：否则把「空结果」缓存下来，恢复后 60 秒内仍显示未登录。
+ */
+const USER_CACHE_TTL_MS = 60_000;
+const userCache = new Map<string, { at: number; row: typeof s.users.$inferSelect | null }>();
+
+/** 清理某个用户（或全部）的会话缓存；改密码/提权/降权后必须调用 */
+export function invalidateUserCache(id?: string): void {
+  if (id) userCache.delete(id);
+  else userCache.clear();
+}
 
 /**
  * 会话与身份。
@@ -131,8 +153,14 @@ async function currentSessionVersion(userId: string): Promise<string> {
 }
 
 export async function getUserFromDb(id: string) {
+  const hit = userCache.get(id);
+  if (hit && Date.now() - hit.at < USER_CACHE_TTL_MS) return hit.row;
+
   const rows = await db.select().from(s.users).where(eq(s.users.id, id)).limit(1);
-  return rows[0] ?? null;
+  const row = rows[0] ?? null;
+  // 降级期间读到的是空结果，不能缓存（见文件头说明）
+  if (!dbDegradedRecently(120_000)) userCache.set(id, { at: Date.now(), row });
+  return row;
 }
 
 /** 改密码或主动登出全部设备时调用，令所有已签发令牌失效 */
@@ -144,6 +172,8 @@ export async function bumpSessionVersion(userId: string): Promise<void> {
     .update(s.users)
     .set({ sessionVersion: next, updatedAt: Date.now() })
     .where(eq(s.users.id, userId));
+  // 写完立刻失效缓存，避免 60 秒内 getSession 仍读到旧版本 / 旧权限
+  invalidateUserCache(userId);
 }
 
 export function toSessionUser(u: typeof s.users.$inferSelect): SessionUser {

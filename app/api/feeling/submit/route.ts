@@ -4,6 +4,7 @@ import { db, uid, now } from "@/lib/db";
 import * as s from "@/lib/db/schema";
 import { getSession } from "@/lib/auth";
 import { recomputeFeelingAggregates } from "@/lib/data/feeling";
+import { invalidateDataCache } from "@/lib/data/cache";
 import { rateLimit, clientIp } from "@/lib/auth-security";
 
 /* 字段长度必须设上限：这些值会原样写进 feeling_aggregates.bucket 并被导出成 CSV、
@@ -53,6 +54,8 @@ export async function POST(req: Request) {
   // 聚合是派生数据：每来一份新问卷就重算一次整体/分桶均值，
   // 否则页面上的「大众体感」会永远停在 seed 的静态数字上。
   const agg = await recomputeFeelingAggregates();
+  // 聚合结果刚落库，清掉读缓存让首页/宏观页立即看到新的体感温度
+  invalidateDataCache("feeling:");
   return NextResponse.json({
     ok: true,
     myScore: score,

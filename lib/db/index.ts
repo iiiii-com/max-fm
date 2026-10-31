@@ -74,7 +74,31 @@ function sqliteBootstrap() {
 }
 
 function pgBootstrap() {
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  /**
+   * 连接池参数（Neon 计费与稳定性）。
+   *
+   * - max: 4 —— Serverless 环境每个实例只需要很少的连接；连接开太多会把
+   *   Neon 的「活跃算力」长时间占住，也更容易触发连接数上限。
+   * - idleTimeoutMillis: 10s —— 空闲就归还连接，让 Neon compute 有机会进入
+   *   autosuspend（免费版 5 分钟空闲自动挂起）；否则空闲连接会让算力持续计费。
+   * - connectionTimeoutMillis: 8s —— 配额/网络异常时尽快失败并进入降级，
+   *   而不是让页面请求挂到 30s+（此前线上事故时用户体感就是「一直转圈」）。
+   * - allowExitOnIdle: 本地脚本跑完能正常退出，不必手动 end()。
+   */
+  const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    max: 4,
+    idleTimeoutMillis: 10_000,
+    connectionTimeoutMillis: 8_000,
+    allowExitOnIdle: true,
+  });
+
+  // 生产环境提醒：Serverless 平台应使用 Neon 的 pooled（-pooler）连接串，
+  // 否则每个函数实例都会独占一个直连 Postgres 连接。
+  if (process.env.NODE_ENV === "production" && process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("-pooler")) {
+    console.warn("[db] DATABASE_URL 未使用 -pooler 连接串，Serverless 环境下建议改用连接池端点");
+  }
+
   const db = drizzlePg(pool, { schema });
 
   // 读查询的降级包装：只在连接类/配额类故障下把 SELECT 变成空结果集，
@@ -208,12 +232,53 @@ async function healPg() {
 
 let bootstrapped = false;
 
+/**
+ * 结构版本号：改了表/列定义之后必须改这里，下次冷启动会自动重建/补列。
+ * 值本身没有语义，只用于「和库里记录的标记对比」。
+ */
+const SCHEMA_VERSION = "2026-10-31-neon-wake";
+
+/**
+ * PG 侧「建表 + 补列是否已经做过」。
+ *
+ * 每次 Serverless 冷启动都会跑一次 bootstrap；原实现无条件执行
+ * DDL_PG（22 条 CREATE TABLE IF NOT EXISTS 拼成的一条多语句）+ healPg
+ * （扫 information_schema）。这两步在 Neon 上都是实打实的算力消耗，
+ * 而绝大多数冷启动库结构根本没变。
+ *
+ * 现在改为：先在 task_logs 里找一条 name='__schema' 的标记，
+ * detail 等于当前 SCHEMA_VERSION 就跳过建表；否则走完整流程并补写标记。
+ * 正常情况冷启动只剩 1 条很小的 SELECT。
+ */
+async function pgSchemaUpToDate(): Promise<boolean> {
+  try {
+    const { rows } = await (raw as Pool).query<{ detail: string | null }>(
+      `SELECT detail FROM task_logs WHERE name = '__schema' ORDER BY created_at DESC LIMIT 1`
+    );
+    return rows[0]?.detail === SCHEMA_VERSION;
+  } catch {
+    // 表还不存在（首次部署）/查询失败：返回 false 走完整建表流程
+    return false;
+  }
+}
+
+async function markPgSchemaVersion(): Promise<void> {
+  await (raw as Pool).query(
+    `INSERT INTO task_logs (id, name, status, detail, created_at) VALUES ($1, '__schema', 'ok', $2, $3)`,
+    [`schema_${SCHEMA_VERSION}`, SCHEMA_VERSION, Date.now()]
+  );
+}
+
 export async function bootstrap() {
   if (bootstrapped) return;
   try {
     if (isPg) {
-      await (raw as Pool).query(DDL_PG);
-      await healPg();
+      // 库结构没变就跳过 DDL 与 information_schema 扫描（省 Neon 算力）
+      if (!(await pgSchemaUpToDate())) {
+        await (raw as Pool).query(DDL_PG);
+        await healPg();
+        await markPgSchemaVersion();
+      }
     } else {
       (raw as Database.Database).exec(DDL_SQLITE);
       healSqlite();

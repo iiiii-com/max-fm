@@ -10,7 +10,7 @@ import InstallPrompt from "@/components/layout/InstallPrompt";
 import { RefreshProvider } from "@/lib/hooks/refresh";
 import { ThemeProvider } from "@/components/theme-provider";
 import { getSession } from "@/lib/auth";
-import { isDbDegraded } from "@/lib/db";
+import { bootstrap, isDbDegraded } from "@/lib/db";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
@@ -63,6 +63,10 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // 先跑一次 bootstrap：它内部会尝试连库（建表/读取结构版本），
+  // 这样「降级标记」在首屏渲染前就位 —— 否则匿名访客首个请求里，
+  // layout 先于子页面执行、读到的还是「正常」状态，要等第二次刷新才看到降级横幅。
+  await bootstrap();
   const user = await getSession();
   /**
    * 数据库降级时的全局横幅。
