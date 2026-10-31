@@ -9,6 +9,61 @@ import path from "node:path";
 
 export { isPg };
 
+/**
+ * 数据库降级状态。
+ *
+ * 背景（2026-10-31 生产事故）：Neon Postgres 配额耗尽后，**每一次**查询都返回
+ * 「Your account or project has exceeded the quota. Upgrade your plan to increase limits.」。
+ * 于是所有调用 bootstrap() 的页面在服务端组件里抛出，用户看到的是全站
+ * 「页面出了点问题」（React #441）——一个基础设施故障把整个站点拖垮了。
+ *
+ * 处理原则：
+ *   1) 读查询在「连接类/配额类」故障时降级为空结果，页面照常渲染（内容为空 + 顶部横幅提示），
+ *      而不是整页 500；这样静态说明、离线快照、导航仍然可用；
+ *   2) **写操作绝不吞掉**：注册/提交问卷/收藏等必须继续报错，否则会向用户谎报成功、
+ *      造成数据丢失。因此只有 SELECT 会被降级，INSERT/UPDATE/DELETE 原样抛出。
+ *   3) 真正的 SQL 语句错误（列不存在、类型错误…）不在降级范围内 —— 那是代码 bug，
+ *      必须暴露出来，不能被「空数据」掩盖。
+ */
+export interface DbDegradedState {
+  at: number;
+  reason: string;
+}
+
+let degraded: DbDegradedState | null = null;
+
+function isDegradableError(e: any): boolean {
+  const msg = String(e?.message ?? "");
+  const code = String(e?.code ?? "");
+  if (/exceeded the quota|quota|too many connections|too many clients/i.test(msg)) return true;
+  if (/ECONNREFUSED|ENOTFOUND|ETIMEDOUT|ECONNRESET|EPIPE|EAI_AGAIN/i.test(msg)) return true;
+  if (/terminating connection|password authentication failed|no pg_hba\.conf|SSL|TLS/i.test(msg)) return true;
+  if (/timeout expired|Connection terminated|connection timeout/i.test(msg)) return true;
+  if (["ECONNREFUSED", "ENOTFOUND", "ETIMEDOUT", "ECONNRESET", "EAI_AGAIN", "57P01", "28P01", "28000"].includes(code)) return true;
+  return false;
+}
+
+function markDegraded(e: any) {
+  if (degraded) return;
+  degraded = { at: Date.now(), reason: String(e?.message ?? e).split("\n")[0].slice(0, 200) };
+  console.warn("[db] 数据库不可用，已进入只读降级模式：", degraded.reason);
+}
+
+/** 是否处于降级模式（页面据此渲染横幅提示） */
+export function isDbDegraded(): boolean {
+  return degraded != null;
+}
+
+/** 降级原因（用于页面提示，不含连接串等敏感信息） */
+export function dbDegradedReason(): string | null {
+  return degraded?.reason ?? null;
+}
+
+/** 是否降级发生在最近 windowMs 内（供路由判断要不要返回 503 而不是空数据） */
+export function dbDegradedRecently(windowMs = 60_000): boolean {
+  return degraded != null && Date.now() - degraded.at < windowMs;
+}
+
 function sqliteBootstrap() {
   const dir = path.join(process.cwd(), "data");
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -21,8 +76,27 @@ function sqliteBootstrap() {
 function pgBootstrap() {
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
   const db = drizzlePg(pool, { schema });
+
+  // 读查询的降级包装：只在连接类/配额类故障下把 SELECT 变成空结果集，
+  // 其余错误与所有写操作保持原样抛出（见文件顶部的处理原则）。
+  const originalQuery = pool.query.bind(pool) as any;
+  (pool as any).query = async (textOrConfig: any, values?: any[]) => {
+    const text = typeof textOrConfig === "string" ? textOrConfig : String(textOrConfig?.text ?? "");
+    const isRead = /^\s*(select|with)\b/i.test(text);
+    try {
+      return await originalQuery(textOrConfig, values);
+    } catch (e) {
+      if (isRead && isDegradableError(e)) {
+        markDegraded(e);
+        return { command: "SELECT", rowCount: 0, rows: [], fields: [], oid: 0 };
+      }
+      throw e;
+    }
+  };
+
   return { db, raw: pool };
 }
+
 
 const boot = isPg ? pgBootstrap() : sqliteBootstrap();
 export const db: any = boot.db;
@@ -136,14 +210,20 @@ let bootstrapped = false;
 
 export async function bootstrap() {
   if (bootstrapped) return;
-  if (isPg) {
-    await (raw as Pool).query(DDL_PG);
-    await healPg();
-  } else {
-    (raw as Database.Database).exec(DDL_SQLITE);
-    healSqlite();
+  try {
+    if (isPg) {
+      await (raw as Pool).query(DDL_PG);
+      await healPg();
+    } else {
+      (raw as Database.Database).exec(DDL_SQLITE);
+      healSqlite();
+    }
+    bootstrapped = true;
+  } catch (e) {
+    // 建表/补列失败也不能让页面直接 500：标记降级后继续，后续读查询由 pool 包装降级为空，
+    // 写操作仍会抛错（用户能看到明确失败，而不是被静默吞掉）。
+    markDegraded(e);
   }
-  bootstrapped = true;
 }
 
 export function uid(prefix = "") {

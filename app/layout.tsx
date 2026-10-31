@@ -10,6 +10,7 @@ import InstallPrompt from "@/components/layout/InstallPrompt";
 import { RefreshProvider } from "@/lib/hooks/refresh";
 import { ThemeProvider } from "@/components/theme-provider";
 import { getSession } from "@/lib/auth";
+import { isDbDegraded } from "@/lib/db";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
@@ -63,9 +64,25 @@ export const viewport: Viewport = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const user = await getSession();
+  /**
+   * 数据库降级时的全局横幅。
+   * 生产事故背景：Neon 配额耗尽后每一次查询都失败，此前所有依赖数据库的页面直接变成
+   * 「页面出了点问题」整页错误；降级后页面照常渲染（数据为空/缓存），但必须让用户
+   * 明确知道「这不是我们的真实数据为空，而是数据服务暂时不可用」，否则会被误读成
+   * 「宏观指标全为 0」。写入类操作仍会失败并给出错误，见 lib/db/index.ts 的处理原则。
+   */
+  const dbDegraded = isDbDegraded();
   return (
     <html lang="zh-CN" suppressHydrationWarning className={`${geistSans.variable} ${geistMono.variable} ${ibmPlexMono.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-background text-foreground overflow-x-clip">
+        {dbDegraded && (
+          <div
+            role="status"
+            className="bg-amber-500/12 border-b border-amber-500/35 text-amber-800 dark:text-amber-200 text-xs leading-relaxed px-4 py-2 text-center"
+          >
+            ⚠ 数据服务暂时不可用（数据库配额超限），当前展示的是空数据或最近缓存；行情、指标与保存类操作暂停，恢复后自动生效。
+          </div>
+        )}
         {/* 主题初始化：next/script beforeInteractive 输出到 head，防首屏闪烁且不触发 React 组件内 script 警告。
             默认浅色（机构研究）；只有用户显式存了 dark 才加 .dark。 */}
         <Script id="theme-init" strategy="beforeInteractive">
