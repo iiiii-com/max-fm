@@ -89,7 +89,20 @@ export default function FundRank() {
   };
   useEffect(load, []);
 
-  if (err) return <p className="text-sm text-muted py-4 text-center">{err}</p>;
+  // 失败态保持与加载骨架/正常表格相近的高度：原先只渲染一行文字（约 24px），
+  // 上游一挂整块就塌陷、把下方内容全部上移（实测是 /market CLS 的主要来源之一）。
+  if (err)
+    return (
+      <div className="min-h-[160px] rounded-lg border border-border bg-muted/5 flex flex-col items-center justify-center gap-2 py-6">
+        <p className="text-sm text-muted text-center px-4">{err}</p>
+        <button
+          onClick={load}
+          className="text-xs px-2.5 py-1 rounded-md border border-border text-muted hover:text-primary transition-colors"
+        >
+          重试
+        </button>
+      </div>
+    );
   if (loading && !d) return <div className="h-40 animate-pulse bg-muted/10 rounded-lg" />;
 
   return (

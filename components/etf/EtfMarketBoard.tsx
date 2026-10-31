@@ -127,12 +127,13 @@ export default function EtfMarketBoard({
           <span className="text-[11px] tabular-nums up">↑ {up}</span>
           <span className="text-[11px] tabular-nums text-muted">— {flat}</span>
           <span className="text-[11px] tabular-nums down">↓ {down}</span>
-          {stats && (
-            <>
-              <span className="text-[11px] text-muted tabular-nums">平均 {fmtPct(stats.avgPct)}</span>
-              <span className="text-[11px] text-muted tabular-nums">成交 {fmtMoney(stats.amount)}</span>
-            </>
-          )}
+          {/*
+            平均/成交两个数值始终占位（数据未到时显示 —），不要用 {stats && ...} 条件渲染：
+            数据到达后多出这两个 span 会让这一行换行、整块高度 +21px，把下方宽表格整体下推，
+            实测在 /market?tab=etf 贡献了约 0.29 的 CLS。固定占位后行数不变，布局不再跳动。
+          */}
+          <span className="text-[11px] text-muted tabular-nums">平均 {stats ? fmtPct(stats.avgPct) : "—"}</span>
+          <span className="text-[11px] text-muted tabular-nums">成交 {stats ? fmtMoney(stats.amount) : "—"}</span>
           <span className="ml-auto text-[10px] text-muted">
             {updated ? `更新 ${new Date(updated).toLocaleTimeString("zh-CN", { hour12: false })}` : "加载中…"}
           </span>
@@ -142,7 +143,14 @@ export default function EtfMarketBoard({
           <div className="bg-[var(--muted,#a8a29e)] opacity-40" style={{ width: `${breadth.flat}%` }} />
           <div className="bg-[var(--down,#1e8449)]" style={{ width: `${breadth.down}%` }} />
         </div>
-        {sourceNote && <p className="text-[10px] mt-1.5" style={{ color: "var(--amber)" }}>{sourceNote}</p>}
+        {/*
+          降级提示行始终占位（无提示时用不换行空格撑高）：提示是异步出现的（东财不可用才降级），
+          条件渲染会让卡片在数据到达后长高 21px，把下方整张 ETF 表格下推 —— 这一处就是
+          /market?tab=etf 剩余 0.29 CLS 的来源。
+        */}
+        <p className="text-[10px] mt-1.5 min-h-[15px]" style={{ color: "var(--amber)" }}>
+          {sourceNote || "\u00A0"}
+        </p>
       </div>
 
       {/* 筛选 + 排序 + 搜索 */}

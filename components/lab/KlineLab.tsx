@@ -581,8 +581,11 @@ export default function KlineLab({ bars, symbol, period, marks, showMarks, loadi
         </div>
       </div>
 
-      {/* 区间统计 + 最新指标读数 */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mb-2 text-[11px] text-muted">
+      {/* 区间统计 + 最新指标读数。
+          高度预留两行：数据未到时这块是空的，拿到 bars 后同时出现「近 N 根 / 振幅 / 最大回撤 /
+          近 5 日量比 / 区间」+ 右侧读数，会在窄一点的卡片里折成两行、把下方 K 线整体下推 61px
+          （实测 /lab 的 0.075 CLS 就来自这里）。min-h 让首帧就把这两行位置占住。 */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mb-2 text-[11px] text-muted min-h-[60px] content-start">
         {stats && (
           <>
             <span className="font-mono">

@@ -15,7 +15,7 @@ import Link from "next/link";
 import { Download, Lock, RefreshCw, Search, Upload } from "lucide-react";
 import "./terminal.css";
 import GmtCard from "./GmtCard";
-import { makeLayout, useLabGrid, type GridLayout } from "./useLabGrid";
+import { GAP, ROWH, makeLayout, useLabGrid, type GridLayout } from "./useLabGrid";
 import { CmdBar, Tape, LabToolbar, Inspector, HelpOverlay, useClock, useInspectorDelegate, type InspData, type TapeQuote } from "./TermChrome";
 import { IndexListCard, BreadthCard, PulseCard, DataStatusCard } from "./RefCards";
 import KlineLab, { type LabBar, type LabMark } from "./KlineLab";
@@ -503,6 +503,25 @@ export default function LabTerminal({ pro = false }: { pro?: boolean }) {
     return () => ro.disconnect();
   }, []);
 
+  /**
+   * 网格最小高度：桌面端卡片是绝对定位，容器高度完全由卡片撑开。
+   * 而卡片内容（K 线、形态、回测…）依赖数据请求，首帧还没画出来时容器只有 css 里的
+   * 60vh，等卡片挂载后瞬间跳到 2600+ px —— 下方区块整体位移，实测贡献了 0.49 的 CLS。
+   * 这里按「当前布局的最大行数」预先占位，让首帧高度就与最终一致（移动端是普通流式布局，
+   * 不适用绝对定位，故不设）。
+   */
+  const gridMinHeight = useMemo(() => {
+    if (!desktop || !layout) return undefined;
+    let rows = 0;
+    for (const it of Object.values(layout)) {
+      const item = it as { visible?: boolean; y?: number; h?: number } | undefined;
+      if (!item || item.visible === false) continue;
+      if (typeof item.y !== "number" || typeof item.h !== "number") continue;
+      rows = Math.max(rows, item.y + item.h);
+    }
+    return rows > 0 ? rows * (ROWH + GAP) + GAP * 2 : undefined;
+  }, [desktop, layout]);
+
   // ---- 跑马灯（/api/quotes 30s 轮询） ----
   const [tapeItems, setTapeItems] = useState<TapeQuote[]>([]);
   const [globalQuotes, setGlobalQuotes] = useState<TapeQuote[]>([]);
@@ -921,7 +940,7 @@ export default function LabTerminal({ pro = false }: { pro?: boolean }) {
         </div>
       )}
 
-      <main className="gmt-grid" ref={gridRef} aria-label="终端组件网格">
+      <main className="gmt-grid" ref={gridRef} style={gridMinHeight ? { minHeight: gridMinHeight } : undefined} aria-label="终端组件网格">
         {/* 01 K线实验台（行情走势 · 主图） */}
         {layout.kline?.visible !== false && (
           <GmtCard

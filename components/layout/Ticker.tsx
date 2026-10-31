@@ -39,7 +39,12 @@ export default function Ticker() {
     return () => window.removeEventListener("resize", check);
   }, [quotes]);
 
-  if (!quotes.length) return null;
+  // 行情数据到达前必须占住同样的高度（29px = 12px 行高 + py-1.5×2 + 1px 上边框）。
+  // 原先直接 `return null`：首屏 header 只有 57px，行情条异步出现后 header 长到 86px，
+  // 把整页内容下推 29px —— 实测这是 /market 等页 CLS 的主要来源（header 位移计入 CLS）。
+  if (!quotes.length) {
+    return <div className="h-[29px] border-t border-border" aria-hidden />;
+  }
 
   return (
     <div className="relative">

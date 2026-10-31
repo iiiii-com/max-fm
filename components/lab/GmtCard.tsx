@@ -24,7 +24,7 @@ export interface GmtCardProps {
   zoomed: boolean;
   desktop: boolean;
   containerW: number;
-  geometry: (it: GridItem, w: number) => { left: number; top: number; width: number; height: number };
+  geometry: (it: GridItem, w: number) => { left: number | string; top: number; width: number | string; height: number };
   onFocus: (id: string | null) => void;
   onAction: (id: string, act: "up" | "down" | "lock" | "min" | "zoom" | "close") => void;
   onMove: (id: string, x: number, y: number) => void;

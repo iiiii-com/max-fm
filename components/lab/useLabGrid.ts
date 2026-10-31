@@ -158,14 +158,21 @@ export function useLabGrid(presets: PresetDef[], defaultKey = "ALL") {
     [layout]
   );
 
-  /** 桌面像素几何（由容器宽度驱动） */
+  /**
+   * 桌面端像素几何。
+   *
+   * 列宽与 left/width 用 CSS calc 表达（而不是先测量容器宽度再换算 px）：服务端渲染
+   * 拿不到容器宽度，此前首帧用 containerW=0 算出错误宽度，等 ResizeObserver 测完再重排，
+   * 实测给 /lab 贡献了 0.49 的 CLS（整块 01 主图卡在首帧被位移）。calc 版本只依赖百分比
+   * 与固定 gap，SSR 首帧即最终位置；拖拽/缩放仍在交互时用 containerW 换算列数。
+   */
   const geometry = useCallback(
-    (it: GridItem, containerW: number) => {
-      const colW = (containerW - GAP * (COLS + 1)) / COLS;
+    (it: GridItem, _containerW: number): { left: string; top: number; width: string; height: number } => {
+      const gaps = GAP * (COLS + 1);
       return {
-        left: GAP + it.x * (colW + GAP),
+        left: `calc((100% - ${gaps}px) * ${it.x} / ${COLS} + ${GAP + it.x * GAP}px)`,
         top: GAP + it.y * (ROWH + GAP),
-        width: it.w * colW + (it.w - 1) * GAP,
+        width: `calc((100% - ${gaps}px) * ${it.w} / ${COLS} + ${(it.w - 1) * GAP}px)`,
         height: it.h * ROWH + (it.h - 1) * GAP,
       };
     },

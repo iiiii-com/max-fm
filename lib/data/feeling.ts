@@ -43,12 +43,13 @@ type SurveyRow = {
  * 同时调用 `getFeelingMonthlyHistory` 与 `getFeelingDistribution` —— 两者都会
  * `loadSurveys()`，等于同一个请求把 5.5 万行反序列化两遍（实测该页 TTFB 1.1s，
  * 而 /macro 只有 0.1s，瓶颈全在这里）。
- * 问卷聚合本身是低频派生数据（只在有人提交时才变），因此做 30s 进程内缓存；
- * 提交问卷后的重算会 `loadSurveys(true)` 强制拿最新行，不会读到旧数据。
+ * 问卷聚合本身是低频派生数据（只在有人提交时才变），因此做 5 分钟进程内缓存
+ * （原先 30s：站点是行情类高频页面，但问卷聚合不是行情，30s 会让几乎每次访问
+ * 都落到冷路径重扫 5.5 万行）；提交问卷后的重算会 `loadSurveys(true)` 强制拿最新行。
  */
 let surveysCache: { at: number; rows: SurveyRow[] } | null = null;
 let surveysInflight: Promise<SurveyRow[]> | null = null;
-const SURVEYS_CACHE_MS = 30_000;
+const SURVEYS_CACHE_MS = 5 * 60_000;
 
 async function loadSurveys(force = false): Promise<SurveyRow[]> {
   if (!force && surveysCache && Date.now() - surveysCache.at < SURVEYS_CACHE_MS) {
@@ -62,7 +63,21 @@ async function loadSurveys(force = false): Promise<SurveyRow[]> {
     await surveysInflight.catch(() => {});
   }
   surveysInflight = (async () => {
-    const rows = (await db.select().from(s.feelingSurveys)) as any[];
+    /**
+     * 只取聚合需要的 5 个字段。
+     * 此前是 `select()` 全列：`feeling_surveys` 走通用表工厂，每行有 60+ 列（绝大多数为 null），
+     * 5.5 万行 = 300 多万个字段的反序列化，冷路径实测 TTFB 0.9s 以上。
+     * 这里投影到 5 列后，同样的行数只处理 27 万个字段。
+     */
+    const rows = (await db
+      .select({
+        score: s.feelingSurveys.score,
+        ageGroup: s.feelingSurveys.ageGroup,
+        occupation: s.feelingSurveys.occupation,
+        region: s.feelingSurveys.region,
+        createdAt: s.feelingSurveys.createdAt,
+      })
+      .from(s.feelingSurveys)) as any[];
     const mapped = rows.map((r) => ({
       score: r.score == null ? null : Number(r.score),
       ageGroup: r.ageGroup ?? null,

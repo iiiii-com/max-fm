@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { initialZoom } from "@/lib/data/axis";
-import { echarts, initResponsiveChart, type EChartsOption } from "@/components/charts/echarts";
+import type { ECharts, EChartsOption } from "echarts";
 import ProGate from "@/components/ProGate";
 import { resolveChartTheme, readVar, withAlpha, TOOLTIP, ANIM_DURATION, GRID_DEFAULT, seriesColors } from "@/lib/charts/theme";
 
@@ -37,7 +37,7 @@ const pct = (v: number) => `${v > 0 ? "+" : ""}${v.toFixed(2)}%`;
  */
 export default function ChainComparePanel({ enabled }: { enabled: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
-  const chartRef = useRef<echarts.ECharts | null>(null);
+  const chartRef = useRef<ECharts | null>(null);
   const [d, setD] = useState<Payload | null>(null);
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
@@ -57,41 +57,57 @@ export default function ChainComparePanel({ enabled }: { enabled: boolean }) {
       .finally(() => setLoading(false));
   }, [enabled, open, d, loading]);
 
+  /**
+   * echarts 运行时改为「点开面板时才动态加载」。
+   * 这是 /pro 首屏带上 800KB echarts chunk 的主要原因：原来在模块顶层静态 import，
+   * 即使这块面板默认折叠、用户可能永远不点，chunk 也已经进了路由依赖图。
+   * 现在只有 enabled 且 open 且取到数据后才 import，首屏不再下载。
+   */
   useEffect(() => {
     if (!ref.current || !d) return;
-    echarts.registerTheme("mx-chain-compare", resolveChartTheme());
-    const { chart, dispose } = initResponsiveChart(ref.current, "mx-chain-compare");
-    chartRef.current = chart;
+    let disposed = false;
+    let disposeChart: (() => void) | null = null;
 
-    const muted = readVar("--muted", "#6b6862");
-    const border = readVar("--border", "#e2e0dc");
-    const fg = readVar("--foreground", "#1a1a1a");
-    const palette = seriesColors(d.curves.length);
+    void (async () => {
+      const [{ echarts, initResponsiveChart }] = await Promise.all([import("@/components/charts/echarts")]);
+      if (disposed || !ref.current) return;
+      echarts.registerTheme("mx-chain-compare", resolveChartTheme());
+      const { chart, dispose } = initResponsiveChart(ref.current, "mx-chain-compare");
+      chartRef.current = chart;
+      disposeChart = dispose;
 
-    const option: EChartsOption = {
-      animationDuration: ANIM_DURATION,
-      color: palette,
-      tooltip: { ...TOOLTIP, trigger: "axis", valueFormatter: (v: any) => (v == null ? "—" : Number(v).toFixed(1)) },
-      legend: { type: "scroll", top: 0, textStyle: { color: muted, fontSize: 10 }, itemWidth: 14, itemHeight: 8 },
-      grid: { ...GRID_DEFAULT, top: 46, left: 52, right: 16, bottom: 46 },
-      xAxis: { type: "time", axisLabel: { color: muted, fontSize: 9 }, axisLine: { lineStyle: { color: border } } },
-      yAxis: {
-        type: "value", scale: true, name: "基点 1000", nameTextStyle: { color: muted, fontSize: 9 },
-        axisLabel: { color: muted, fontSize: 9 },
-        splitLine: { lineStyle: { color: withAlpha(fg, 0.08), type: "dashed" } },
-      },
-      dataZoom: [{ type: "inside", start: initialZoom(d.curves[0]?.points.length ?? 0, 250).start, end: 100 }, { type: "slider", height: 14, bottom: 6, start: initialZoom(d.curves[0]?.points.length ?? 0, 250).start, end: 100 }],
-      series: d.curves.map((c) => ({
-        name: c.name,
-        type: "line" as const,
-        data: c.points.map((p) => [p.date, p.value]),
-        showSymbol: false,
-        lineStyle: { width: 1.5 },
-      })),
-    };
-    chart.setOption(option);
+      const muted = readVar("--muted", "#6b6862");
+      const border = readVar("--border", "#e2e0dc");
+      const fg = readVar("--foreground", "#1a1a1a");
+      const palette = seriesColors(d.curves.length);
+
+      const option: EChartsOption = {
+        animationDuration: ANIM_DURATION,
+        color: palette,
+        tooltip: { ...TOOLTIP, trigger: "axis", valueFormatter: (v: any) => (v == null ? "—" : Number(v).toFixed(1)) },
+        legend: { type: "scroll", top: 0, textStyle: { color: muted, fontSize: 10 }, itemWidth: 14, itemHeight: 8 },
+        grid: { ...GRID_DEFAULT, top: 46, left: 52, right: 16, bottom: 46 },
+        xAxis: { type: "time", axisLabel: { color: muted, fontSize: 9 }, axisLine: { lineStyle: { color: border } } },
+        yAxis: {
+          type: "value", scale: true, name: "基点 1000", nameTextStyle: { color: muted, fontSize: 9 },
+          axisLabel: { color: muted, fontSize: 9 },
+          splitLine: { lineStyle: { color: withAlpha(fg, 0.08), type: "dashed" } },
+        },
+        dataZoom: [{ type: "inside", start: initialZoom(d.curves[0]?.points.length ?? 0, 250).start, end: 100 }, { type: "slider", height: 14, bottom: 6, start: initialZoom(d.curves[0]?.points.length ?? 0, 250).start, end: 100 }],
+        series: d.curves.map((c) => ({
+          name: c.name,
+          type: "line" as const,
+          data: c.points.map((p) => [p.date, p.value]),
+          showSymbol: false,
+          lineStyle: { width: 1.5 },
+        })),
+      };
+      if (!disposed) chart.setOption(option);
+    })();
+
     return () => {
-      dispose();
+      disposed = true;
+      disposeChart?.();
       chartRef.current = null;
     };
   }, [d]);

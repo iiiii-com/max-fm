@@ -94,7 +94,18 @@ export default function FundDirections() {
         </span>
       </div>
       {err && <p className="text-xs text-red-600">{err}</p>}
-      {!resp && !err && <p className="text-xs text-muted">资金方向加载中…</p>}
+      {/*
+        加载态必须占住与结果一致的高度：原先这里只有一行「加载中…」（约 20px），
+        数据到达后替换成 5 张卡（约 150px），把下方「北向资金」整块下推 ——
+        实测 /market 首页 CLS 约 0.19 就来自这一处。骨架卡高度按结果卡实测对齐。
+      */}
+      {!resp && !err && (
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3" aria-hidden="true">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="card p-3 h-[152px] animate-pulse bg-muted/10" />
+          ))}
+        </div>
+      )}
       {resp && (
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
           {(resp.directions ?? []).map((d) => (
