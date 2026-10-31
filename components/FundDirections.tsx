@@ -65,6 +65,8 @@ const SOURCE_LABEL: Record<string, string> = {
 export default function FundDirections() {
   const [resp, setResp] = useState<DirectionsResp | null>(null);
   const [err, setErr] = useState("");
+  // 重试计数：失败态给用户一个「重试」入口，避免只能靠整页刷新。
+  const [retryKey, setRetryKey] = useState(0);
   const { refreshKey } = useRefresh();
 
   useEffect(() => {
@@ -82,7 +84,7 @@ export default function FundDirections() {
     return () => {
       alive = false;
     };
-  }, [refreshKey]);
+  }, [refreshKey, retryKey]);
 
   return (
     <section className="space-y-3">
@@ -93,7 +95,25 @@ export default function FundDirections() {
           {resp?.estimated ? " · 主力/大单/散户为板块聚合估算" : ""}
         </span>
       </div>
-      {err && <p className="text-xs text-red-600">{err}</p>}
+      {/*
+        失败态必须与骨架/结果卡同高：原先这里只有一行提示（约 20px），而加载骨架是 5 张 152px 卡（约 760px），
+        上游失败后整块塌陷，把下方「北向资金」等内容整体上移 —— 线上实测贡献了 /market 的 0.17 CLS。
+      */}
+      {err && !resp && (
+        <div className="card p-3 min-h-[152px] flex flex-col items-start justify-center gap-2" role="alert">
+          <p className="text-xs text-red-600">{err}</p>
+          <button
+            type="button"
+            onClick={() => {
+              setErr("");
+              setRetryKey((k) => k + 1);
+            }}
+            className="text-xs px-2 py-1 rounded border border-border hover:bg-muted/20"
+          >
+            重试
+          </button>
+        </div>
+      )}
       {/*
         加载态必须占住与结果一致的高度：原先这里只有一行「加载中…」（约 20px），
         数据到达后替换成 5 张卡（约 150px），把下方「北向资金」整块下推 ——
