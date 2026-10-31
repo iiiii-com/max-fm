@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
+import { emJson } from "@/lib/data/eastmoney";
+import { saveLastGood, loadLastGood, markStale } from "@/lib/data/last-good";
+import { saveSnapshot, loadSnapshot } from "@/lib/data/snapshots";
 import { fetchNorthbound } from "@/lib/data/market";
 import { cached } from "@/lib/data/upstream-cache";
+import { toNum } from "@/lib/utils";
+import { EM_UT, stockSecid } from "@/lib/data/eastmoney";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +37,8 @@ export interface BoardSector {
 export interface BoardRankItem {
   code: string;
   name: string;
-  mainFlow: number;
+  /** 主力净流入（元）；上游缺失时为 null，不可当 0 */
+  mainFlow: number | null;
   pct: number | null;
 }
 
@@ -46,9 +52,11 @@ export interface BoardHot {
 }
 
 async function getJson<T>(url: string, timeoutMs = 12000): Promise<T> {
-  const res = await fetch(url, { headers: UA, signal: AbortSignal.timeout(timeoutMs), cache: "no-store" });
-  if (!res.ok) throw new Error(`api ${res.status}`);
-  return (await res.json()) as T;
+  // emJson：东财按并发连接数掐断（实测并发 8 全失败、串行全成功），
+  // 统一排队 + 重试，避免页面同时拉板块/资金流时成批 502
+  const json = await emJson<T>(url, { timeoutMs, headers: UA });
+  if (json == null) throw new Error("api unavailable");
+  return json;
 }
 
 /** 板块全列表接口（东财 m:90 t:2 = 行业板块，共 496 个，含互为父子的多层级板块） */
@@ -93,16 +101,18 @@ function mapBoard(q: any): BoardSector {
     down: n(q.f105),
     flat: n(q.f106),
     tier: tierOf(String(q.f14)),
-    // 领涨/领跌股由列表接口内联返回（f128/f140/f136、f207/f208/f222），无需逐板块二次请求
-    leader: leaderName ? { name: leaderName, secid: `1.${leaderCode}`, pct: q.f136 == null ? null : n(q.f136) } : null,
-    laggard: lagName ? { name: lagName, secid: `1.${lagCode}`, pct: q.f222 == null ? null : n(q.f222) } : null,
+    // 领涨/领跌股由列表接口内联返回（f128/f140/f136、f207/f208/f222），无需逐板块二次请求。
+    // 市场前缀必须按代码判断：旧实现硬编码 `1.`，深市（00/30）与北交所标的会被送到
+    // 上证市场，点击明星股后跳到不存在的标的（实测「银行 → 青岛银行」变成 1.002948）。
+    leader: leaderName ? { name: leaderName, secid: stockSecid(leaderCode), pct: q.f136 == null ? null : n(q.f136) } : null,
+    laggard: lagName ? { name: lagName, secid: stockSecid(lagCode), pct: q.f222 == null ? null : n(q.f222) } : null,
   };
 }
 
 /** 行业板块行情（按 fid 排序）。po=1 降序 / po=0 升序。返回 total 以披露真实板块总数。 */
 async function fetchSectors(pz: number, fid: string, po: 0 | 1 = 1): Promise<{ list: BoardSector[]; total: number }> {
   const j = await getJson<{ data?: { total?: number; diff?: any[] } }>(
-    `${BOARD_LIST_URL}?pn=1&pz=${pz}&po=${po}&np=1&fltt=2&invt=2&fid=${fid}&fs=m:90+t:2+f:!50&fields=${BOARD_FIELDS}`
+    `${BOARD_LIST_URL}?pn=1&pz=${pz}&po=${po}&np=1&fltt=2&invt=2&fid=${fid}&fs=m:90+t:2+f:!50&fields=${BOARD_FIELDS}&ut=${EM_UT}`
   );
   const list = ((j?.data?.diff ?? []) as any[]).map(mapBoard);
   return { list, total: Number(j?.data?.total) || list.length };
@@ -115,15 +125,16 @@ async function fetchSectors(pz: number, fid: string, po: 0 | 1 = 1): Promise<{ l
  */
 async function fetchRank(po: 0 | 1, pz = 10): Promise<BoardRankItem[]> {
   const j = await getJson<{ data?: { diff?: any[] } }>(
-    `${BOARD_LIST_URL}?pn=1&pz=${pz}&po=${po}&np=1&fltt=2&invt=2&fid=f62&fs=m:90+t:2+f:!50&fields=f12,f14,f62,f3`
+    `${BOARD_LIST_URL}?pn=1&pz=${pz}&po=${po}&np=1&fltt=2&invt=2&fid=f62&fs=m:90+t:2+f:!50&fields=f12,f14,f62,f3&ut=${EM_UT}`
   );
   return ((j?.data?.diff ?? []) as any[]).map((d) => {
-    const f = Number(d.f3);
+    const f = toNum(d.f3);
     return {
       code: String(d.f12),
       name: String(d.f14),
-      mainFlow: Number(d.f62) || 0,
-      pct: Number.isFinite(f) ? f : null,
+      // 缺失（"-"）时给 null 而不是 0：0 会被读成「主力资金恰好没进出」
+      mainFlow: toNum(d.f62),
+      pct: f,
     };
   });
 }
@@ -131,7 +142,7 @@ async function fetchRank(po: 0 | 1, pz = 10): Promise<BoardRankItem[]> {
 /** 板块涨幅热点榜（含涨跌家数） */
 async function fetchHot(pz = 8): Promise<BoardHot[]> {
   const j = await getJson<{ data?: { diff?: any[] } }>(
-    `${BOARD_LIST_URL}?pn=1&pz=${pz}&po=1&np=1&fltt=2&invt=2&fid=f3&fs=m:90+t:2+f:!50&fields=f12,f14,f3,f104,f105,f106`
+    `${BOARD_LIST_URL}?pn=1&pz=${pz}&po=1&np=1&fltt=2&invt=2&fid=f3&fs=m:90+t:2+f:!50&fields=f12,f14,f3,f104,f105,f106&ut=${EM_UT}`
   );
   return ((j?.data?.diff ?? []) as any[]).map((s) => ({
     code: String(s.f12),
@@ -169,7 +180,8 @@ export async function GET(req: Request) {
 
     const list0: BoardSector[] = full.data?.list ?? [];
     if (list0.length === 0 && rankIn.data == null) {
-      return NextResponse.json({ ok: false, error: "板块数据源暂不可达（上游限频或网络异常）" }, { status: 503 });
+      // 整块上游都空 → 走 catch 里的「陈旧兜底」，避免直接给用户一张空白表
+      throw new Error("板块数据源暂不可达（上游限频或网络异常）");
     }
     const total = full.data?.total ?? list0.length;
 
@@ -182,10 +194,10 @@ export async function GET(req: Request) {
       if (!prev || Math.abs(s.mainNetIn) > Math.abs(prev.mainNetIn)) byBase.set(key, s);
     }
 
-    return NextResponse.json(
-      {
+    const payload = {
         ok: true,
         updated: new Date().toISOString(),
+        dataAt: new Date().toISOString(),
         source: "东方财富板块行情（push2 clist）",
         universe: {
           total,
@@ -205,10 +217,29 @@ export async function GET(req: Request) {
           hot: hot.data == null,
           northbound: northbound.data == null,
         },
-      },
-      { headers: { "Cache-Control": "public, max-age=15, s-maxage=15" } }
-    );
+    };
+    // 成功即存两份快照：内存+磁盘（同进程快速兜底）与数据库（跨进程/跨重启可用）。
+    // 上游稍后不可用时用于「陈旧兜底」并标注 dataAt。
+    await saveSnapshot("sector:board:" + top, payload, payload.dataAt, `板块行情榜 top=${top}`);
+    saveLastGood("sector:board:" + top, payload);
+    return NextResponse.json(payload, { headers: { "Cache-Control": "public, max-age=15, s-maxage=15" } });
   } catch (e: any) {
+    // 上游失败：先取落库快照（跨进程可用），再退回内存+磁盘快照，并**显式标记 stale**，
+    // 前端据此提示「数据陈旧」，绝不把旧数据静默当成实时数据。
+    const snap = await loadSnapshot<any>("sector:board:" + top);
+    if (snap) {
+      return NextResponse.json(
+        { ...markStale(snap.body, snap.dataAt), dataAt: snap.dataAt },
+        { status: 200, headers: { "Cache-Control": "private, max-age=5", "X-Cache": "STALE-DB" } },
+      );
+    }
+    const last = loadLastGood<any>("sector:board:" + top);
+    if (last) {
+      return NextResponse.json(markStale(last.body, last.at), {
+        status: 200,
+        headers: { "Cache-Control": "private, max-age=5", "X-Cache": "STALE" },
+      });
+    }
     return NextResponse.json({ ok: false, error: e?.message ?? "板块数据暂不可用" }, { status: 502 });
   }
 }

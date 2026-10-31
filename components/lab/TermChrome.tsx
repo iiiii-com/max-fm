@@ -6,7 +6,7 @@
    Toolbar（编辑/预设/添加组件/恢复默认） · Inspector（数据来源检查器）
    HelpOverlay（F1 键盘帮助）
    ============================================================ */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 
 /* ---------------- 命令栏 ---------------- */
@@ -25,7 +25,7 @@ export function CmdBar(props: {
     <header className="gmt-cmdbar" role="banner">
       <div className="gmt-cmd-left">
         <span className="gmt-logo" aria-label="MX K线实验室">
-          MX<b>//</b>K线实验室
+          MX<b>{"//"}</b>K线实验室
         </span>
         <span className="gmt-ver">v1.0</span>
       </div>
@@ -99,18 +99,20 @@ export function Tape(props: {
 export function LabToolbar(props: {
   editing: boolean;
   preset: string;
-  presets: Array<{ key: string; label: string }>;
+  presets: Array<{ key: string; label: string; title?: string }>;
   removedIds: string[];
   onPreset: (k: string) => void;
   onEdit: () => void;
   onReset: () => void;
   onRestore: (id: string) => void;
   cardLabels: Record<string, string>;
+  /** 右侧留档等次要操作，与布局控制同排，避免工具条越叠越多 */
+  rightSlot?: ReactNode;
 }) {
-  const { editing, preset, presets, removedIds, onPreset, onEdit, onReset, onRestore, cardLabels } = props;
+  const { editing, preset, presets, removedIds, onPreset, onEdit, onReset, onRestore, cardLabels, rightSlot } = props;
   const [menuOpen, setMenuOpen] = useState(false);
   return (
-    <div className="gmt-toolbar" role="toolbar" aria-label="布局控制">
+    <div className="gmt-toolbar" role="toolbar" aria-label="工作台布局与留档">
       <button className="gmt-tb-btn" aria-pressed={editing} onClick={onEdit}>
         ▦ 编辑布局
       </button>
@@ -132,17 +134,24 @@ export function LabToolbar(props: {
         </div>
       )}
       <span className="gmt-tb-sep" />
-      <span className="gmt-tb-label">预设&gt;</span>
+      <span className="gmt-tb-label">布局预设&gt;</span>
       {presets.map((p) => (
-        <button key={p.key} className="gmt-tb-btn preset" aria-pressed={preset === p.key} onClick={() => onPreset(p.key)}>
+        <button
+          key={p.key}
+          className="gmt-tb-btn preset"
+          aria-pressed={preset === p.key}
+          onClick={() => onPreset(p.key)}
+          title={p.title}
+        >
           {p.label}
         </button>
       ))}
       <span className="gmt-tb-sep" />
-      <button className="gmt-tb-btn warn" onClick={onReset}>
+      <button className="gmt-tb-btn warn" onClick={onReset} title="恢复为按研究逻辑重排的默认布局">
         ↺ 恢复默认
       </button>
       {editing && <span className="gmt-edit-hint">编辑模式 — 拖动标题条移动 · 拖右下角缩放 · 🔒 锁定 · 双击标题最小化</span>}
+      {rightSlot && <div className="gmt-tb-right">{rightSlot}</div>}
     </div>
   );
 }

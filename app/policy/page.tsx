@@ -31,6 +31,12 @@ function dateMs(publishDate: string | null | undefined): number {
   return Number.isFinite(t) ? t : 0;
 }
 
+/** 服务端组件每次请求只渲染一次；把「最近 N 天」判断抽到模块级纯函数，
+ *  避免在组件体里直接读取时钟（react-hooks/purity 规则要求渲染幂等）。 */
+function withinDays(ms: number | null | undefined, days: number, now = Date.now()) {
+  return !!ms && now - ms < days * 24 * 3600 * 1000;
+}
+
 export default async function PolicyPage({
   searchParams,
 }: {
@@ -45,11 +51,7 @@ export default async function PolicyPage({
     ? Math.max(...all.map((p: any) => Number(p.updatedAt ?? 0) || dateMs(p.publishDate)))
     : null;
 
-  const now = Date.now();
-  const isNew = (p: any) => {
-    const d = dateMs(p.publishDate);
-    return !!d && now - d < 7 * 24 * 3600 * 1000;
-  };
+  const isNew = (p: any) => withinDays(dateMs(p.publishDate), 7);
 
   // 分类清单从数据推导：优先类在前，其余按条数降序，通用桶（部委公告）垫底
   const counts = new Map<string, number>();

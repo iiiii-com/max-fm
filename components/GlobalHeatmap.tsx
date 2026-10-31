@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { LayoutGrid, Map as MapIcon, RefreshCw } from "lucide-react";
 import { EmptyState, ErrorState, LoadingRegion } from "@/components/ui-state";
+import { guardPoll } from "@/lib/hooks/visibility";
 
 interface HeatItem {
   code: string;
@@ -84,9 +85,9 @@ export default function GlobalHeatmap() {
 
   useEffect(() => {
     load();
-    const t = setInterval(load, 60000); // 1 分钟自动刷新
+    const t = setInterval(guardPoll(load), 60000); // 1 分钟自动刷新（页面隐藏时跳过）
     return () => clearInterval(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   // 地图模式：按市场聚合涨跌（取该市场首个指数）

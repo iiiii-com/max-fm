@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { emJson } from "@/lib/data/eastmoney";
 
 export const dynamic = "force-dynamic";
 
@@ -8,11 +9,11 @@ export async function GET(req: Request) {
   const secid = searchParams.get("secid") ?? "1.600519";
   try {
     // 1. 盘口摘要
-    const q = await fetch(
+    // emJson：东财按并发连接数掐断（实测并发 8 全失败），统一排队 + 重试
+    const qj = await emJson<{ data?: Record<string, any> }>(
       `https://push2.eastmoney.com/api/qt/stock/get?secid=${secid}&fields=f43,f44,f45,f46,f47,f48,f50,f51,f52,f57,f58,f60,f168,f169,f170,f171`,
-      { headers: { "User-Agent": "Mozilla/5.0", Referer: "https://quote.eastmoney.com/" }, signal: AbortSignal.timeout(10000) }
+      { timeoutMs: 10000 }
     );
-    const qj = await q.json();
     const d = qj?.data ?? {};
 
     // 0. 五档买卖盘（腾讯 qt.gtimg.cn，A股个股；指数无盘口返回 null）
@@ -47,11 +48,10 @@ export async function GET(req: Request) {
     }
 
     // 2. 当日分时（trends2，点序列 f51 时间/f52 价/f53 均价/f54 成交量/f55 成交额/f56 均价累计）
-    const t = await fetch(
+    const tj = await emJson<{ data?: { trends?: string[]; preClose?: number } }>(
       `https://push2his.eastmoney.com/api/qt/stock/trends2/get?secid=${secid}&fields1=f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13&fields2=f51,f52,f53,f54,f55,f56,f57,f58&ndays=1&iscr=0`,
-      { headers: { "User-Agent": "Mozilla/5.0", Referer: "https://quote.eastmoney.com/" }, signal: AbortSignal.timeout(10000) }
+      { timeoutMs: 10000 }
     );
-    const tj = await t.json();
     const raw = (tj?.data?.trends ?? []) as string[];
     const trends = raw.map((line) => {
       const p = line.split(",");

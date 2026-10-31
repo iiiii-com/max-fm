@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { emJson } from "@/lib/data/eastmoney";
 
 export const dynamic = "force-dynamic";
 
@@ -12,9 +13,10 @@ export interface NorthboundHolding {
 const UA = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/126 Safari/537.36" };
 
 async function getJson<T>(url: string, timeoutMs = 12000): Promise<T> {
-  const res = await fetch(url, { headers: UA, signal: AbortSignal.timeout(timeoutMs), cache: "no-store" });
-  if (!res.ok) throw new Error(`api ${res.status}`);
-  return (await res.json()) as T;
+  // emJson：东财限并发 + 重试（并发高时上游重置连接）
+  const json = await emJson<T>(url, { timeoutMs, headers: UA });
+  if (json == null) throw new Error("api unavailable");
+  return json;
 }
 
 function parseNum(v: any): number {

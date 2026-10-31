@@ -423,6 +423,8 @@
   color: var(--amber);
   font-size: 10px;
   font-weight: 600;
+  white-space: nowrap;
+  flex: 0 0 auto;
 }
 .gmt-tb-sep {
   width: 1px;
@@ -881,3 +883,331 @@
     height: auto;
   }
 }
+
+/* ============================================================
+   可读性修复 2026-10-25：
+   1) 命令栏（导航栏）是墨色实底，但 `#lab-root button` 的 ID 级 reset
+      会把按钮文字压成深墨色 —— 黑底黑字，按钮全变成「黑块」。
+      这里用更高特异性把命令栏内按钮恢复为纸色文字。
+   2) 01 卡搜索框原来写死 background:#000，输入文字也是深色，看不见。
+      改成标准浅色输入框，并把标的控制条移到网格外（避免下拉被卡片裁剪）。
+   ============================================================ */
+#lab-root .gmt-cmdbar {
+  background: #16161a;
+  color: #f7f6f3;
+}
+#lab-root .gmt-cmdbar .gmt-cmd-btn,
+#lab-root .gmt-cmdbar a.gmt-cmd-btn {
+  color: #f7f6f3;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.42);
+}
+#lab-root .gmt-cmdbar .gmt-cmd-btn:hover,
+#lab-root .gmt-cmdbar a.gmt-cmd-btn:hover {
+  background: #f7f6f3;
+  color: #16161a;
+  border-color: #f7f6f3;
+}
+#lab-root .gmt-cmdbar .gmt-cmd-btn[aria-pressed="true"] {
+  background: #f7f6f3;
+  color: #16161a;
+  border-color: #f7f6f3;
+}
+#lab-root .gmt-cmdbar .gmt-mode-badge {
+  background: #f7f6f3;
+  color: #16161a;
+}
+#lab-root .gmt-cmdbar .gmt-conn {
+  color: #f7f6f3;
+}
+#lab-root .gmt-cmdbar .gmt-ver {
+  color: rgba(247, 246, 243, 0.72);
+}
+
+/* 标的控制条：搜索 + 快捷分组 + 周期 + 实时报价（放在网格上方，不参与卡片裁剪） */
+.gmt-symbol-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 6px 10px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--line);
+  position: relative;
+  z-index: 30;
+}
+.gmt-sb-search {
+  position: relative;
+  width: 300px;
+  flex: 0 0 auto;
+}
+.gmt-sb-input {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--line-strong);
+  background: var(--bg);
+  padding: 0 6px;
+}
+.gmt-sb-input:focus-within {
+  border-color: var(--amber);
+}
+#lab-root .gmt-sb-input input {
+  border: none !important;
+  background: transparent !important;
+  color: var(--fg) !important;
+  font-size: 11px;
+  padding: 4px 0;
+  flex: 1;
+  min-width: 0;
+  outline: none;
+}
+.gmt-hitlist {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  width: 100%;
+  max-height: 320px;
+  overflow-y: auto;
+  background: var(--bg-panel);
+  border: 1px solid var(--amber);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  z-index: 60;
+}
+.gmt-hitlist button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  border: none !important;
+  border-bottom: 1px solid var(--line) !important;
+  padding: 5px 9px;
+  text-align: left;
+  font-size: 11px;
+  color: var(--fg);
+  background: transparent;
+}
+.gmt-hitlist button:hover {
+  background: var(--amber-bg);
+  color: var(--amber);
+}
+.gmt-hitlist .hi-name {
+  color: var(--fg);
+}
+.gmt-hitlist .hi-code {
+  color: var(--fg-faint);
+  font-size: 9px;
+}
+.gmt-hitlist .hi-kind {
+  margin-left: auto;
+  font-size: 9px;
+  color: var(--fg-dim);
+  border: 1px solid var(--line);
+  padding: 0 4px;
+}
+.gmt-hitlist-empty {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  width: 100%;
+  padding: 8px 10px;
+  background: var(--bg-panel);
+  border: 1px solid var(--line);
+  color: var(--fg-dim);
+  font-size: 11px;
+  z-index: 60;
+}
+.gmt-sb-quick {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.gmt-sb-group {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding-left: 4px;
+}
+.gmt-sb-group-label {
+  font-size: 9px;
+  color: var(--fg-faint);
+  letter-spacing: 0.5px;
+  padding: 0 2px;
+}
+.gmt-sb-live {
+  margin-left: auto;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.gmt-sb-price {
+  font-size: 15px;
+  font-weight: 700;
+}
+.gmt-sb-tag {
+  font-size: 9px;
+  padding: 0 5px;
+  border: 1px solid currentColor;
+  color: var(--amber);
+}
+.gmt-sb-tag.delay {
+  color: var(--fg-faint);
+}
+.gmt-sb-meta {
+  color: var(--fg-faint);
+  font-size: 9px;
+}
+/* ===== v3 排版重构：两行标的条 / 合并工具栏 / 使用路径提示 / 卡片分组标签 ===== */
+.gmt-tb-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.gmt-tb-hint {
+  font-size: 9px;
+  color: var(--amber);
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gmt-symbol-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 6px 10px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+.gmt-sb-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.gmt-sb-row-sub {
+  border-top: 1px dashed var(--line);
+  padding-top: 5px;
+}
+.gmt-sb-step {
+  font-size: 9px;
+  letter-spacing: 0.5px;
+  color: var(--fg-faint);
+  border: 1px solid var(--line);
+  padding: 1px 5px;
+  white-space: nowrap;
+  flex: none;
+}
+.gmt-sb-groups {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+  flex-wrap: wrap;
+}
+.gmt-sb-tabs {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  border: 1px solid var(--line);
+  flex: none;
+}
+.gmt-sb-tab {
+  border: none !important;
+  background: transparent;
+  color: var(--fg-dim);
+  font-size: 10px;
+  padding: 2px 8px;
+  border-right: 1px solid var(--line) !important;
+}
+.gmt-sb-tab:last-child {
+  border-right: none !important;
+}
+.gmt-sb-tab:hover {
+  color: var(--fg);
+  background: var(--bg-subtle);
+}
+.gmt-sb-tab.on {
+  background: var(--amber-bg);
+  color: var(--amber);
+  font-weight: 600;
+}
+.gmt-w-tag {
+  font-size: 9px;
+  letter-spacing: 0.5px;
+  color: var(--fg-dim);
+  border: 1px solid var(--line);
+  padding: 0 4px;
+  margin-left: 4px;
+  flex: none;
+}
+.gmt-guide {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 5px 10px;
+  background: var(--amber-bg);
+  border-bottom: 1px solid var(--line);
+  color: var(--fg-dim);
+  font-size: 10px;
+}
+.gmt-guide b {
+  color: var(--amber);
+  letter-spacing: 1px;
+}
+.gmt-guide-close {
+  margin-left: auto;
+  border: 1px solid var(--line) !important;
+  background: transparent;
+  color: var(--fg-faint);
+  font-size: 10px;
+  padding: 0 5px;
+}
+.gmt-guide-close:hover {
+  color: var(--fg);
+  border-color: var(--fg-dim) !important;
+}
+
+@media (max-width: 767px) {
+  .gmt-symbol-bar {
+    position: static;
+    padding: 6px 8px;
+  }
+  .gmt-sb-groups {
+    width: 100%;
+    flex: none;
+  }
+  .gmt-sb-search {
+    width: 100%;
+  }
+  .gmt-sb-live {
+    width: 100%;
+    justify-content: flex-start;
+    margin-left: 0;
+    white-space: normal;
+    flex-wrap: wrap;
+    row-gap: 2px;
+  }
+  .gmt-tb-right {
+    margin-left: 8px;
+    width: auto;
+    flex: 0 0 auto;
+    flex-wrap: nowrap;
+  }
+  .gmt-sb-row-sub .gmt-sb-live {
+    border-top: 1px dashed var(--line);
+    padding-top: 4px;
+  }
+}
+

@@ -1,10 +1,11 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import BoardTabs from "@/components/BoardTabs";
 import { getChains, getChainNodes, getChainMetrics } from "@/lib/data/queries";
 import { Card, SectionTitle, Badge } from "@/components/ui";
 import ChainFlowExplorer from "@/components/chain/ChainFlowExplorer";
 import ChainEcosystem, { ECOSYSTEM_COVERAGE } from "@/components/chain/ChainEcosystem";
 import ChainHost from "@/components/chain/ChainHost";
+import ChainEtfBoard from "@/components/chain/ChainEtfBoard";
 import ChainMatrix from "@/components/chain/ChainMatrix";
 import ChainGraphInsights from "@/components/chain/ChainGraphInsights";
 import { bootstrap } from "@/lib/db";
@@ -62,13 +63,37 @@ export default async function IndustryPage({
   const nodes = await getChainNodes();
   const metrics = await getChainMetrics(chains.map((c: any) => c.slug));
 
+  /**
+   * 只把客户端组件真正用到的字段传进 RSC payload。
+   *
+   * 背景：`chain_nodes` 行来自通用表工厂，一行有 85 个字段（大量与本组件无关的空字符串）。
+   * 旧实现直接 `<ChainFlowExplorer nodes={nodes as any} />` 把整行序列化，
+   * 结果 /industry 单次导航的 flight segment 达 442KB（整页 633KB），
+   * 而真正的内容（名称/层级/描述/代表公司）合计只有约 20KB。
+   * ChainFlowExplorer 的 props 类型只声明了这 6 个字段，因此按契约挑字段不改变行为。
+   */
+  const flowNodes = (nodes as any[]).map((n) => ({
+    id: n.id as string,
+    chainId: (n.chainId ?? null) as string | null,
+    name: n.name as string,
+    level: (n.level ?? null) as string | null,
+    description: (n.description ?? null) as string | null,
+    companies: (n.companies ?? null) as string | null,
+  }));
+
   const nodeCounts: Record<string, number> = {};
   for (const c of chains) {
-    nodeCounts[c.id] = nodes.filter((n: any) => n.chainId === c.id).length;
+    nodeCounts[c.id] = flowNodes.filter((n) => n.chainId === c.id).length;
   }
 
   // 图统计用静态图谱（38 条全量），而不是 DB 里的子集 —— 关系数据在 chains.ts 里
   const graph = buildChainGraph(STATIC_CHAINS);
+  const prosperityBySlug = new Map(STATIC_CHAINS.map((c) => [c.id, c.prosperity] as const));
+  const etfChains = (chains as any[]).map((c) => ({
+    slug: c.slug as string,
+    name: c.name as string,
+    prosperity: prosperityBySlug.get(c.slug),
+  }));
 
   return (
     <div className="mx-auto max-w-7xl px-3 sm:px-4 py-5 sm:py-6 space-y-8">
@@ -90,7 +115,7 @@ export default async function IndustryPage({
               sub="按上游 / 中游 / 下游三层呈现环节与代表公司。环节之间的供应关系需要逐条核实，尚未建立，因此不绘制连线"
             />
             <Card className="p-0">
-              <ChainFlowExplorer chains={chains} nodes={nodes as any} metrics={metrics} />
+              <ChainFlowExplorer chains={chains} nodes={flowNodes} metrics={metrics} />
             </Card>
           </div>
 
@@ -116,6 +141,8 @@ export default async function IndustryPage({
               ))}
             </div>
           </div>
+
+          <ChainEtfBoard chains={etfChains} />
         </section>
       )}
 

@@ -1,3 +1,5 @@
+import { emJson } from "./eastmoney";
+
 export interface Quote {
   code: string;
   name: string;
@@ -10,6 +12,8 @@ export interface Quote {
   volume: number;
   amount: number;
   timestamp: number;
+  /** 最新交易日期（北京时间 yyyy-mm-dd）。仅 A 股/ETF/沪深指数快照提供，用于 K 线把当日盘中 bar 补到最新日期 */
+  tradeDate?: string;
   market: "cn" | "global";
 }
 
@@ -52,7 +56,7 @@ function toQuote(q: any, market: "cn" | "global"): Quote {
     open: Number(q.f17),
     high: Number(q.f15),
     low: Number(q.f16),
-    volume: Number(q.f5),
+    volume: Number(q.f5), // 东财 f5=成交量（手），全站统一用「手」
     amount: Number(q.f6),
     timestamp: Date.now(),
     market,
@@ -87,6 +91,7 @@ function sinaCnQuote(sym: string, raw: string, code: string, name: string): Quot
   return {
     code, name, price, changePct, changeAmount: prevClose > 0 ? price - prevClose : 0,
     open: Number(p[1]) || 0, high: Number(p[4]) || 0, low: Number(p[5]) || 0,
+    // 仅用于 A 股指数：新浪指数快照 p[8] 已是「手」（实测与东财 f47 同量级），不换算
     volume: Number(p[8]) || 0, amount: Number(p[9]) || 0, timestamp: Date.now(), market: "cn",
   };
 }
@@ -121,19 +126,23 @@ function sinaGlobalQuote(sym: string, raw: string, code: string, name: string): 
 }
 
 export async function fetchQuotes(): Promise<Quote[]> {
-  try {
+  // 东财与新浪**并行**发起，先到的可用结果胜出。
+  // 串行时的痛点：东财（push2）被限流/掐断要等重试与超时，用户白等数秒才见到新浪兜底；
+  // 并行后兜底源的延迟不再叠加在东财失败之上，而 HTTP 缓存只按结果缓存，不会放大上游压力。
+  const emTask = (async (): Promise<Quote[]> => {
     const secids = INDEX_SECIDS.map((x) => x.secid).join(",");
     const url = `https://push2.eastmoney.com/api/qt/ulist.np/get?secids=${secids}&fields=f2,f3,f4,f12,f14,f15,f16,f17,f5,f6&fltt=2&invt=2`;
-    const res = await fetch(url, { cache: "no-store" });
-    if (!res.ok) throw new Error(`quote api ${res.status}`);
-    const json = await res.json();
+    // 通过 emJson 走「限并发 + 重试」：上游按并发连接数掐断，直接并发 fetch 会成批失败
+    const json = await emJson<{ data?: { diff?: any[] } }>(url);
+    if (!json) throw new Error("quote api unavailable");
     const list = json?.data?.diff || [];
     if (!Array.isArray(list) || !list.length) throw new Error("empty quote list");
     return list.map((q: any) => toQuote(q, INDEX_SECIDS.find((x) => x.secid === `${q.f13}.${q.f12}`)?.market ?? "cn"));
-  } catch {
-    // 东财失败 → 新浪真实实时源（A股 6 指数 + 汇率）；黄金/原油新浪不支持则过滤
+  })();
+
+  const sinaTask = (async (): Promise<Quote[]> => {
     const symbols = INDEX_SECIDS.filter((x) => x.sina).map((x) => x.sina!);
-    const map = await fetchSina(symbols).catch(() => new Map<string, string>());
+    const map = await fetchSina(symbols);
     const out: Quote[] = [];
     for (const x of INDEX_SECIDS) {
       if (!x.sina) continue;
@@ -148,23 +157,28 @@ export async function fetchQuotes(): Promise<Quote[]> {
       }
     }
     return out;
-  }
+  })();
+
+  const [em, sina] = await Promise.allSettled([emTask, sinaTask]);
+  const emList = em.status === "fulfilled" ? em.value : [];
+  if (emList.length) return emList;
+  return sina.status === "fulfilled" ? sina.value : [];
 }
 
 export async function fetchGlobalQuotes(): Promise<Quote[]> {
-  try {
+  const emTask = (async (): Promise<Quote[]> => {
     const secids = GLOBAL_SECIDS.map((x) => x.secid).join(",");
     const url = `https://push2.eastmoney.com/api/qt/ulist.np/get?secids=${secids}&fields=f2,f3,f4,f12,f14,f15,f16,f17,f5,f6&fltt=2&invt=2`;
-    const res = await fetch(url, { cache: "no-store" });
-    if (!res.ok) throw new Error(`global quote api ${res.status}`);
-    const json = await res.json();
+    const json = await emJson<{ data?: { diff?: any[] } }>(url);
+    if (!json) throw new Error("global quote api unavailable");
     const list = json?.data?.diff || [];
     if (!Array.isArray(list) || !list.length) throw new Error("empty global quote list");
     return list.map((q: any) => toQuote(q, "global"));
-  } catch {
-    // 东财失败 → 新浪真实实时源（美股三大/恒指/KOSPI/印度等可用项；不支持的返回过滤）
+  })();
+
+  const sinaTask = (async (): Promise<Quote[]> => {
     const symbols = GLOBAL_SECIDS.filter((x) => x.sina).map((x) => x.sina!);
-    const map = await fetchSina(symbols).catch(() => new Map<string, string>());
+    const map = await fetchSina(symbols);
     const out: Quote[] = [];
     for (const x of GLOBAL_SECIDS) {
       if (!x.sina) continue;
@@ -174,15 +188,19 @@ export async function fetchGlobalQuotes(): Promise<Quote[]> {
       if (q) out.push(q);
     }
     return out;
-  }
+  })();
+
+  const [em, sina] = await Promise.allSettled([emTask, sinaTask]);
+  const emList = em.status === "fulfilled" ? em.value : [];
+  if (emList.length) return emList;
+  return sina.status === "fulfilled" ? sina.value : [];
 }
 
 export async function fetchSectors(): Promise<Quote[]> {
   try {
     const url = `https://push2.eastmoney.com/api/qt/clist/get?pn=1&pz=12&po=1&np=1&fltt=2&invt=2&fid=f3&fs=m:90+t:2&fields=f2,f3,f4,f12,f14,f6`;
-    const res = await fetch(url, { cache: "no-store" });
-    if (!res.ok) throw new Error(`sector api ${res.status}`);
-    const json = await res.json();
+    const json = await emJson<{ data?: { diff?: any[] } }>(url);
+    if (!json) throw new Error("sector api unavailable");
     const list = json?.data?.diff || [];
     if (!Array.isArray(list) || !list.length) throw new Error("empty sector list");
     return list.map((q: any) => ({
@@ -195,4 +213,88 @@ export async function fetchSectors(): Promise<Quote[]> {
     // 板块实时新浪无对应源：不生成假数据，返回空数组（前端显示暂无数据）
     return [];
   }
+}
+
+/**
+ * 单只 A 股实时快照（个股行情页头部）。
+ *
+ * K 线接口返回的是「日线收盘」，盘中打开页面时价格会停在昨收附近，
+ * 这是「个股行情更新不及时」的体感来源。这里补一个实时快照：
+ * 东财 push2 优先（含涨跌幅/量额/开高低），失败退新浪 hq.sinajs.cn；
+ * 两源皆失败返回 null（前端保留 K 线最新价并标注延迟），绝不造数。
+ * 延迟约 15 秒（新浪）/ 实时（东财），由调用方决定轮询节奏。
+ */
+export async function fetchStockQuote(secid: string): Promise<Quote | null> {
+  const m = /^(\d)\.(\d{6})$/.exec(secid.trim());
+  if (!m) return null;
+  const code = m[2];
+  const sym = (m[1] === "1" ? "sh" : "sz") + code;
+  try {
+    const url = `https://push2.eastmoney.com/api/qt/stock/get?secid=${secid}&fields=f43,f44,f45,f46,f47,f48,f57,f58,f60,f86,f169,f170&fltt=2&invt=2`;
+    const json = await emJson<{ data?: Record<string, any> }>(url, { timeoutMs: 6000 });
+    if (json) {
+      const d = json?.data;
+      const price = Number(d?.f43);
+      if (d && isFinite(price) && price > 0) {
+        const prevClose = Number(d.f60) || price;
+        const f86 = Number(d.f86);
+        return {
+          code: String(d.f57 ?? code),
+          name: String(d.f58 ?? code),
+          price,
+          changePct: Number(d.f170) || 0,
+          changeAmount: Number(d.f169) || (price - prevClose),
+          open: Number(d.f46) || 0,
+          high: Number(d.f44) || 0,
+          low: Number(d.f45) || 0,
+          volume: Number(d.f47) || 0,
+          amount: Number(d.f48) || 0,
+          timestamp: Date.now(),
+          market: "cn",
+          tradeDate: Number.isFinite(f86) && f86 > 0 ? cstDateFromUnix(f86) : undefined,
+        };
+      }
+    }
+  } catch {
+    /* 落到新浪 */
+  }
+  try {
+    const map = await fetchSina([sym]);
+    const raw = map.get(sym);
+    if (!raw) return null;
+    const p = raw.split(",");
+    const price = Number(p[3]);
+    const prevClose = Number(p[2]);
+    if (!isFinite(price) || price <= 0) return null;
+    const sinaDate = /^\d{4}-\d{2}-\d{2}$/.test(p[30] ?? "") ? p[30] : undefined;
+    return {
+      code,
+      name: p[0] || code,
+      price,
+      changePct: prevClose > 0 ? ((price - prevClose) / prevClose) * 100 : 0,
+      changeAmount: prevClose > 0 ? price - prevClose : 0,
+      open: Number(p[1]) || 0,
+      high: Number(p[4]) || 0,
+      low: Number(p[5]) || 0,
+      // 新浪 A 股快照的成交量单位是「股」，东财 f47 与本站其他接口统一用「手」（/100）
+      volume: Math.round((Number(p[8]) || 0) / 100),
+      amount: Number(p[9]) || 0,
+      timestamp: Date.now(),
+      market: "cn",
+      tradeDate: sinaDate,
+    };
+  } catch {
+    return null;
+  }
+}
+
+const CST_OFFSET_SEC = 8 * 3600;
+
+/**
+ * 东财 f86（unix 秒）→ 北京时间 yyyy-mm-dd。
+ * 不能直接 `new Date(...).toISOString()`：服务器时区是 UTC 时，收盘 15:00 CST = 07:00 UTC，
+ * 日期一致；但 0:00–8:00 CST 的更新会被算成前一天，因此显式加 8 小时。
+ */
+function cstDateFromUnix(sec: number): string {
+  return new Date((sec + CST_OFFSET_SEC) * 1000).toISOString().slice(0, 10);
 }

@@ -10,7 +10,8 @@ interface QuoteRow {
   secid: string | null;
   price: number | null;
   changePct: number | null;
-  status: "ok" | "pending" | "miss";
+  /** ok=有行情；pending=匹配中；miss=没匹配到 A 股标的；err=匹配到了但行情接口暂不可用（两者含义不同，不能混为一谈） */
+  status: "ok" | "pending" | "miss" | "err";
 }
 
 /** 产业链节点行情：公司名 → 真实行情（搜索匹配 + 财务接口） */
@@ -33,17 +34,22 @@ export default function ChainQuotes({ companies }: { companies: string[] }) {
             const hit = (s?.hits ?? []).find((h: any) => h.kind === "stock" && (h.name === name || h.name.includes(name) || name.includes(h.name)));
             if (!hit) { out.push({ name, secid: null, price: null, changePct: null, status: "miss" }); continue; }
             const f = await fetch(`/api/stock/fundamentals?secid=${hit.secid}`, { cache: "no-store" }).then((r) => r.json());
+            if (!f?.ok || !f?.data) {
+              // 已匹配到标的、只是行情源抖动：单独标记为 err，不能显示成「未匹配」
+              out.push({ name, secid: hit.secid, price: null, changePct: null, status: "err" });
+              continue;
+            }
             out.push({
               name,
               secid: hit.secid,
               // 上游 price 可能是字符串（"12.34"/"-"/null），先归一化为 number|null，
               // 否则渲染期 r.price?.toFixed(2) 会因「字符串无 toFixed」抛 TypeError 崩掉整块 UI
-              price: toNum(f?.data?.price),
-              changePct: toNum(f?.data?.changePct),
+              price: toNum(f.data.price),
+              changePct: toNum(f.data.changePct),
               status: "ok",
             });
           } catch {
-            out.push({ name, secid: null, price: null, changePct: null, status: "miss" });
+            out.push({ name, secid: null, price: null, changePct: null, status: "err" });
           }
         }
       };
@@ -80,6 +86,10 @@ export default function ChainQuotes({ companies }: { companies: string[] }) {
               </Link>
             ) : r.status === "pending" ? (
               <span key={r.name} className="text-xs text-muted px-2 py-1">{r.name}</span>
+            ) : r.status === "err" ? (
+              <span key={r.name} className="text-xs text-muted px-2 py-1" title="已匹配到 A 股标的，但行情接口暂时不可用，稍后刷新重试">
+                {r.name} <span className="text-[10px] opacity-70">· 行情暂不可用</span>
+              </span>
             ) : (
               <span key={r.name} className="text-xs text-muted px-2 py-1" title="未匹配到 A 股标的（可能为未上市/非 A 股）">
                 {r.name} <span className="text-[10px] opacity-70">· 未匹配</span>

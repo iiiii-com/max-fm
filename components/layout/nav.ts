@@ -178,6 +178,41 @@ function groupDefaultLabel(group: NavGroup): string {
 }
 
 /**
+ * /gmrds 下未进入主导航的子页标签。
+ * 与 components/gmrds/GmrdsShell.tsx 的 SECTIONS 一一对应（侧边栏叫什么，面包屑就叫什么）。
+ */
+const GMRDS_SUBPAGE_LABELS: Record<string, string> = {
+  flow: "十一环节实操",
+  depth: "环节深度研究",
+  cases: "真实案例库",
+  case: "真实数据传导案例",
+  toolkit: "经典工具箱",
+  scorecard: "全流程评分",
+  governance: "治理架构",
+  "data-platform": "数据互通",
+  implementation: "实施路线",
+  roadmap: "迭代路线图",
+  sources: "来源核对",
+};
+
+/** /gmrds 下十三学院的标签（与 GmrdsShell.tsx 的 ACADEMY_SLUGS 一致） */
+const GMRDS_ACADEMY_LABELS: Record<string, string> = {
+  global: "全球宏观",
+  macro: "宏观经济",
+  liquidity: "流动性",
+  cycle: "周期定位",
+  industry: "行业景气",
+  company: "公司研究",
+  valuation: "估值",
+  technical: "技术分析",
+  quant: "量化",
+  allocation: "资产配置",
+  trading: "交易执行",
+  ai: "AI 研究",
+  committee: "决策委员会",
+};
+
+/**
  * 由 pathname（可选 searchParams 支持 ?tab=）解析面包屑路径。
  * 动态路由（文章 / 危机 / 产业链详情 / 政策详情）给出语义化标签。
  */
@@ -210,8 +245,12 @@ export function breadcrumbsFor(pathname: string, searchParams?: URLSearchParams 
     if (group.href === "/industry" && rest) return [...base, gCrumb, { label: "产业链详情" }];
     if (group.href === "/history" && rest) return [...base, gCrumb, { label: "危机重演" }];
     if (group.href === "/gmrds" && rest) {
-      if (rest === "roadmap") return [...base, gCrumb, { label: "迭代路线图" }];
-      return [...base, gCrumb, { label: "学院详情" }];
+      const seg = rest.split("/")[0];
+      // 十三学院（/gmrds/macro 等）与 12 个方法页（/gmrds/flow 等）各有自己的语义标签，
+      // 一律回落「学院详情」会让研究体系里 2/3 的页面在导航栏里失去名字。
+      const label = GMRDS_SUBPAGE_LABELS[seg] ?? GMRDS_ACADEMY_LABELS[seg];
+      if (label) return [...base, gCrumb, { label }];
+      return [...base, gCrumb, { label: "研究体系" }];
     }
 
     return [...base, gCrumb, { label: rest || groupDefaultLabel(group) }];

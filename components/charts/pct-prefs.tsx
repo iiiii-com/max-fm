@@ -49,6 +49,7 @@ export function usePctPrefs(compact = false, initial?: Partial<PctPrefs>) {
         <>
           <span className="w-px h-3 bg-border" aria-hidden />
           <div className="flex items-center gap-0.5" role="group" aria-label="标注位置">
+            <span className="text-[10px] text-muted mr-0.5">标注</span>
             {(["top", "bottom"] as const).map((p) => (
               <button
                 key={p}
@@ -64,6 +65,7 @@ export function usePctPrefs(compact = false, initial?: Partial<PctPrefs>) {
             ))}
           </div>
           <div className="flex items-center gap-0.5" role="group" aria-label="标注字号">
+            <span className="text-[10px] text-muted mr-0.5">字号</span>
             {FONT_SIZES.map((s) => (
               <button
                 key={s}

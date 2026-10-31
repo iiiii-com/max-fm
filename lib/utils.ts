@@ -149,7 +149,13 @@ export function safeJsonArray<T = unknown>(value: string | null | undefined): T[
  * 因此凡是来自外部接口的数值，应先经此函数归一化再参与计算或渲染。
  */
 export function toNum(value: unknown): number | null {
-  if (value === null || value === undefined || value === "") return null;
-  const n = typeof value === "number" ? value : Number(value);
+  // 只接受 number 与 string 两种原始类型：
+  // 旧实现走 Number(value)，会把 [] / true / " " 这类脏值悄悄变成 0 或 1，
+  // 正是「缺失被当成真实 0」的典型来源（例：资金流缺失 → 显示 0 亿）。
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (typeof value !== "string") return null;
+  const s = value.trim();
+  if (s === "" || s === "-" || s === "--") return null;
+  const n = Number(s);
   return Number.isFinite(n) ? n : null;
 }

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Quote } from "@/lib/data/quotes";
 import { fmt, fmtPct } from "@/lib/utils";
+import { guardPoll } from "@/lib/hooks/visibility";
 
 export default function Ticker() {
   const [quotes, setQuotes] = useState<Quote[]>([]);
@@ -21,7 +22,7 @@ export default function Ticker() {
       }
     }
     load();
-    const timer = setInterval(load, 60000);
+    const timer = setInterval(guardPoll(load), 60000);
     return () => {
       alive = false;
       clearInterval(timer);

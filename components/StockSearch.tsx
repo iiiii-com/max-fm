@@ -16,6 +16,7 @@ import ContextStrip from "@/components/ContextStrip";
 import { mkKlineTooltip, mkPctLabel } from "@/lib/data/kline-tooltip";
 import { useWatchlist } from "@/lib/hooks/useWatchlist";
 import { useRefresh } from "@/lib/hooks/refresh";
+import type { Quote } from "@/lib/data/quotes";
 import { SECTOR_LEADERS } from "@/lib/data/leaders";
 
 function ma(data: number[], n: number): (number | null)[] {
@@ -50,6 +51,8 @@ export default function StockSearch() {
   const [pctFont, setPctFont] = useState(9);
   const chartRef = useRef<echarts.ECharts | null>(null);
   const [selectedBar, setSelectedBar] = useState<KlineBar | null>(null);
+  // 实时快照（K 线只到日线收盘，盘中价格要单独拉）
+  const [live, setLive] = useState<Quote | null>(null);
   // 缩放可视范围联动：涨跌幅标注随缩放全标可视区，不遗漏任何一根
   const [vRange, setVRange] = useState<[number, number] | null>(null);
   const onZoom = useCallback((e?: unknown) => {
@@ -63,21 +66,6 @@ export default function StockSearch() {
   }, []);
   const autoPicked = useRef<string | null>(null);
 
-  useEffect(() => {
-    const q = searchParams.get("q");
-    if (q && q !== autoPicked.current) {
-      autoPicked.current = q;
-      setQuery(q);
-      fetch(`/api/stock/search?q=${encodeURIComponent(q)}`, { cache: "no-store" })
-        .then((r) => r.json())
-        .then(async (json) => {
-          const first = json?.hits?.[0];
-          if (first) await pick(first);
-        })
-        .catch(() => {});
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
 
   useEffect(() => {
     if (!query.trim()) return;
@@ -137,12 +125,53 @@ export default function StockSearch() {
     }
   };
 
+  useEffect(() => {
+    const q = searchParams.get("q");
+    if (q && q !== autoPicked.current) {
+      autoPicked.current = q;
+      setQuery(q);
+      fetch(`/api/stock/search?q=${encodeURIComponent(q)}`, { cache: "no-store" })
+        .then((r) => r.json())
+        .then(async (json) => {
+          const first = json?.hits?.[0];
+          if (first) await pick(first);
+        })
+        .catch(() => {});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
   // 选中个股跟随全局自动刷新（不重置选择状态）
   const { refreshKey } = useRefresh();
   useEffect(() => {
     if (selected) pick(selected, false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshKey, period]);
+
+  // 实时快照：K 线接口只给日线收盘，盘中价格会停在昨收。
+  // 切换标的/全局刷新时立即拉一次，之后每 20 秒轮询（页面隐藏时跳过）。
+  useEffect(() => {
+    setLive(null);
+    if (!selected) return;
+    let alive = true;
+    const pull = async () => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      try {
+        const r = await fetch(`/api/stock/quote?secid=${selected.secid}`, { cache: "no-store" });
+        const j = await r.json();
+        if (alive && j?.ok && j.quote) setLive(j.quote as Quote);
+      } catch {
+        /* 实时源失败：保留 K 线收盘价并标注延迟，不造数 */
+      }
+    };
+    pull();
+    const timer = window.setInterval(pull, 20000);
+    return () => {
+      alive = false;
+      window.clearInterval(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected?.secid, refreshKey]);
 
   const option = useMemo<EChartsOption>(() => {
     if (!bars.length) return {};
@@ -314,9 +343,17 @@ export default function StockSearch() {
             >
               {has(selected.secid) ? "★ 已自选" : "☆ 加自选"}
             </button>
-            <span className="ml-auto text-xl font-bold font-mono">{last.close}</span>
-            <span className={`text-sm font-mono ${pct >= 0 ? "up" : "down"}`}>
-              {pct >= 0 ? "+" : ""}{pct.toFixed(2)}%
+            <span className="ml-auto text-xl font-bold font-mono">
+              {live && live.price > 0 ? live.price.toFixed(2) : last.close}
+            </span>
+            <span className={`text-sm font-mono ${(live ? live.changePct : pct) >= 0 ? "up" : "down"}`}>
+              {(live ? live.changePct : pct) >= 0 ? "+" : ""}{(live ? live.changePct : pct).toFixed(2)}%
+            </span>
+            <span
+              className={`text-[10px] px-1.5 py-0.5 rounded ${live ? "bg-primary/10 text-primary" : "bg-muted/50 text-muted"}`}
+              title={live ? `实时快照 · ${new Date(live.timestamp).toLocaleTimeString("zh-CN", { hour12: false })}` : "实时源暂不可用，价格为最近一根日线收盘"}
+            >
+              {live ? "实时" : "收盘"}
             </span>
           </div>
 
@@ -342,7 +379,7 @@ export default function StockSearch() {
             </div>
             <span className="text-[10px] text-muted">
               {period === "day" ? "前复权日线" : period === "week" ? "前复权周线" : "前复权月线"} ·
-              最新 {last.date}{kTime ? ` · ${new Date(kTime).toLocaleTimeString("zh-CN", { hour12: false })} 更新` : ""}
+              最新 {last.date}{kTime ? ` · ${new Date(kTime).toLocaleTimeString("zh-CN", { hour12: false })} 更新` : ""}{live ? " · 实时快照 20 秒轮询" : ""}
             </span>
           </div>
           {fund && (

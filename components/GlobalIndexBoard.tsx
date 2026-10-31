@@ -53,7 +53,9 @@ function MiniSpark({ code, expanded, onExpand }: { code: string; expanded: boole
     setErr("");
     (async () => {
       try {
-        const res = await fetch(`/api/global/kline?code=${code}&days=${expanded ? 8000 : 250}`, { cache: "no-store" });
+        // 折叠态 250 根（1 年）；展开态 2500 根（约 10 年）。
+      // 原先展开要 8000 根 → 单次 582KB JSON，实际图上根本看不清 30 年的细节。
+      const res = await fetch(`/api/global/kline?code=${code}&days=${expanded ? 2500 : 250}`, { cache: "no-store" });
         const json = await res.json();
         if (json?.ok && Array.isArray(json.bars) && json.bars.length) {
           if (!cancelled) setBars(json.bars);
@@ -122,12 +124,55 @@ function MiniSpark({ code, expanded, onExpand }: { code: string; expanded: boole
   );
 }
 
-export default function GlobalIndexBoard({ quotes }: { quotes: Quote[] }) {
+export default function GlobalIndexBoard({ quotes: initialQuotes, live = true }: { quotes: Quote[]; live?: boolean }) {
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [quotes, setQuotes] = useState<Quote[]>(initialQuotes);
+  const [time, setTime] = useState<number>(() => Date.now());
+  const [refreshing, setRefreshing] = useState(false);
   const byCode = new Map(quotes.map((q) => [q.code, q]));
+
+  // 国际指数同样会「页面打开就定格」：这里跟随行情接口每 30 秒自动刷新一次，
+  // 页面不可见时跳过，避免后台标签页空转请求。
+  useEffect(() => {
+    if (!live) return;
+    let alive = true;
+    const load = async () => {
+      if (document.hidden) return;
+      setRefreshing(true);
+      try {
+        const res = await fetch("/api/quotes", { cache: "no-store" });
+        const json = await res.json();
+        if (alive && Array.isArray(json?.global) && json.global.length) {
+          setQuotes(json.global);
+          setTime(typeof json.time === "number" ? json.time : Date.now());
+        }
+      } catch {
+        /* 网络波动时保留上一次行情 */
+      } finally {
+        if (alive) setRefreshing(false);
+      }
+    };
+    const t = window.setInterval(load, 30_000);
+    return () => {
+      alive = false;
+      window.clearInterval(t);
+    };
+  }, [live]);
+
+  const hhmm = (() => {
+    const t = new Date(time);
+    return `${String(t.getHours()).padStart(2, "0")}:${String(t.getMinutes()).padStart(2, "0")}`;
+  })();
 
   return (
     <div className="space-y-3">
+      <div className="flex items-center justify-between text-[11px] text-muted">
+        <span>国际指数 · 行情约 15~20 秒延迟</span>
+        <span className="inline-flex items-center gap-1">
+          <span className={`inline-block w-1.5 h-1.5 rounded-full ${refreshing ? "bg-amber-500 animate-pulse" : "bg-emerald-500"}`} />
+          {refreshing ? "更新中…" : `${hhmm} 更新 · 每 30 秒自动刷新`}
+        </span>
+      </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {GLOBAL_INDEXES.map((ix) => {
           const q = byCode.get(ix.code);

@@ -1,5 +1,6 @@
 "use client";
 
+import { isNativeShell } from "@/lib/platform";
 import { useEffect, useState } from "react";
 import { Download, X, Share, Plus } from "lucide-react";
 
@@ -57,6 +58,9 @@ export default function InstallPrompt() {
   }, []);
 
   useEffect(() => {
+    // 已在原生壳（Capacitor）里 → 不用再劝装「添加到主屏幕」
+    if (isNativeShell()) return;
+
     // 已是独立窗口 → 不再劝装
     const standalone =
       window.matchMedia?.("(display-mode: standalone)").matches ||

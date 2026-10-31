@@ -1,3 +1,4 @@
+import { emJson } from "./eastmoney";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
@@ -24,9 +25,10 @@ const UA = {
 
 async function fetchJson(url: string): Promise<any | null> {
   try {
-    const res = await fetch(url, { headers: UA, signal: AbortSignal.timeout(6000), cache: "no-store" });
-    if (!res.ok) throw new Error(`http ${res.status}`);
-    return await res.json();
+    // emJson：限并发 + 重试；仍失败再走 curl 兜底
+    const json = await emJson<any>(url, { timeoutMs: 6000, headers: UA });
+    if (json == null) throw new Error("em unavailable");
+    return json;
   } catch {
     try {
       for (const bin of ["curl", "curl.exe"]) {

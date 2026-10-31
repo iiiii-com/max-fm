@@ -1,4 +1,5 @@
 import type { KlineBar } from "@/app/api/stock/kline/route";
+import { emJson } from "./eastmoney";
 
 const UA = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/126 Safari/537.36" };
 
@@ -40,7 +41,10 @@ async function fetchKlineGtimg(secid: string, days: number, range?: { from: stri
       close: Number(row[2]),
       high: Number(row[3]),
       low: Number(row[4]),
-      volume: Math.round(Number(row[5]) * 100),
+      // 腾讯 fqkline 的 volume 单位是「手」（1 手 = 100 股），与东财 f56 一致。
+      // 这里原先 ×100 换算成股，但东财分支没换算，于是同一接口两个源差 100 倍；
+      // 现统一为「手」（A 股成交量惯例单位），不再乘。
+      volume: Math.round(Number(row[5])),
       amount: 0,
     }));
   } catch {
@@ -55,9 +59,9 @@ async function fetchKlineEastmoney(secid: string, days: number, period: KlinePer
       `https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=${secid}` +
       `&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f52,f53,f54,f55,f56,f57,f58` +
       `&klt=${klt}&fqt=1&lmt=${days}&end=20500101`;
-    const res = await fetch(url, { headers: UA, signal: AbortSignal.timeout(20000), cache: "no-store" });
-    if (!res.ok) throw new Error(`eastmoney kline ${res.status}`);
-    const json = await res.json();
+    // emJson：东财并发限流 + 重试（并发高时上游直接重置连接，表现为「K 线有时取不到」）
+    const json = await emJson<{ data?: { klines?: string[] } }>(url, { timeoutMs: 20000, headers: UA });
+    if (!json) throw new Error("eastmoney kline unavailable");
     const raw: string[] = json?.data?.klines ?? [];
     if (!Array.isArray(raw) || !raw.length) return null;
     return raw.map((line: string) => {
@@ -68,6 +72,7 @@ async function fetchKlineEastmoney(secid: string, days: number, period: KlinePer
         close: Number(row[2]),
         high: Number(row[3]),
         low: Number(row[4]),
+        // 东财 push2his f56 = 成交量（手），与腾讯一致，不做换算
         volume: Math.round(Number(row[5])),
         amount: Number(row[6]) || 0,
       };
@@ -81,9 +86,8 @@ export async function fetchFundamentals(secid: string): Promise<Record<string, a
   try {
     const fields = "f57,f58,f43,f116,f117,f162,f167,f92,f168,f164,f60";
     const url = `https://push2.eastmoney.com/api/qt/stock/get?secid=${secid}&fields=${fields}&fltt=2&invt=2`;
-    const res = await fetch(url, { headers: UA, signal: AbortSignal.timeout(20000), cache: "no-store" });
-    if (!res.ok) throw new Error(`fundamentals ${res.status}`);
-    const json = await res.json();
+    const json = await emJson<{ data?: Record<string, any> }>(url, { timeoutMs: 20000, headers: UA });
+    if (!json) throw new Error("fundamentals unavailable");
     const d = json?.data;
     if (!d) return null;
     return {

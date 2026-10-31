@@ -32,7 +32,8 @@ const fmtTurnover = (v: number | null) => (v == null ? "—" : `${(v / 1e8).toFi
 export default function SurgeBoard() {
   const [surges, setSurges] = useState<SurgeItem[]>([]);
   const [sectors, setSectors] = useState<SectorItem[]>([]);
-  const [updated, setUpdated] = useState("");
+  const [dataAt, setDataAt] = useState("");
+  const [stale, setStale] = useState<{ since?: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
@@ -50,6 +51,8 @@ export default function SurgeBoard() {
               ...s,
               pct: toNum(s.pct),
               price: toNum(s.price),
+              mainFlow: toNum(s.mainFlow),
+              turnover: toNum(s.turnover),
             }))
           );
           setSectors(
@@ -58,7 +61,12 @@ export default function SurgeBoard() {
               pct: toNum(s.pct),
             }))
           );
-          setUpdated(j.updated ?? "");
+          // dataAt 是服务端落库快照里的抓取时间；上游失败时返回的是旧快照，
+          // 必须显示这份数据的时间，而不是浏览器收到响应的时间。
+          setDataAt(j.dataAt ?? j.updated ?? "");
+          // 服务端在上游不可用时会返回最近一次成功快照并标 stale，
+          // 这里必须显式提示，否则用户会把陈旧榜单当成实时数据
+          setStale(j.stale === true ? { since: j.staleSince } : null);
         } else setErr(j?.error ?? "速报加载失败");
       })
       .catch((e) => setErr(e?.message ?? "加载失败"))
@@ -71,7 +79,16 @@ export default function SurgeBoard() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-xs text-muted">
-          数据源：东方财富实时行情（A股为主）{updated ? `· 更新 ${new Date(updated).toLocaleTimeString("zh-CN", { hour12: false })}` : ""}
+          数据源：东方财富实时行情（A股为主）{dataAt ? `· 数据时间 ${new Date(dataAt).toLocaleTimeString("zh-CN", { hour12: false })}` : ""}
+          {stale ? (
+            <span
+              className="ml-2 inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium"
+              style={{ background: "rgba(217,119,6,0.12)", color: "#b45309" }}
+              title="上游数据源暂不可用，当前展示的是最近一次成功获取的快照"
+            >
+              数据陈旧{stale.since ? ` · ${new Date(stale.since).toLocaleTimeString("zh-CN", { hour12: false })} 快照` : ""}
+            </span>
+          ) : null}
         </p>
         <button
           onClick={load}

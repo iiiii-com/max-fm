@@ -1,22 +1,44 @@
 import { NextResponse } from "next/server";
 import { aggregateBars } from "@/lib/data/indicators";
 import { fetchSinaUsIndex, fetchTencentIndex, fetchEastmoneyIndex, TENCENT_SYMBOLS } from "@/lib/data/index-kline";
+import { fetchStockQuote, type Quote } from "@/lib/data/quotes";
+import { emJson } from "@/lib/data/eastmoney";
 
 export const dynamic = "force-dynamic";
 
-export interface KlineBar {
-  date: string;
-  open: number;
-  close: number;
-  high: number;
-  low: number;
-  volume: number;
-  amount: number;
-}
+// 类型定义与「对齐最新交易日」的纯计算都放在 lib/data 下：
+// 路由文件会连带 next/server、数据库连接，纯计算留在路由里就没法单测。
+import type { KlineBar, KlinePeriod } from "@/lib/data/kline-types";
+import { finalizeBars, cstToday } from "@/lib/data/kline-finalize";
 
-export type KlinePeriod = "day" | "week" | "month";
+// 仍然从本路由 re-export，避免 40+ 个既有调用点改 import 路径
+export type { KlineBar, KlinePeriod } from "@/lib/data/kline-types";
 
 const KLT: Record<KlinePeriod, number> = { day: 101, week: 102, month: 103 };
+
+/**
+ * 所有数据链路（东财/新浪/腾讯）取到的 K 线最后统一过一遍：
+ * 1) A 股/ETF/沪深指数：用实时快照把「今天」的盘中 bar 补进日 K（或更新当天 bar）；
+ * 2) 周/月 K：把 bar 日期从「周期起始日」改成「周期末交易日」——东财周 K 的 date 是周一、
+ *    月 K 是月初首个交易日，直接画会让「最新日期」显示成 10-19 / 10-08，看起来像两周没更新；
+ * 3) 当前周期最后一根的日期按实时交易日期/今天收敛，保证图例 as-of 与最新交易日一致。
+ */
+async function finalizeKlines(
+  secid: string,
+  mkt: string,
+  period: KlinePeriod,
+  klines: KlineBar[]
+): Promise<{ bars: KlineBar[]; live: boolean; tradeDate?: string }> {
+  if (!klines.length || (mkt !== "0" && mkt !== "1")) return { bars: klines, live: false };
+  let quote: Quote | null = null;
+  try {
+    quote = await fetchStockQuote(secid);
+  } catch {
+    quote = null;
+  }
+  // 对齐/叠加实时 bar 的纯计算在 lib/data/kline-finalize.ts（有单测），这里只负责取快照
+  return finalizeBars(period, klines, quote);
+}
 
 /**
  * 个股/ETF K 线接口（多数据源容错，保证本地/线上双环境可用）
@@ -38,7 +60,10 @@ export async function GET(req: Request) {
    * 导致个股 K 线"只有一年"。现 beg 放到 1990 并把天数上限提到 8000，
    * 日线可覆盖 A 股全历史（茅台 2001 上市起约 6015 根 / 25 年）。
    */
-  const days = Math.min(8000, Math.max(10, Number(searchParams.get("days") ?? 2500)));
+  // 默认只回 500 根（约 2 年日线），够算 MA250 等技术指标；需要更长历史的调用方
+  // 必须显式传 days（K 线实验室/个股深度页传 8000）。原先默认 2500 会让每个不带
+  // days 的请求都返回 ~200KB，而绝大多数调用点其实只需要近期走势。
+  const days = Math.min(8000, Math.max(10, Number(searchParams.get("days") ?? 500)));
   const [mkt, code] = secid.split(".");
 
   // ---- 源1：东方财富（fqt=1 前复权优先，失败再试 fqt=0 不复权）----
@@ -53,18 +78,12 @@ export async function GET(req: Request) {
       const url = `https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=${encodeURIComponent(
         secid
       )}&klt=${KLT[period]}&fqt=${fqt}&beg=19900101&end=20500101&fields1=f1,f2,f3&fields2=f51,f52,f53,f54,f55,f56,f57`;
-      const res = await fetch(url, {
-        /**
-         * 行情数据必须 no-store，不能用 next.revalidate。
-         * revalidate 是 stale-while-revalidate 语义：窗口过期后的**第一个请求仍返回旧缓存**，
-         * 只在后台刷新。于是用户每次访问都拿到"上一次刷新的快照"，永远差一版 ——
-         * 表现就是"K 线不能及时更新最新的记录"，而上游其实是实时的。
-         */
-        cache: "no-store",
-        headers: { Referer: "https://quote.eastmoney.com/", "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" },
+      // 行情数据必须 no-store（见下）。统一走 emJson：限并发 + 重试，
+      // 避免页面同时拉多只标的 K 线时被上游按并发连接数批量掐断。
+      const json = await emJson<{ data?: { klines?: string[]; name?: string; code?: string } }>(url, {
+        timeoutMs: 20000,
       });
-      if (!res.ok) throw new Error(`em ${res.status}`);
-      const json = await res.json();
+      if (!json) throw new Error("em unavailable");
       const raw: string[] = json?.data?.klines ?? [];
       if (!Array.isArray(raw) || !raw.length) throw new Error("empty");
       const name = String(json?.data?.name ?? secid);
@@ -72,15 +91,19 @@ export async function GET(req: Request) {
         const [date, open, close, high, low, volume, amount] = row.split(",");
         return {
           date, open: Number(open), close: Number(close), high: Number(high), low: Number(low),
-          volume: Math.round(Number(volume)), amount: Math.round(Number(amount)),
+        // 东财 f56=成交量（手）、f57=成交额（元）：本接口对外统一「手」，故不换算
+        volume: Math.round(Number(volume)), amount: Math.round(Number(amount)),
         };
       });
       // 回传实际覆盖区间与复权口径，前端据此显示而不是猜
+      const final = await finalizeKlines(secid, mkt, period, klines);
       return NextResponse.json({
-        name, code: String(json?.data?.code ?? code), secid, period, klines,
+        name, code: String(json?.data?.code ?? code), secid, period, klines: final.bars,
         total: raw.length,
         adjust: fqt === 1 ? "前复权" : "不复权",
-        span: klines.length ? { from: klines[0].date, to: klines[klines.length - 1].date } : null,
+        live: final.live,
+        tradeDate: final.tradeDate,
+        span: final.bars.length ? { from: final.bars[0].date, to: final.bars[final.bars.length - 1].date } : null,
       });
     } catch {
       /* 换下一个 fqt，或落到新浪兜底 */
@@ -109,16 +132,21 @@ export async function GET(req: Request) {
       if (!m) throw new Error("sina empty");
       const rows = JSON.parse(m[1]) as Array<{ day: string; open: string; high: string; low: string; close: string; volume: string }>;
       if (!rows?.length) throw new Error("sina empty");
+      // 新浪 getKLineData 的 volume 单位是「股」（实测茅台 4,159,916 股），
+      // 而东财/腾讯/本接口对外统一是「手」，故 /100 归一化，避免混源时量能差 100 倍。
       let bars = rows.map((r) => ({
-        date: r.day, open: Number(r.open), close: Number(r.close), high: Number(r.high), low: Number(r.low), volume: Math.round(Number(r.volume)),
+        date: r.day, open: Number(r.open), close: Number(r.close), high: Number(r.high), low: Number(r.low), volume: Math.round(Number(r.volume) / 100),
       }));
       if (period !== "day") bars = aggregateBars(bars, period);
-      const klines: KlineBar[] = bars.slice(-days).map((b) => ({ ...b, amount: 0 }));
+      const rawKlines: KlineBar[] = bars.slice(-days).map((b) => ({ ...b, amount: 0 }));
+      const final = await finalizeKlines(secid, mkt, period, rawKlines);
       return NextResponse.json({
-        name: `${sym}`, code, secid, period, klines,
+        name: `${sym}`, code, secid, period, klines: final.bars,
         source: "新浪",
+        live: final.live,
+        tradeDate: final.tradeDate,
         // 与东财分支保持同样的区间回传，前端不必猜覆盖到哪一天
-        span: klines.length ? { from: klines[0].date, to: klines[klines.length - 1].date } : null,
+        span: final.bars.length ? { from: final.bars[0].date, to: final.bars[final.bars.length - 1].date } : null,
       });
     } catch {
       /* fallthrough */
@@ -183,11 +211,13 @@ export async function GET(req: Request) {
     const node = json?.data?.[param];
     const raw: any[][] = node?.[`qfq${period}`] || node?.[period] || [];
     if (!Array.isArray(raw) || !raw.length) throw new Error("empty");
-    const klines: KlineBar[] = raw.map((row: any[]) => ({
+    const rawKlines: KlineBar[] = raw.map((row: any[]) => ({
       date: String(row[0]), open: Number(row[1]), close: Number(row[2]), high: Number(row[3]), low: Number(row[4]),
-      volume: Math.round(Number(row[5]) * 100), amount: 0,
+      // 腾讯 fqkline volume 单位是手，与本接口的其他源统一，不再 ×100
+      volume: Math.round(Number(row[5])), amount: 0,
     }));
-    return NextResponse.json({ name: String(node?.qt?.name ?? param), code, secid, period, klines });
+    const final = await finalizeKlines(secid, mkt, period, rawKlines);
+    return NextResponse.json({ name: String(node?.qt?.name ?? param), code, secid, period, klines: final.bars, live: final.live, tradeDate: final.tradeDate });
   } catch {
     return NextResponse.json({ error: "K 线数据暂不可用" }, { status: 502 });
   }

@@ -44,6 +44,9 @@ const TABLES = [
   // 存在的理由：上游 push2his 会按 IP 限频，链指数/组合诊断/景气度都要批量取日线，
   // 每次都重抓必然被打到全线失败。落库后跨进程、跨 serverless 实例都能复用。
   "daily_bars",
+  // 行情类接口的落库快照（资金流榜 / 异动榜 / 板块榜）。
+  // 上游 push2 按并发连接数掐断，失败时读这份快照兜底并标注 dataAt。
+  "market_snapshots",
 ];
 
 const COLS_SQLITE = `id TEXT PRIMARY KEY, uid TEXT, name TEXT, email TEXT, password_hash TEXT, provider TEXT, risk_level TEXT, interests TEXT, plan TEXT, title TEXT, slug TEXT, department TEXT, category TEXT, summary TEXT, content TEXT, popular TEXT, professional TEXT, data_links TEXT, tags TEXT, status TEXT, source TEXT, source_model TEXT, quality_score TEXT, unit TEXT, type TEXT, date TEXT, publish_date TEXT, source_url TEXT, answers TEXT, components TEXT, detail TEXT, chain_id TEXT, level TEXT, companies TEXT, description TEXT, code TEXT, symbol TEXT, value REAL, growth REAL, sentiment TEXT, score REAL, temperature REAL, temperature_diff REAL, price REAL, change_pct REAL, change_amount REAL, open REAL, high REAL, low REAL, volume REAL, amount REAL, year INTEGER, gdp REAL, per_capita_gdp REAL, population REAL, fiscal_revenue REAL, trade REAL, sample_count INTEGER, avg_score REAL, duration_ms INTEGER, tokens INTEGER, created_at INTEGER, updated_at INTEGER, province TEXT, dimension TEXT, bucket TEXT, age_group TEXT, occupation TEXT, region TEXT, task_name TEXT, n INTEGER, link_id TEXT, connected_to TEXT, city TEXT, period TEXT, new_mom REAL, new_yoy REAL, used_mom REAL, used_yoy REAL, fetched_at INTEGER, session_version TEXT, token_hash TEXT, expires_at INTEGER`;

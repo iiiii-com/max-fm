@@ -112,7 +112,7 @@ export default function LabPage() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(load, [symbol.secid, period]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(load, [symbol.secid, period]);  
 
   // ---- 买卖点标注（02 形态 + 05 信号 联动至 01 实验台） ----
   const marks = useMemo<LabMark[]>(() => {

@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { isPageHidden } from "@/lib/hooks/visibility";
 
 /** 自动刷新间隔（毫秒） */
 export const REFRESH_INTERVAL = 30_000;
@@ -45,6 +46,7 @@ export function RefreshProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!enabled) return;
     const t = setInterval(() => {
+      if (isPageHidden()) return;
       setRefreshKey((k) => k + 1);
       setLastUpdated(Date.now());
     }, REFRESH_INTERVAL);

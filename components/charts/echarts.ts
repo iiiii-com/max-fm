@@ -39,6 +39,7 @@ echarts.use([
 
 export { echarts };
 export type { EChartsOption } from "echarts";
+export type { ECharts } from "echarts";
 
 /**
  * 初始化图表并让它在容器尺寸变化时自动 resize。
@@ -57,6 +58,18 @@ export function initResponsiveChart(
   el: HTMLElement,
   theme?: string
 ): { chart: echarts.ECharts; dispose: () => void } {
+  // React StrictMode（开发期双挂载）或热更新时，同一个 DOM 节点可能已经挂着
+  // 一个旧实例。此时直接 init 会得到两个实例抢同一个容器，卸载时先 dispose 的那个
+  // 会把后一个的 canvas 从 DOM 里删掉 → removeChild NotFoundError → 整页崩。
+  // 先清理旧实例再 init，是 StrictMode 能安全开启的前提。
+  const prev = echarts.getInstanceByDom(el);
+  if (prev && !prev.isDisposed()) {
+    try {
+      prev.dispose();
+    } catch {
+      /* 旧实例已处于卸载竞态，忽略 */
+    }
+  }
   const chart = echarts.init(el, theme);
   const ro = new ResizeObserver(() => {
     // 尺寸仍为 0 时 resize 没有意义（ECharts 只会再警告一次），跳过等下次

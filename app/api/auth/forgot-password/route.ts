@@ -72,12 +72,17 @@ export async function POST(req: Request) {
       createdAt: now(),
     } as any);
 
-    const link = new URL(`/reset-password?token=${token}`, req.url).toString();
+    // 安全：**绝不把完整令牌打进日志**。日志会进 stdout / 日志平台 / start.log，
+    // 能读日志的人本来不该有重置任意账号的能力（30 分钟窗口内一条 link 就够了）。
+    // 这里只留 uid 与 token 前 6 位，供排障时对齐"是哪一次请求"，不足以还原令牌。
+    const masked = `…${token.slice(0, 6)}`;
     if (process.env.AUTH_MAIL_FROM) {
-      // 已配置邮件服务：此处是唯一的发信出口
-      console.warn(`[auth] 请向 ${email} 发送密码重置链接：${link}`);
+      // 已配置邮件服务：此处是唯一的发信出口。
+      // 注意：当前仍以日志形式提示运维代发（未接 SMTP SDK），所以更要把令牌脱敏。
+      console.warn(`[auth] 密码重置请求：uid=${user.id}，请通过邮件服务向 ${email} 发送链接（令牌脱敏 ${masked}）`);
     } else {
-      console.warn(`[auth] 未配置 AUTH_MAIL_FROM，重置链接仅写入日志（${email}）：${link}`);
+      console.warn(`[auth] 未配置 AUTH_MAIL_FROM，重置链接无法送达（uid=${user.id}，令牌脱敏 ${masked}）。`);
+      console.warn(`[auth] 若需本地自助重置，请用管理员口令或改密流程；不要在此打印明文令牌。`);
     }
   } else {
     // 邮箱不存在时也走一次哈希，让两条路径耗时接近

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { emJson } from "@/lib/data/eastmoney";
 
 export const dynamic = "force-dynamic";
 
@@ -8,14 +9,22 @@ const MARKETS = [
   { secid: "0.399001", code: "399001", name: "深证" },
 ];
 
+/**
+ * 结果缓存 + 单飞。
+ *
+ * 背景：K 线实验室首屏有 4 个组件各自请求本接口（实测同一页发出 4 次，
+ * 每次 3 个上游请求），上游会被打 12 次。宽度是 20 秒级数据，
+ * 这里做 15 秒进程内缓存，并把并发请求合并成一次上游访问。
+ */
+const TTL_MS = 15_000;
+let cacheAt = 0;
+let cacheBody: any = null;
+let inflight: Promise<any> | null = null;
+
+
 async function getJson<T>(url: string, timeoutMs = 9000): Promise<T | null> {
-  try {
-    const res = await fetch(url, { headers: UA, signal: AbortSignal.timeout(timeoutMs), cache: "no-store" });
-    if (!res.ok) return null;
-    return (await res.json()) as T;
-  } catch {
-    return null;
-  }
+  // emJson：对东财限并发 + 重试（并发过高时上游直接重置连接）
+  return emJson<T>(url, { timeoutMs, headers: UA });
 }
 
 /**
@@ -32,23 +41,55 @@ async function getJson<T>(url: string, timeoutMs = 9000): Promise<T | null> {
  * 温度判定：上涨占比 >60% 偏热，<40% 偏冷。
  */
 export async function GET() {
+  const now = Date.now();
+  if (cacheBody && now - cacheAt < TTL_MS) {
+    return NextResponse.json(cacheBody, { headers: { "Cache-Control": "public, max-age=15, s-maxage=15", "X-Cache": "HIT" } });
+  }
+  if (inflight) {
+    try {
+      const body = await inflight;
+      return NextResponse.json(body, { headers: { "Cache-Control": "public, max-age=15, s-maxage=15", "X-Cache": "HIT" } });
+    } catch {
+      return NextResponse.json({ ok: false, error: "市场宽度数据源暂不可达" }, { status: 503 });
+    }
+  }
+  inflight = loadBreadth();
+  try {
+    const body = await inflight;
+    cacheBody = body;
+    cacheAt = Date.now();
+    return NextResponse.json(body, { headers: { "Cache-Control": "public, max-age=15, s-maxage=15", "X-Cache": "MISS" } });
+  } catch (e) {
+    // 上游确实取不到时明确失败，不以 0 家数冒充（原实现返回 503 + error）
+    const msg = e instanceof Error ? e.message : "市场宽度数据源暂不可达";
+    return NextResponse.json({ ok: false, error: msg }, { status: 503 });
+  } finally {
+    inflight = null;
+  }
+}
+
+async function loadBreadth(): Promise<Record<string, any>> {
   const ids = MARKETS.map((m) => m.secid).join(",");
 
-  // 涨跌家数：ulist.np（f104/f105/f106 = 涨/跌/平）
-  const breadthJ = await getJson<{ data?: { diff?: any[] } }>(
-    `https://push2.eastmoney.com/api/qt/ulist.np/get?secids=${ids}&fields=f12,f104,f105,f106&fltt=2&invt=2`
-  );
-  // 成交额：stock/get（f48 = 成交额，f47 = 成交量）
-  const amountJ = await getJson<{ data?: Record<string, any> }>(
-    `https://push2.eastmoney.com/api/qt/stock/get?secid=1.000001&fields=f43,f48&fltt=2&invt=2`
-  );
-  const amountJ2 = await getJson<{ data?: Record<string, any> }>(
-    `https://push2.eastmoney.com/api/qt/stock/get?secid=0.399001&fields=f43,f48&fltt=2&invt=2`
-  );
+  // 三个上游互不依赖 —— 之前写成三次串行 await，白白让接口耗时 = 三者之和
+  // （实测 497ms 只换 238B 响应）；并行后取决于最慢的一个。
+  const [breadthJ, amountJ, amountJ2] = await Promise.all([
+    // 涨跌家数：ulist.np（f104/f105/f106 = 涨/跌/平）
+    getJson<{ data?: { diff?: any[] } }>(
+      `https://push2.eastmoney.com/api/qt/ulist.np/get?secids=${ids}&fields=f12,f104,f105,f106&fltt=2&invt=2`
+    ),
+    // 成交额：stock/get（f48 = 成交额，f47 = 成交量）
+    getJson<{ data?: Record<string, any> }>(
+      `https://push2.eastmoney.com/api/qt/stock/get?secid=1.000001&fields=f43,f48&fltt=2&invt=2`
+    ),
+    getJson<{ data?: Record<string, any> }>(
+      `https://push2.eastmoney.com/api/qt/stock/get?secid=0.399001&fields=f43,f48&fltt=2&invt=2`
+    ),
+  ]);
 
   const diff = breadthJ?.data?.diff;
   if (!Array.isArray(diff) || diff.length === 0) {
-    return NextResponse.json({ ok: false, error: "涨跌家数数据源暂不可达" }, { status: 503 });
+    throw new Error("涨跌家数数据源暂不可达");
   }
 
   const n = (v: any) => {
@@ -67,7 +108,7 @@ export async function GET() {
   }
   const total = up + down + flat;
   if (total === 0) {
-    return NextResponse.json({ ok: false, error: "涨跌家数数据源返回空值" }, { status: 503 });
+    throw new Error("涨跌家数数据源返回空值");
   }
 
   // 两市成交额合计（亿元）
@@ -77,19 +118,16 @@ export async function GET() {
   const upRatio = (up / total) * 100;
   const stage = upRatio >= 60 ? "偏热" : upRatio <= 40 ? "偏冷" : "中性";
 
-  return NextResponse.json(
-    {
-      ok: true,
-      up,
-      down,
-      flat,
-      upRatio: Number(upRatio.toFixed(1)),
-      /** 沪深两市合计成交额（亿元）；取不到时为 null */
-      amountYi: amountYi == null ? null : Number(amountYi.toFixed(0)),
-      stage,
-      source: "东方财富指数快照（f104/f105/f106 涨平跌家数、f48 成交额），沪深两市合计",
-      updated: new Date().toISOString(),
-    },
-    { headers: { "Cache-Control": "public, max-age=20, s-maxage=20" } }
-  );
+  return {
+    ok: true,
+    up,
+    down,
+    flat,
+    upRatio: Number(upRatio.toFixed(1)),
+    /** 沪深两市合计成交额（亿元）；取不到时为 null */
+    amountYi: amountYi == null ? null : Number(amountYi.toFixed(0)),
+    stage,
+    source: "东方财富指数快照（f104/f105/f106 涨平跌家数、f48 成交额），沪深两市合计",
+    updated: new Date().toISOString(),
+  };
 }

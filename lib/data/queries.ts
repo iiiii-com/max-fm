@@ -14,6 +14,54 @@ export async function getIndicators() {
   return db.select().from(s.economicIndicators).orderBy(asc(s.economicIndicators.date));
 }
 
+/**
+ * 宏观指标序列的「数据血统」统计。
+ *
+ * 背景（数据正确性 P0）：`scripts/seed.ts` 会用 rng() 合成 24 项指标的演示序列，
+ * 但页面一度无差别地写着「全部指标由东方财富数据中心真实报表同步」——
+ * 本地/未同步环境下这是把模拟数据冒充官方数据，属于严重误导。
+ *
+ * 真实同步（lib/data/macro-sync.ts）写入的 source 是「东方财富数据中心 / 中债登 /
+ * 东方财富行情接口」；seed 写入的 source 是「国家统计局 / 中国人民银行 …」等发布机构名。
+ * 因此可以用 source 分布判断当前库到底是「已同步」还是「仅种子数据」。
+ */
+// 只认真实同步写入口（macro-sync.ts）的 source。
+// 注意不能把「中债登」算进来：scripts/seed.ts:71 的种子行也用这个名字，
+// 若计入会把 202 行示例数据误算成「已同步」。
+// 新浪财经行情接口 = 汇率/金价的第二数据源（push2his 不可用时的替代）。
+const MACRO_SYNCED_SOURCES = new Set(["东方财富数据中心", "东方财富行情接口", "新浪财经行情接口"]);
+
+export interface MacroProvenance {
+  total: number;
+  synced: number;
+  seed: number;
+  /** 真实同步行的最近更新时间（ms），无则 null */
+  lastSyncedAt: number | null;
+  /** 每个指标类型当前库里的来源与是否已同步（用于卡片级标注，避免逐项冒充真实） */
+  byType: Record<string, { source: string | null; synced: boolean }>;
+}
+
+export async function getMacroProvenance(): Promise<MacroProvenance> {
+  const rows = (await db
+    .select({ type: s.economicIndicators.type, source: s.economicIndicators.source, updatedAt: s.economicIndicators.updatedAt })
+    .from(s.economicIndicators)) as Array<{ type: string; source: string | null; updatedAt: number | null }>;
+  let synced = 0;
+  let lastSyncedAt: number | null = null;
+  const byType: MacroProvenance["byType"] = {};
+  for (const r of rows) {
+    const isSynced = !!r.source && MACRO_SYNCED_SOURCES.has(r.source);
+    if (isSynced) {
+      synced += 1;
+      const t = Number(r.updatedAt ?? 0);
+      if (Number.isFinite(t) && t > 0 && (lastSyncedAt == null || t > lastSyncedAt)) lastSyncedAt = t;
+    }
+    // 同类型多行时以「已同步」优先，避免一个类型被示例行覆盖判断
+    const prev = byType[r.type];
+    if (!prev || (!prev.synced && isSynced)) byType[r.type] = { source: r.source ?? null, synced: isSynced };
+  }
+  return { total: rows.length, synced, seed: rows.length - synced, lastSyncedAt, byType };
+}
+
 export async function getLatestIndicator(name: string) {
   const rows = await db
     .select()

@@ -181,7 +181,10 @@ export async function GET() {
 
   const northRows = sanitizeSeries(kline?.north ?? null);
   const southRows = sanitizeSeries(kline?.south ?? null);
-  const histRows = hist ? sanitizeSeries(hist) : null;
+  // hist 行结构是 {date,main,big,retail}，没有 value 字段，
+  // 不能过 sanitizeSeries（会全判为 0 后被清空），且空数组不能取 [-1]。
+  const histRows = hist && hist.length ? hist : null;
+  const lastHist = histRows ? histRows[histRows.length - 1] : null;
 
   const northVal = rt?.north && rt.north !== 0 ? rt.north : lastVal(northRows);
   const southVal = rt?.south && rt.south !== 0 ? rt.south : lastVal(southRows);
@@ -206,26 +209,26 @@ export async function GET() {
     {
       key: "main",
       name: "主力",
-      value: agg?.main ?? (histRows ? histRows[histRows.length - 1].main : null),
+      value: agg?.main ?? lastHist?.main ?? null,
       trend5: histRows ? histRows.slice(-5).map((r) => r.main) : [],
       source: agg || histRows ? "aggregated" : "static",
-      comment: commentFor("main", agg?.main ?? (histRows ? histRows[histRows.length - 1].main : null)),
+      comment: commentFor("main", agg?.main ?? lastHist?.main ?? null),
     },
     {
       key: "big",
       name: "大单",
-      value: agg?.big ?? (histRows ? histRows[histRows.length - 1].big : null),
+      value: agg?.big ?? lastHist?.big ?? null,
       trend5: histRows ? histRows.slice(-5).map((r) => r.big) : [],
       source: agg || histRows ? "aggregated" : "static",
-      comment: commentFor("big", agg?.big ?? (histRows ? histRows[histRows.length - 1].big : null)),
+      comment: commentFor("big", agg?.big ?? lastHist?.big ?? null),
     },
     {
       key: "retail",
       name: "散户",
-      value: agg?.retail ?? (histRows ? histRows[histRows.length - 1].retail : null),
+      value: agg?.retail ?? lastHist?.retail ?? null,
       trend5: histRows ? histRows.slice(-5).map((r) => r.retail) : [],
       source: agg || histRows ? "aggregated" : "static",
-      comment: commentFor("retail", agg?.retail ?? (histRows ? histRows[histRows.length - 1].retail : null)),
+      comment: commentFor("retail", agg?.retail ?? lastHist?.retail ?? null),
     },
   ];
 

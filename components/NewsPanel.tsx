@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Newspaper } from "lucide-react";
 import { EmptyState, ErrorState, LoadingRegion } from "@/components/ui-state";
+import { guardPoll } from "@/lib/hooks/visibility";
 
 interface NewsItem {
   title: string;
@@ -38,7 +39,7 @@ export default function NewsPanel() {
   useEffect(() => {
     load();
     // 定时刷新走静默模式：不闪 loading，避免每 5 分钟整块内容跳动一次
-    const t = setInterval(() => load(true), 5 * 60 * 1000);
+    const t = setInterval(guardPoll(() => load(true)), 5 * 60 * 1000);
     return () => clearInterval(t);
   }, [load]);
 

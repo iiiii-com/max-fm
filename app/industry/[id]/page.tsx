@@ -8,6 +8,7 @@ import ChainPositionPanel from "@/components/chain/ChainPositionPanel";
 import ChainCityProsPanel from "@/components/chain/ChainCityProsPanel";
 import ChainDeepDivePanel from "@/components/chain/ChainDeepDivePanel";
 import ChainIndexPanel from "@/components/chain/ChainIndexPanel";
+import ChainEtfPanel from "@/components/chain/ChainEtfPanel";
 import ChainNodeDetailPanel from "@/components/chain/ChainNodeDetailPanel";
 import { LEVELS, levelOrder, realNodes } from "@/lib/data/chainLevels";
 import { safeJsonArray } from "@/lib/utils";
@@ -138,6 +139,8 @@ export default async function ChainDetailPage({ params }: { params: Promise<{ id
           的「多链对比」。
         </p>
       </section>
+
+      <ChainEtfPanel slug={chain.slug} chainName={chain.name} />
 
       <ChainInsightPanel slug={chain.slug} />
 

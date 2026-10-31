@@ -180,7 +180,7 @@ export default function AnnotatableChart({
     } catch {
       /* ignore */
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [storageKey]);
 
   // 持久化：变更后写入 localStorage

@@ -3,7 +3,7 @@ import { TestTubes } from "lucide-react";
 import { fetchQuotes, fetchGlobalQuotes } from "@/lib/data/quotes";
 import { getArticles } from "@/lib/data/queries";
 import { SectionTitle, Badge, AIFlag } from "@/components/ui";
-import { fmt, fmtPct, fmtDate } from "@/lib/utils";
+import { fmtDate } from "@/lib/utils";
 import { bootstrap } from "@/lib/db";
 import IndexCompareChart from "@/components/charts/IndexCompareChart";
 import MarketDashboard from "@/components/MarketDashboard";
@@ -13,6 +13,7 @@ import GlobalHeatmap from "@/components/GlobalHeatmap";
 import SurgeBoard from "@/components/SurgeBoard";
 import FundRank from "@/components/FundRank";
 import IndexDetailPanel from "@/components/IndexDetailPanel";
+import LiveCoreIndexes from "@/components/market/LiveCoreIndexes";
 
 export const CORE_INDEXES = [
   { code: "000001", name: "上证指数", secid: "1.000001" },
@@ -32,7 +33,8 @@ export default async function MarketIndexes() {
     getArticles(undefined, 6),
   ]);
   const reviews = articles.filter((a: any) => a.type === "daily" || a.type === "weekly");
-  const byCode = new Map([...quotes, ...global].map((q) => [q.code, q]));
+  const coreCodes = new Set(CORE_INDEXES.map((ix) => ix.code));
+  const coreQuotes = [...quotes, ...global].filter((q) => coreCodes.has(q.code));
 
   return (
     <div className="space-y-8">
@@ -45,45 +47,15 @@ export default async function MarketIndexes() {
           <TestTubes className="w-3.5 h-3.5" /> 到 K线实验室 · 任意标的教学实操
         </Link>
         <Link href="/lab" className="text-muted hover:text-primary underline underline-offset-2">切换任意股票 / 指数</Link>
+        <Link href="/compare" className="text-muted hover:text-primary underline underline-offset-2">多指数/ETF 归一化对比</Link>
       </div>
-      <section>
-        <SectionTitle title="核心指数" sub="A 股主要指数 + 恒生指数实时行情 · 悬停看详情 · 点击卡片直达个股行情" />
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {CORE_INDEXES.map((ix) => {
-            const q = byCode.get(ix.code);
-            if (!q) return null;
-            const up = q.changePct >= 0;
-            const t = new Date(q.timestamp);
-            const hhmm = `${String(t.getHours()).padStart(2, "0")}:${String(t.getMinutes()).padStart(2, "0")}`;
-            return (
-              <Link key={ix.secid} href={`/market?tab=stocks&q=${encodeURIComponent(ix.name)}`}>
-                <div className="card p-4 transition-shadow h-full group relative overflow-hidden">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm text-muted">{q.name}</p>
-                    <span className="text-[10px] text-muted font-mono">{q.code}</span>
-                  </div>
-                  <p className="text-xl font-bold font-mono mt-1">{fmt(q.price, 2)}</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <p className={`text-sm font-mono px-1.5 py-0.5 rounded ${up ? "bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-400" : "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"}`}>
-                      {up ? "▲" : "▼"} {q.changePct >= 0 ? "+" : ""}{fmtPct(q.changePct)}　{q.changeAmount >= 0 ? "+" : ""}{fmt(q.changeAmount, 2)}
-                    </p>
-                  </div>
-                  <p className="text-[10px] text-muted mt-2">更新 {hhmm}</p>
 
-                  {/* hover 详情面板 */}
-                  <div className="absolute inset-x-0 bottom-0 translate-y-full group-hover:translate-y-0 transition-transform duration-200 bg-background/95 backdrop-blur border-t border-border p-3 text-xs space-y-1 z-10">
-                    <div className="flex justify-between"><span className="text-muted">今开</span><span className="font-mono">{fmt(q.open, 2)}</span></div>
-                    <div className="flex justify-between"><span className="text-muted">最高</span><span className="font-mono">{fmt(q.high, 2)}</span></div>
-                    <div className="flex justify-between"><span className="text-muted">最低</span><span className="font-mono">{fmt(q.low, 2)}</span></div>
-                    <div className="flex justify-between"><span className="text-muted">成交量</span><span className="font-mono">{q.volume ? fmtVol(q.volume) : "—"}</span></div>
-                    <div className="flex justify-between"><span className="text-muted">成交额</span><span className="font-mono">{q.amount ? fmtAmt(q.amount) : "—"}</span></div>
-                    <p className="text-[10px] text-muted pt-1 border-t border-border/60">点击进入该指数行情分析</p>
-                  </div>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
+      <section>
+        <SectionTitle
+          title="核心指数 · 实时"
+          sub="上证 / 深成 / 创业板 / 沪深300 / 中证500 / 科创50 / 恒生 · 每 25 秒自动刷新 · 市场宽度 + 日内区间条 · 点击卡片直达个股行情"
+        />
+        <LiveCoreIndexes indexes={CORE_INDEXES} initial={coreQuotes} />
       </section>
 
       <section>
@@ -149,17 +121,4 @@ export default async function MarketIndexes() {
       <CrisisImpactTable />
     </div>
   );
-}
-
-function fmtVol(n: number) {
-  if (n >= 1e8) return `${(n / 1e8).toFixed(2)}亿`;
-  if (n >= 1e4) return `${(n / 1e4).toFixed(1)}万`;
-  return String(n);
-}
-
-function fmtAmt(n: number) {
-  if (n >= 1e12) return `${(n / 1e12).toFixed(2)}万亿`;
-  if (n >= 1e8) return `${(n / 1e8).toFixed(2)}亿`;
-  if (n >= 1e4) return `${(n / 1e4).toFixed(1)}万`;
-  return String(n);
 }

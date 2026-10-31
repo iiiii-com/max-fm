@@ -451,13 +451,19 @@ export default function BullBearKline() {
     };
   }, []);
 
+  // 数据自 1993-01-04 起（腾讯源可靠区间，避免早期失真干扰）
+  const bars = useMemo(() => {
+    const reliable = allBars.filter((b) => b.date >= "1993-01-04");
+    return period === "month" ? aggregateMonthly(reliable) : reliable;
+  }, [period, allBars]);
+
   /** 用当前窗口局部更新「涨跌幅」标注系列（不重建 option，不动 dataZoom，缩放无上限） */
   const syncPctSeries = useCallback(() => {
     const chart = chartRef.current;
     if (!chart) return;
-    const pctSeries = mkPctSeries({ bars: viewBarsRef.current, show: showPct, position: pctPos, fontSize: pctFont, pctRange: viewRef.current });
+    const pctSeries = mkPctSeries({ bars, show: showPct, position: pctPos, fontSize: pctFont, pctRange: viewRef.current });
     chart.setOption({ series: [{ name: "涨跌幅", ...(pctSeries as any) }] } as any, { notMerge: false });
-  }, [showPct, pctPos, pctFont]);
+  }, [bars, showPct, pctPos, pctFont]);
 
   const onZoom = useCallback(
     (e?: unknown) => {
@@ -474,15 +480,6 @@ export default function BullBearKline() {
   const toggleIndicator = (k: IndicatorKey) => {
     setIndicators((cur) => (cur.includes(k) ? cur.filter((x) => x !== k) : [...cur, k]));
   };
-
-  // 数据自 1993-01-04 起（腾讯源可靠区间，避免早期失真干扰）
-  const bars = useMemo(() => {
-    const reliable = allBars.filter((b) => b.date >= "1993-01-04");
-    return period === "month" ? aggregateMonthly(reliable) : reliable;
-  }, [period, allBars]);
-  // bars 的 ref 副本：缩放回调里局部更新标注需要最新 bars
-  const viewBarsRef = useRef(bars);
-  viewBarsRef.current = bars;
 
   // 快速定位：按起始百分比设置 dataZoom（默认全部展示，可一键聚焦近 N 年）
   const rangeStartFor = useCallback(

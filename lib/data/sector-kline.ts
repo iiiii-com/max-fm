@@ -1,3 +1,4 @@
+import { emJson } from "./eastmoney";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
@@ -30,12 +31,10 @@ async function pullKlines(bk: string): Promise<string[]> {
         const url =
           `https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=90.${bk}&klt=101&fqt=${fqt}&beg=19900101&end=20500101` +
           `&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f52,f53,f54,f55,f56,f57`;
-        const res = await fetch(url, { headers: UA, signal: AbortSignal.timeout(10000), cache: "no-store" });
-        if (res.ok) {
-          const j = await res.json();
-          const klines = j?.data?.klines;
-          if (Array.isArray(klines) && klines.length > 0) return klines as string[];
-        }
+        // emJson：限并发 + 重试（东财按并发连接数掐断，直接并发会成批失败）
+        const j = await emJson<{ data?: { klines?: string[] } }>(url, { timeoutMs: 10000, headers: UA });
+        const klines = j?.data?.klines;
+        if (Array.isArray(klines) && klines.length > 0) return klines as string[];
       } catch {
         // 尝试下一参数 / 兜底
       }
@@ -59,13 +58,11 @@ async function pullKlines(bk: string): Promise<string[]> {
 async function fetchFlow(bk: string, lmt: number): Promise<Map<string, number>> {
   const map = new Map<string, number>();
   try {
-    const res = await fetch(
+    const fUrl =
       `https://push2his.eastmoney.com/api/qt/stock/fflow/kline/get?secid=90.${bk}&klt=101&lmt=${lmt}` +
-        `&fields1=f1,f2,f3,f7&fields2=f51,f52,f53,f54,f55,f56`,
-      { headers: UA, signal: AbortSignal.timeout(12000), cache: "no-store" },
-    );
-    if (res.ok) {
-      const fJson = await res.json();
+      `&fields1=f1,f2,f3,f7&fields2=f51,f52,f53,f54,f55,f56`;
+    const fJson = await emJson<{ data?: { klines?: string[] } }>(fUrl, { timeoutMs: 12000, headers: UA });
+    {
       for (const row of (fJson?.data?.klines ?? []) as string[]) {
         const p = (row ?? "").split(",");
         if (p.length > 2) map.set(String(p[0]), Number(p[1]) || 0);

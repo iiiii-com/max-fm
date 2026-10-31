@@ -131,12 +131,12 @@ export default function GmrdsSourcesPage() {
           <h2 className="flex items-center gap-2 font-bold text-sm mb-2"><ShieldCheck className="w-4 h-4 text-primary" /> 2026-08-27 全量数据真实性整改记录</h2>
           <div className="space-y-2 text-xs text-muted leading-relaxed">
             <p><b className="text-foreground">① 行情数据（quotes.ts）</b>：移除全部 <code className="px-1 rounded bg-muted/30">Math.random()</code> 假数据 fallback → 东财失败时降级为<b>新浪真实实时行情</b>（A股 6 指数/美股三大/恒指/KOSPI/印度/汇率）；黄金/原油/部分欧亚指数无免费实时源则过滤不展示。上证实测 3956.57（+1.13%）为真实值。</p>
-            <p><b className="text-foreground">② 北向资金（market.ts）</b>：随机估算值 → 接口失败返回 <code className="px-1 rounded bg-muted/30">null</code>（前端显示"暂不可用"），不再生成假数据。</p>
-            <p><b className="text-foreground">③ 宏观指标（macro/page.tsx）</b>：原仅 9 项标真实，实为东财数据中心 24 项全真实（GDP/CPI/PPI/PMI/M2/社融/利率/汇率等，200 期/项，macro-sync.ts 同步）→ REAL 集合补全，删除"演示数据"标注。</p>
-            <p><b className="text-foreground">④ 环节 5 茅台财务（gmrds-deep.ts）</b>：ROE/毛利率"待接入" → 东财 F10 真实值（ROE 16.75% / 毛利率 89.56%，2026 中报）。</p>
-            <p><b className="text-foreground">⑤ 环节 9 风险指标（gmrds-deep.ts）</b>："数据缺失" → 上证综指真实日线自算（年化波动 16.6% / 最大回撤 -27.3% / VaR95 -1.6%，2020-2026）。</p>
+            <p><b className="text-foreground">② 北向资金（market.ts）</b>：随机估算值 → 接口失败返回 <code className="px-1 rounded bg-muted/30">null</code>（前端显示“暂不可用”），不再生成假数据。</p>
+            <p><b className="text-foreground">③ 宏观指标（macro/page.tsx）</b>：原仅 9 项标真实，实为东财数据中心 24 项全真实（GDP/CPI/PPI/PMI/M2/社融/利率/汇率等，200 期/项，macro-sync.ts 同步）→ REAL 集合补全，删除“演示数据”标注。</p>
+            <p><b className="text-foreground">④ 环节 5 茅台财务（gmrds-deep.ts）</b>：ROE/毛利率“待接入” → 东财 F10 真实值（ROE 16.75% / 毛利率 89.56%，2026 中报）。</p>
+            <p><b className="text-foreground">⑤ 环节 9 风险指标（gmrds-deep.ts）</b>：“数据缺失” → 上证综指真实日线自算（年化波动 16.6% / 最大回撤 -27.3% / VaR95 -1.6%，2020-2026）。</p>
             <p><b className="text-foreground">⑥ HistoryAxis 组件</b>：修复 theme 切换时 chart dispose 后仍 off() 的崩溃（isDisposed 防御）。</p>
-            <p><b className="text-foreground">保留标注项</b>：两融/DR007/ERP（无免费接口，标"待接入"）；雷达图安然/雷曼/瑞幸特征为<b>案例教学值</b>（教学用途，注明可验证）；危机史实数据附来源声明。</p>
+            <p><b className="text-foreground">保留标注项</b>：两融/DR007/ERP（无免费接口，标“待接入”）；雷达图安然/雷曼/瑞幸特征为<b>案例教学值</b>（教学用途，注明可验证）；危机史实数据附来源声明。</p>
           </div>
         </Card>
       </section>

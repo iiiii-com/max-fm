@@ -13,6 +13,10 @@ export interface GmtCardProps {
   id: string;
   num: string;
   title: string;
+  /** 卡片所属研究分组（行情走势 / 基本面 / 市场环境 / 系统），显示在标题前作为分类标签 */
+  group?: string;
+  /** 一句话说明「这张卡用来回答什么问题」，作为标题 tooltip */
+  hint?: string;
   asOf?: string;
   layout: GridItem;
   editing: boolean;
@@ -33,7 +37,7 @@ export interface GmtCardProps {
 
 export default function GmtCard(props: GmtCardProps) {
   const {
-    id, num, title, asOf, layout, editing, focused, zoomed, desktop,
+    id, num, title, group, hint, asOf, layout, editing, focused, zoomed, desktop,
     containerW, geometry, onFocus, onAction, onMove, onResize, children, note, fill,
   } = props;
   const dragState = useRef<{ mode: "move" | "resize"; startX: number; startY: number; orig: GridItem } | null>(null);
@@ -104,7 +108,8 @@ export default function GmtCard(props: GmtCardProps) {
         onDoubleClick={() => onAction(id, "min")}
       >
         <span className="gmt-w-num">{num}</span>
-        <span className="gmt-w-title">{title}</span>
+        {group && <span className="gmt-w-tag">{group}</span>}
+        <span className="gmt-w-title" title={hint ? `${title} — ${hint}` : title}>{title}</span>
         {asOf && <span className="gmt-w-asof">as-of {asOf}</span>}
         <span className="gmt-w-order">
           <button className="gmt-w-btn" data-act="up" title="上移" aria-label="上移组件" onClick={() => onAction(id, "up")}>▲</button>

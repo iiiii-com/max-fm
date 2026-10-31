@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { guardPoll } from "@/lib/hooks/visibility";
 
 interface Q {
   code: string;
@@ -43,9 +44,9 @@ export default function MarketOverviewCard() {
 
   useEffect(() => {
     load();
-    const t = setInterval(load, 60000);
+    const t = setInterval(guardPoll(load), 60000);
     return () => clearInterval(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   const byCode = new Map(quotes.map((q) => [q.code, q]));

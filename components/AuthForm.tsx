@@ -20,11 +20,25 @@ const STRENGTH_COLOR = [
   "bg-emerald-500",
 ];
 
-/** next 参数必须是站内相对路径，否则可能被用于开放重定向 */
+/**
+ * next 参数必须是站内相对路径，否则可能被用于开放重定向。
+ *
+ * 历史缺陷：原来只挡了 `//`，漏了 `/\` —— 浏览器把 `/\evil.com` 解析成
+ * `//evil.com`（反斜杠被当作斜杠归一化），登录成功后就把用户送去外站钓鱼页。
+ * 现在先用正则排除 `//` 与 `/\`，再用 URL 解析自证同源（把 %5C / %2F%2F 这类
+ * 编码变体也一并挡住），最后只取 pathname+search+hash —— 不带 origin 出去。
+ */
 function safeNext(raw: string | null): string {
-  if (!raw) return "/advice";
-  if (!raw.startsWith("/") || raw.startsWith("//")) return "/advice";
-  return raw;
+  const fallback = "/advice";
+  if (!raw) return fallback;
+  if (!/^\/(?![/\\])/.test(raw)) return fallback;
+  try {
+    const u = new URL(raw, "http://local.invalid");
+    if (u.origin !== "http://local.invalid") return fallback;
+    return u.pathname + u.search + u.hash;
+  } catch {
+    return fallback;
+  }
 }
 
 export default function AuthForm({ mode }: { mode: Mode }) {

@@ -256,7 +256,7 @@ export function buildSwingMarkPoints(swings: SwingMark[], opts: { maxCount?: num
   });
 }
 
-/** 日 K 聚合为周 / 月 K（OHLCV 通用工具） */
+/** 日 K 聚合为周 / 月 K（OHLCV 通用工具）。date 用该周期内最后一个交易日，而非起始日 —— 否则「周K 最新日期」会显示成周一、「月K」显示成月初，看起来像数据没更新 */
 export function aggregateBars(bars: Array<{ date: string; open: number; close: number; high: number; low: number; volume: number }>, unit: "week" | "month") {
   const keyOf = (d: string) => {
     if (unit === "month") return d.slice(0, 7);
@@ -272,6 +272,7 @@ export function aggregateBars(bars: Array<{ date: string; open: number; close: n
     const cur = map.get(k);
     if (!cur) map.set(k, { date: b.date, open: b.open, close: b.close, high: b.high, low: b.low, volume: b.volume });
     else {
+      cur.date = b.date; // 周期末交易日
       cur.close = b.close;
       cur.high = Math.max(cur.high, b.high);
       cur.low = Math.min(cur.low, b.low);

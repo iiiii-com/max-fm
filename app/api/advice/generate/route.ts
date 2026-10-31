@@ -1,4 +1,5 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db, uid, now } from "@/lib/db";
 import * as s from "@/lib/db/schema";
@@ -123,7 +124,10 @@ export async function POST(req: Request) {
     createdAt: now(),
   } as any);
 
-  await db.update(s.users).set({ riskLevel: level, updatedAt: now() }).where(s.users.id === session.id as any);
+  // 注意：这里必须是 eq(...) 而不是 `===` —— 旧写法 `where(s.users.id === session.id)`
+  // 恒为 false，drizzle 遇到 falsy where 会把整条 WHERE 子句省掉，结果一次生成
+  // 就把**全站用户**的 risk_level/updated_at 覆盖成本次结果（跨用户数据损坏）。
+  await db.update(s.users).set({ riskLevel: level, updatedAt: now() }).where(eq(s.users.id, session.id));
 
   return NextResponse.json({ ok: true, report, riskLevel: level });
 }

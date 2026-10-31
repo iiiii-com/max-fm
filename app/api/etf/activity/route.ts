@@ -1,31 +1,43 @@
 import { NextResponse } from "next/server";
+import { fetchEtfBoard } from "@/lib/data/market";
 
 export const dynamic = "force-dynamic";
 
-/** ETF 成交活跃度榜（东财 ETF clist f6 成交额 Top10） */
+/**
+ * ETF 成交活跃度 Top10（市场洞察 ETF 专区顶部使用）。
+ *
+ * 之前这里用 f168 当换手率 —— 但 clist 的 f168 是资金净流入字段，换手率是 f8。
+ * 现已统一改为从 fetchEtfBoard() 取数（与 /api/etf/list 同一份缓存），
+ * 避免两套字段映射各错各的。
+ */
 export async function GET() {
-  try {
-    const url =
-      `https://push2.eastmoney.com/api/qt/clist/get?pn=1&pz=10&po=1&np=1&fltt=2&invt=2&fid=f6&fs=b:MK0021,b:MK0022,b:MK0023,b:MK0024&fields=f12,f14,f2,f3,f6,f168`;
-    const res = await fetch(url, {
-      headers: { "User-Agent": "Mozilla/5.0", Referer: "https://quote.eastmoney.com/" },
-      signal: AbortSignal.timeout(10000),
-    });
-    const j = await res.json();
-    const list = ((j?.data?.diff ?? []) as any[]).map((d) => {
-      const t = d.f168;
-      return {
-        code: d.f12, name: d.f14, price: d.f2 ?? null, pct: d.f3 ?? null,
-        amount: d.f6 ?? 0,
-        // 货币 ETF 等 f168 返回异常大值 → 视为无效显示 —
-        turnover: t != null && isFinite(t) && Math.abs(t) < 100 ? t : null,
-      };
-    });
-    return NextResponse.json(
-      { ok: true, updated: new Date().toISOString(), source: "东方财富 ETF 行情", list },
-      { headers: { "Cache-Control": "public, max-age=20, s-maxage=20" } }
-    );
-  } catch (e: any) {
-    return NextResponse.json({ ok: false, error: e?.message ?? "数据源不可用" }, { status: 502 });
+  const board = await fetchEtfBoard();
+  if (!board) {
+    return NextResponse.json({ ok: false, error: "ETF 数据源暂不可用" }, { status: 502 });
   }
+  const list = board
+    .slice()
+    .sort((a, b) => b.amount - a.amount)
+    .slice(0, 10)
+    .map((d) => ({
+      code: d.code,
+      name: d.name,
+      secid: d.secid,
+      cat: d.cat,
+      price: d.price,
+      pct: d.changePct,
+      amount: d.amount,
+      turnover: d.turnover,
+    }));
+  const degraded = board.every((d) => d.sourceMode === "sina");
+  return NextResponse.json(
+    {
+      ok: true,
+      updated: new Date().toISOString(),
+      source: degraded ? "新浪财经行情（降级）" : "东方财富 ETF 板块行情",
+      degraded,
+      list,
+    },
+    { headers: { "Cache-Control": "public, max-age=20, s-maxage=20" } }
+  );
 }

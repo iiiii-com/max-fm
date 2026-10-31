@@ -74,6 +74,32 @@ export default function CompareCenter() {
   const [err, setErr] = useState("");
   const abortRef = useRef<AbortController | null>(null);
 
+  // 跨页深链：/compare?codes=512480,159995 —— ETF 专区与产业链面板会把已选 ETF 带过来。
+  // 用 window.location 而不是 useSearchParams，避免静态页触发 Suspense 边界要求。
+  const urlInitRef = useRef(false);
+  useEffect(() => {
+    if (urlInitRef.current) return;
+    urlInitRef.current = true;
+    const codes = new URLSearchParams(window.location.search).get("codes") ?? "";
+    if (!codes.trim()) return;
+    fetch(`/api/etf/resolve?codes=${encodeURIComponent(codes)}`, { cache: "no-store" })
+      .then((r) => r.json())
+      .then((j) => {
+        const items: CmpTarget[] = (j?.items ?? []).map((x: any) => ({
+          secid: x.secid,
+          name: x.name,
+          code: x.code,
+          kind: "etf" as const,
+        }));
+        if (!items.length) return;
+        setPicked((prev) => {
+          if (items.length >= 2) return items.slice(0, MAX);
+          return [prev[0] ?? PRESETS[0], ...items].slice(0, MAX);
+        });
+      })
+      .catch(() => {});
+  }, []);
+
   // 搜索（股票 + 指数 + ETF 合并）
   useEffect(() => {
     if (!query.trim()) {

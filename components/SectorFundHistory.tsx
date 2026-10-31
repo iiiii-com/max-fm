@@ -5,7 +5,7 @@ import EChart from "@/components/charts/EChart";
 import type { EChartsOption } from "@/components/charts/echarts";
 import { History } from "lucide-react";
 
-interface Sector { code: string; name: string; mainFlow: number }
+interface Sector { code: string; name: string; mainFlow: number | null }
 interface TrendPoint { date: string; main: number | null }
 
 /** 板块主力资金近 10 日历史（东财 fflow，可切换板块） */

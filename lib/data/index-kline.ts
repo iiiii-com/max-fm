@@ -1,3 +1,4 @@
+import { emJson } from "./eastmoney";
 /**
  * 指数 K 线多源获取（东财 → 新浪 → 腾讯 三级容错）
  * - A 股指数（secid 1./0. 前缀）：东财 / 新浪 CN（sh/sz）/ 腾讯（sh/sz）
@@ -49,13 +50,9 @@ export async function fetchEastmoneyIndex(secid: string, days: number): Promise<
     const url = `https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=${encodeURIComponent(
       secid
     )}&klt=101&fqt=0&beg=19900101&end=20500101&lmt=${days}&fields1=f1,f2,f3&fields2=f51,f52,f53,f54,f55,f56`;
-    const res = await fetch(url, {
-      cache: "no-store",
-      headers: { Referer: "https://quote.eastmoney.com/", "User-Agent": UA },
-      signal: AbortSignal.timeout(10000),
-    });
-    if (!res.ok) return null;
-    const json = await res.json();
+    // emJson：东财限并发 + 重试（并发过高时上游重置连接 → 指数 K 线偶发空白）
+    const json = await emJson<{ data?: { klines?: string[] } }>(url, { timeoutMs: 10000, headers: { "User-Agent": UA } });
+    if (!json) return null;
     const raw: string[] = json?.data?.klines ?? [];
     if (!Array.isArray(raw) || !raw.length) return null;
     return raw.slice(-days).map((row) => {

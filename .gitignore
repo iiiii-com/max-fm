@@ -77,3 +77,6 @@ validate.log
 mobile/node_modules/
 desktop/node_modules/
 desktop/dist/
+
+# 本地验证产物（截图、临时脚本、server.log 等）
+tmp/

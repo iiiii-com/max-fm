@@ -1,3 +1,4 @@
+import { emJson } from "./eastmoney";
 /**
  * 个股日线收盘价取数（push2his）。
  *
@@ -74,22 +75,19 @@ export async function fetchDailyCloses(secid: string, days: number): Promise<Dai
     `https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=${encodeURIComponent(secid)}` +
     `&klt=101&fqt=1&beg=19900101&end=20500101&fields1=f1,f2&fields2=f51,f53`;
 
-  // ③ fetch 重试两次（上游会概率性掐断连接）
-  for (let attempt = 0; attempt < 2; attempt++) {
-    try {
-      const res = await fetch(url, { headers: UA, signal: AbortSignal.timeout(12000), cache: "no-store" });
-      if (res.ok) {
-        const j = await res.json();
-        const bars = parseKlines(j?.data?.klines, days);
-        if (bars.length) {
-          cache.set(key, { bars, ts: Date.now() });
-          void writeBars(secid, days, bars);
-          return bars;
-        }
-      }
-    } catch {
-      // 落到 curl 兜底
+  // ③ 统一走 emJson（全局限并发 2 + 一次重试）。
+  //    上游按**并发连接数**掐断（实测并发 8 即 100% 失败、串行全成功），
+  //    所以排队比各自乱重试更有效；失败再落到 curl。
+  try {
+    const j = await emJson<{ data?: { klines?: string[] } }>(url, { timeoutMs: 12000, headers: UA, retries: 1 });
+    const bars = parseKlines(j?.data?.klines, days);
+    if (bars.length) {
+      cache.set(key, { bars, ts: Date.now() });
+      void writeBars(secid, days, bars);
+      return bars;
     }
+  } catch {
+    // 落到 curl 兜底
   }
 
   // ④ curl 兜底（Schannel TLS 栈，对东财成功率显著更高）

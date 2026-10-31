@@ -149,10 +149,14 @@ body {
 
 /* 安全区变量（刘海屏/底部手势条）：默认 0，支持 viewport-fit=cover 的浏览器自动生效 */
 :root {
-  --safe-top: env(safe-area-inset-top, 0px);
-  --safe-bottom: env(safe-area-inset-bottom, 0px);
-  --safe-left: env(safe-area-inset-left, 0px);
-  --safe-right: env(safe-area-inset-right, 0px);
+  /* 安全区取两种来源的最大值：
+     - 浏览器/PWA 用 env(safe-area-inset-*)（iOS Safari、Android 15 edge-to-edge）
+     - Capacitor 原生壳（Android 15 强制 edge-to-edge）会额外注入 --safe-area-inset-*
+     两者取 max 可避免某一端取不到值导致内容被刘海/手势条遮挡。 */
+  --safe-top: max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px));
+  --safe-bottom: max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px));
+  --safe-left: max(env(safe-area-inset-left, 0px), var(--safe-area-inset-left, 0px));
+  --safe-right: max(env(safe-area-inset-right, 0px), var(--safe-area-inset-right, 0px));
 }
 
 /* 触摸设备：去除点击高亮蓝框、消除 300ms 点击延迟与双击缩放副作用 */

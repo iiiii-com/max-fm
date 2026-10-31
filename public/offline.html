@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>离线快照 · Max 财经</title>
+<meta name="theme-color" content="#050505" />
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0;
+    background: #050505; color: #e8e8ea;
+    font-family: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 28px 18px calc(28px + env(safe-area-inset-bottom)); }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .logo {
+    width: 34px; height: 34px; border-radius: 8px; background: linear-gradient(135deg, #d4203d, #111);
+    display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 18px; color: #fff;
+  }
+  .brand b { font-size: 15px; letter-spacing: .3px; }
+  .brand span { color: #8a8a93; font-size: 12px; }
+  .banner {
+    margin-top: 18px; padding: 14px 16px; border-radius: 10px;
+    border: 1px solid rgba(217, 119, 6, .45); background: rgba(217, 119, 6, .12); color: #f0b34d;
+    font-size: 13px; line-height: 1.65;
+  }
+  .banner b { color: #ffd08a; }
+  .banner .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 8px; }
+  .banner .sub { color: #c9a06a; font-size: 12px; }
+  button, .btn {
+    appearance: none; cursor: pointer; border-radius: 8px; border: 1px solid #3a3a42;
+    background: #14141a; color: #e8e8ea; font-size: 13px; padding: 8px 14px; font-family: inherit;
+  }
+  button:hover, .btn:hover { border-color: #6a6a76; }
+  button.primary { background: #d4203d; border-color: #d4203d; color: #fff; font-weight: 600; }
+  .grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 16px; }
+  @media (min-width: 720px) { .grid { grid-template-columns: 1fr 1fr; } }
+  .card { border: 1px solid #22222a; border-radius: 12px; background: #0b0b10; padding: 14px 16px; }
+  .card h2 {
+    margin: 0 0 4px; font-size: 13px; font-weight: 600; color: #b9b9c2;
+    display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
+  }
+  .card h2 em { font-style: normal; font-size: 11px; color: #6f6f7a; font-weight: 400; }
+  .card .empty { color: #6f6f7a; font-size: 12px; padding: 8px 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  td { padding: 6px 0; border-bottom: 1px solid #191920; }
+  tr:last-child td { border-bottom: 0; }
+  td.r { text-align: right; font-variant-numeric: tabular-nums; }
+  .up { color: #f6465d; }
+  .down { color: #2ebd85; }
+  .flat { color: #b9b9c2; }
+  .muted { color: #8a8a93; }
+  .big { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .stat-row { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 6px; }
+  .stat { min-width: 72px; }
+  .stat small { display: block; color: #6f6f7a; font-size: 11px; margin-bottom: 2px; }
+  .news { list-style: none; margin: 0; padding: 0; }
+  .news li { padding: 7px 0; border-bottom: 1px solid #191920; font-size: 13px; line-height: 1.5; }
+  .news li:last-child { border-bottom: 0; }
+  .news a { color: #d8d8de; text-decoration: none; }
+  .news a:hover { color: #fff; text-decoration: underline; }
+  .news time { color: #6f6f7a; font-size: 11px; margin-right: 6px; font-variant-numeric: tabular-nums; }
+  .foot { margin-top: 20px; color: #6f6f7a; font-size: 12px; line-height: 1.7; }
+  .foot code { color: #9a9aa4; background: #101016; padding: 1px 5px; border-radius: 4px; }
+  .notice { margin-top: 14px; font-size: 12px; color: #8a8a93; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">
+    <div class="logo">M</div>
+    <div>
+      <b>Max 财经 · 离线模式</b><br />
+      <span>以下为上次在线时缓存的只读快照</span>
+    </div>
+  </div>
+
+  <div class="banner">
+    <b>当前处于离线状态，无法获取最新行情。</b>
+    <div class="sub" id="status">正在读取本机缓存…</div>
+    <div class="row">
+      <button class="primary" id="retry">立即重试</button>
+      <button id="manual">手动恢复</button>
+      <span class="sub" id="countdown"></span>
+    </div>
+  </div>
+
+  <div class="grid" id="cards">
+    <div class="card">
+      <h2>核心指数 <em id="idx-at">—</em></h2>
+      <div class="empty" id="idx">读取中…</div>
+    </div>
+    <div class="card">
+      <h2>市场宽度 <em id="br-at">—</em></h2>
+      <div class="empty" id="br">读取中…</div>
+    </div>
+    <div class="card">
+      <h2>板块资金流 Top5 <em id="fr-at">—</em></h2>
+      <div class="empty" id="fr">读取中…</div>
+    </div>
+    <div class="card">
+      <h2>财经快讯 <em id="news-at">—</em></h2>
+      <div class="empty" id="news">读取中…</div>
+    </div>
+  </div>
+
+  <div class="foot">
+    为什么只给快照：行情、估值一旦过期就会被误当成实时数据，<code>旧价格比没有价格更危险</code>。
+    因此本站只缓存「最近一次成功拉取的数据」，并明确标注缓存时间；恢复网络后会自动回到在线页面。<br />
+    手机上也可以直接用浏览器打开 <code>www.lune.ink</code> 登录使用完整功能。
+  </div>
+</div>
+
+<script>
+(function () {
+  var API = "/api/";
+  var $ = function (id) { return document.getElementById(id); };
+
+  function hhmmss(d) {
+    function p(n) { return n < 10 ? "0" + n : "" + n; }
+    return p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds());
+  }
+  function iso2local(s) {
+    var t = Date.parse(s);
+    return isNaN(t) ? null : new Date(t);
+  }
+  function cachedAtLabel(xhr, body) {
+    // 优先用 SW 附带的 X-Cached-At（真正抓取时间）；老缓存没有该头时退回 body 里的更新时间字段
+    var raw = xhr.getResponseHeader("X-Cached-At");
+    if (raw) { var d = iso2local(raw); if (d) return "缓存于 " + hhmmss(d); }
+    var cand = body && (body.dataAt || body.updated || body.time);
+    if (cand) { var d2 = typeof cand === "number" ? new Date(cand) : iso2local(cand); if (d2) return "缓存于 " + hhmmss(d2); }
+    return "缓存时间未知";
+  }
+  function getJSON(path, cb) {
+    var xhr = new XMLHttpRequest();
+    xhr.open("GET", path, true);
+    xhr.timeout = 8000;
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState !== 4) return;
+      var body = null;
+      try { body = JSON.parse(xhr.responseText); } catch (e) { body = null; }
+      cb(body, xhr);
+    };
+    xhr.ontimeout = function () { cb(null, xhr); };
+    xhr.onerror = function () { cb(null, xhr); };
+    xhr.send();
+  }
+  function cls(v) { return v > 0 ? "up" : v < 0 ? "down" : "flat"; }
+  function num(v, digits) {
+    if (v === null || v === undefined || v === "" || v === "-" || isNaN(Number(v))) return "—";
+    return Number(v).toFixed(digits == null ? 2 : digits);
+  }
+  function pct(v, digits) {
+    if (v === null || v === undefined || v === "" || v === "-" || isNaN(Number(v))) return "—";
+    var n = Number(v);
+    return (n > 0 ? "+" : "") + n.toFixed(digits == null ? 2 : digits) + "%";
+  }
+
+  getJSON(API + "quotes", function (body, xhr) {
+    var box = $("idx");
+    if (!body) { box.className = "empty"; box.textContent = "无离线缓存（需先联网打开一次本站）"; return; }
+    $("idx-at").textContent = cachedAtLabel(xhr, body);
+    var list = (body.quotes || []).filter(function (q) { return q && q.name; }).slice(0, 6);
+    if (!list.length) { box.className = "empty"; box.textContent = "缓存为空"; return; }
+    var html = "<table>";
+    list.forEach(function (q) {
+      html += "<tr><td>" + String(q.name) + "</td><td class='r'><b>" + num(q.price, 2) + "</b></td><td class='r " +
+        cls(q.changePct) + "'>" + pct(q.changePct, 2) + "</td></tr>";
+    });
+    html += "</table>";
+    box.className = "";
+    box.innerHTML = html;
+  });
+
+  getJSON(API + "market/breadth", function (body, xhr) {
+    var box = $("br");
+    if (!body || body.ok === false) { box.className = "empty"; box.textContent = "无离线缓存（需先联网打开一次本站）"; return; }
+    $("br-at").textContent = cachedAtLabel(xhr, body);
+    box.className = "";
+    box.innerHTML =
+      "<div class='stat-row'>" +
+      "<div class='stat'><small>上涨</small><b class='up'>" + num(body.up, 0) + "</b></div>" +
+      "<div class='stat'><small>下跌</small><b class='down'>" + num(body.down, 0) + "</b></div>" +
+      "<div class='stat'><small>平盘</small><b class='flat'>" + num(body.flat, 0) + "</b></div>" +
+      "<div class='stat'><small>上涨占比</small><b>" + num(body.upRatio, 1) + "%</b></div>" +
+      "<div class='stat'><small>两市成交</small><b>" + (body.amountYi == null ? "—" : num(body.amountYi, 0) + " 亿") + "</b></div>" +
+      "</div>" +
+      "<div class='notice'>市场温度：" + (body.stage || "—") + "（上涨占比 &gt;60% 偏热，&lt;40% 偏冷）</div>";
+  });
+
+  getJSON(API + "market/fund-rank", function (body, xhr) {
+    var box = $("fr");
+    if (!body || body.ok === false || !body.sectorIn) { box.className = "empty"; box.textContent = "无离线缓存（需先联网打开一次本站）"; return; }
+    $("fr-at").textContent = cachedAtLabel(xhr, body);
+    var list = (body.sectorIn || []).slice(0, 5);
+    if (!list.length) { box.className = "empty"; box.textContent = "缓存为空"; return; }
+    var html = "<table>";
+    list.forEach(function (it) {
+      var v = it.mainFlow;
+      var txt = (v === null || v === undefined || isNaN(Number(v))) ? "—" : ((Number(v) > 0 ? "+" : "") + (Number(v) / 1e8).toFixed(1) + " 亿");
+      html += "<tr><td>" + String(it.name) + "</td><td class='r " + cls(v) + "'>" + txt + "</td></tr>";
+    });
+    html += "</table>";
+    box.className = "";
+    box.innerHTML = html;
+  });
+
+  getJSON(API + "news/flash", function (body, xhr) {
+    var box = $("news");
+    var list = body && (body.items || body.list || []);
+    if (!list || !list.length) { box.className = "empty"; box.textContent = "无离线缓存（需先联网打开一次本站）"; return; }
+    $("news-at").textContent = cachedAtLabel(xhr, body);
+    var html = "<ul class='news'>";
+    list.slice(0, 6).forEach(function (n) {
+      var time = n.date || n.ctime || "";
+      html += "<li><time>" + String(time).slice(0, 10) + "</time>" +
+        (n.url ? "<a href='" + String(n.url).replace(/'/g, "&#39;") + "' target='_blank' rel='noreferrer'>" + String(n.title) + "</a>" : String(n.title)) +
+        "</li>";
+    });
+    html += "</ul>";
+    box.className = "";
+    box.innerHTML = html;
+  });
+
+  // ---- 恢复检测：/sw.js 不在离线缓存白名单里，能拿到就说明网络已恢复 ----
+  var ONLINE_PROBE = "/sw.js?probe=" + Date.now();
+  var left = 10;
+  var timer = null;
+  function setCountdown() {
+    $("countdown").textContent = "网络恢复后将自动刷新（" + left + "s 后重试）";
+  }
+  function probe() {
+    var xhr = new XMLHttpRequest();
+    xhr.open("GET", ONLINE_PROBE, true);
+    xhr.timeout = 6000;
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState !== 4) return;
+      if (xhr.status >= 200 && xhr.status < 400) {
+        $("status").textContent = "网络已恢复，正在返回在线页面…";
+        location.replace("/");
+      } else {
+        $("status").textContent = "离线中：以上数据为上次在线快照，不是最新行情。";
+      }
+    };
+    xhr.ontimeout = function () { $("status").textContent = "离线中：以上数据为上次在线快照，不是最新行情。"; };
+    xhr.onerror = function () { $("status").textContent = "离线中：以上数据为上次在线快照，不是最新行情。"; };
+    xhr.send();
+  }
+  function tick() {
+    left -= 1;
+    if (left <= 0) { left = 10; probe(); }
+    setCountdown();
+  }
+  setCountdown();
+  window.setTimeout(probe, 1500);
+  timer = window.setInterval(tick, 1000);
+  window.addEventListener("online", function () { location.replace("/"); });
+  $("retry").addEventListener("click", function () { location.replace("/"); });
+  $("manual").addEventListener("click", function () { location.replace("/"); });
+})();
+</script>
+</body>
+</html>

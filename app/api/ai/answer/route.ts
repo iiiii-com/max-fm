@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { fetchEastmoneyIndex, fetchSinaCnIndex, fetchTencentIndex, fetchSinaUsIndex } from "@/lib/data/index-kline";
+import { rateLimit, clientIp } from "@/lib/auth-security";
 
 export const dynamic = "force-dynamic";
 
@@ -108,6 +109,18 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const q = searchParams.get("q")?.trim() ?? "";
   if (!q) return NextResponse.json({ error: "请输入问题", q });
+
+  // 安全（A9）：每个请求会串联多个上游行情接口（最多 3 个标的 × 3 次请求），
+  // 原先无任何频次约束，匿名脚本可放大成对上游的扇出压力。
+  // 单 IP 60 秒 20 次：正常用户问不这么快，机器人会被挡住。
+  const ip = clientIp(req);
+  const rl = rateLimit(`ai-answer:${ip}`, 20, 60_000);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: "请求过于频繁，请稍后再试" },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfter) } },
+    );
+  }
 
   const targets = findTargets(q);
   if (!targets.length) {

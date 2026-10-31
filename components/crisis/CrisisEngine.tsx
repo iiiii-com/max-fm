@@ -709,20 +709,6 @@ export default function CrisisEngine({ crisis: crisisRaw, onExit }: { crisis: Cr
     return mkCandleOption(introKline, { markData, markArea, dataZoom: true, pct: pctCfg });
   }, [introKline, crisis]);
 
-  useEffect(() => {
-    if (!autoplay || phase !== "playing" || !hasStages) return;
-    const t = setInterval(() => {
-      if (!revealed.has(stageIndex)) return;
-      if (stageIndex >= crisis.stages!.length - 1) {
-        setAutoplay(false);
-        handleStageFinish();
-      } else {
-        setStageIndex((i) => i + 1);
-      }
-    }, 5200);
-    return () => clearInterval(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoplay, phase, stageIndex, revealed, hasStages]);
 
   const chooseMove = (mi: number) => {
     setMoveChosen((m) => ({ ...m, [stageIndex]: mi }));
@@ -761,6 +747,21 @@ export default function CrisisEngine({ crisis: crisisRaw, onExit }: { crisis: Cr
     setPhase("finished");
     setAutoplay(false);
   };
+
+  useEffect(() => {
+    if (!autoplay || phase !== "playing" || !hasStages) return;
+    const t = setInterval(() => {
+      if (!revealed.has(stageIndex)) return;
+      if (stageIndex >= crisis.stages!.length - 1) {
+        setAutoplay(false);
+        handleStageFinish();
+      } else {
+        setStageIndex((i) => i + 1);
+      }
+    }, 5200);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoplay, phase, stageIndex, revealed, hasStages]);
 
   const handleNext = () => {
     const c0 = closeAt(marketBars ?? [], anchorDate);
@@ -1476,7 +1477,7 @@ export default function CrisisEngine({ crisis: crisisRaw, onExit }: { crisis: Cr
                   <div className="mt-4 rounded-lg bg-primary/5 border border-primary/20 p-3" style={{ animation: "crisisSlideUp 0.4s ease 0.15s both" }}>
                     <p className="text-xs text-muted">
                       本阶段市场真实涨跌 <b className={stageRet(stage) >= 0 ? "up" : "down"}>{fmtPct(stageRet(stage))}</b>
-                      ，最优操作是"{stage.moves[stage.bestMove].label}"。
+                      ，最优操作是“{stage.moves[stage.bestMove].label}”。
                     </p>
                   </div>
                 )}
@@ -1968,7 +1969,7 @@ export default function CrisisEngine({ crisis: crisisRaw, onExit }: { crisis: Cr
           <Card className="p-6">
             <h3 className="font-bold mb-3">交易心得</h3>
             <ul className="text-sm text-muted space-y-2 leading-relaxed mb-4">
-              <li>· 你与"最佳策略"的差距，往往不在判断力，而在仓位与纪律。</li>
+              <li>· 你与“最佳策略”的差距，往往不在判断力，而在仓位与纪律。</li>
               <li>· 危机中少亏即多赚：回撤 50% 需要上涨 100% 才能回本。</li>
               <li>· 政策底 ≠ 市场底：右侧确认比猜底更可执行。</li>
             </ul>

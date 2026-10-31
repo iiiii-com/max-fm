@@ -7,7 +7,8 @@
   "scripts": {
     "start": "electron .",
     "build": "electron-builder --win --x64",
-    "build:portable": "electron-builder --win portable --x64"
+    "build:portable": "electron-builder --win portable --x64",
+    "test": "node --test test-version.test.js"
   },
   "build": {
     "appId": "ink.lune.max.desktop",
@@ -18,7 +19,9 @@
     },
     "files": [
       "main.js",
+      "version.js",
       "preload.js",
+      "offline.html",
       "build/icon.png"
     ],
     "afterPack": "afterPack.js",

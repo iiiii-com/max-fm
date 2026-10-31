@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Activity, Flame, Snowflake, Minus } from "lucide-react";
+import { guardPoll } from "@/lib/hooks/visibility";
 
 interface Breadth {
   up: number;
@@ -30,7 +31,7 @@ export default function MarketBreadth() {
         })
         .catch(() => !cancelled && setErr("加载失败"));
     load();
-    const t = setInterval(load, 60000);
+    const t = setInterval(guardPoll(load), 60000);
     return () => { cancelled = true; clearInterval(t); };
   }, []);
 

@@ -240,6 +240,15 @@ export const feelingAggregates = t("feeling_aggregates");
 export const macroTemperatures = t("macro_temperature");
 export const temperatureAnalyses = t("temperature_analyses");
 export const taskLogs = t("task_logs");
+/**
+ * 行情类接口的落库快照（资金流榜 / 异动榜 / 板块榜）。
+ *
+ * 为什么需要：东财 push2 按并发连接数掐断连接，页面同时打十几路接口时会成批失败，
+ * 面板整块空白。定时任务 task=market-prefetch 预取并写库，接口在上游失败时
+ * 读快照并显式返回 dataAt + stale 标记（绝不把旧数据伪装成实时）。
+ * 字段复用：code=快照键、name=可读标签、detail=JSON{body,dataAt}、fetched_at=抓取时间。
+ */
+export const marketSnapshots = t("market_snapshots");
 export const historyEvents = t("history_events");
 /**
  * 个股日线缓存（一只标的存**一行**，序列以 JSON 放在 detail 列）。

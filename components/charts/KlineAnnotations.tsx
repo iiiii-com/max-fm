@@ -198,6 +198,12 @@ export default function KlineAnnotations({ chart, activeTool, annotations, onCha
     []
   );
 
+  const pointerPos = (e: { clientX: number; clientY: number }) => {
+    if (!svgRef.current) return { px: 0, py: 0 };
+    const rect = svgRef.current.getBoundingClientRect();
+    return { px: e.clientX - rect.left, py: e.clientY - rect.top };
+  };
+
   /**
    * 滚轮缩放（锚点跟随鼠标位置）
    * 必须用原生事件：React 的 onWheel 是 passive 监听，preventDefault 无效会导致页面跟着滚动。
@@ -335,11 +341,6 @@ export default function KlineAnnotations({ chart, activeTool, annotations, onCha
   }, [chart]);
 
   /** 取指针（鼠标/触摸）在 SVG 内的像素坐标（支持 pointer / wheel 事件） */
-  const pointerPos = (e: { clientX: number; clientY: number }) => {
-    if (!svgRef.current) return { px: 0, py: 0 };
-    const rect = svgRef.current.getBoundingClientRect();
-    return { px: e.clientX - rect.left, py: e.clientY - rect.top };
-  };
 
   const onPointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
     if (!chart || !svgRef.current) return;

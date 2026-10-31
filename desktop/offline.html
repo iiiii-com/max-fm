@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>Max 财经 · 网络不可用</title>
+    <style>
+      :root { color-scheme: light; }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; }
+      body {
+        margin: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #fbfbfa;
+        color: #1a1a1a;
+        font: 14px/1.7 system-ui, -apple-system, "Microsoft YaHei", sans-serif;
+        -webkit-font-smoothing: antialiased;
+        user-select: none;
+      }
+      .box { max-width: 460px; padding: 36px 32px; text-align: center; }
+      .logo {
+        width: 46px; height: 46px; margin: 0 auto 18px; border-radius: 10px;
+        background: linear-gradient(135deg, #d4203d, #111); color: #fff;
+        font-weight: 900; font-size: 23px; display: flex; align-items: center; justify-content: center;
+      }
+      h1 { font-size: 18px; margin: 0 0 10px; }
+      p { color: #6b6862; margin: 0 0 8px; font-size: 13px; }
+      .status {
+        margin: 16px 0 6px; min-height: 20px; font-size: 12.5px; color: #b45309;
+        font-variant-numeric: tabular-nums;
+      }
+      .row { display: flex; gap: 10px; justify-content: center; margin-top: 12px; }
+      button, a.btn {
+        appearance: none; cursor: pointer; border: 1px solid #ddd; border-radius: 7px;
+        background: #fff; color: #1a1a1a; font-size: 13px; padding: 8px 20px;
+        text-decoration: none; font-family: inherit; display: inline-block;
+      }
+      button:hover, a.btn:hover { border-color: #d4203d; color: #d4203d; }
+      button.primary { background: #d4203d; border-color: #d4203d; color: #fff; font-weight: 600; }
+      button.primary:hover { color: #fff; opacity: .92; }
+      .meta { margin-top: 18px; font-size: 11.5px; color: #9a948c; line-height: 1.8; }
+      .meta code { background: #eee; padding: 1px 5px; border-radius: 3px; font-size: 11px; }
+    </style>
+  </head>
+  <body>
+    <div class="box">
+      <div class="logo">M</div>
+      <h1>无法连接到 Max 财经</h1>
+      <p>本客户端需要联网获取实时行情。请检查网络后重试，恢复后会自动重新进入。</p>
+      <div class="status" id="status">正在等待网络恢复…</div>
+      <div class="row">
+        <button class="primary" id="retry">立即重试</button>
+        <a class="btn" href="https://www.lune.ink" target="_blank" rel="noreferrer">在浏览器中打开</a>
+      </div>
+      <div class="meta">
+        行情与估值数据不做离线缓存 —— 让你看到昨天的价格却以为是实时的，比看不到更危险。<br />
+        <span id="err"></span>
+      </div>
+    </div>
+    <script>
+      (function () {
+        var SITE = "https://www.lune.ink";
+        var left = 5;
+        var statusEl = document.getElementById("status");
+        var errEl = document.getElementById("err");
+
+        // 主进程通过 loadFile 的 query 传错误码/描述，便于用户反馈时截图
+        try {
+          var q = new URLSearchParams(location.search);
+          var code = q.get("code") || "";
+          var desc = q.get("desc") || "";
+          if (code || desc) errEl.textContent = "错误：" + (desc || "网络不可达") + (code ? " (" + code + ")" : "");
+        } catch (e) {
+          /* ignore */
+        }
+
+        function render() {
+          statusEl.textContent = "离线中 · " + left + " 秒后自动重试";
+        }
+        // 图片探针：<img> 不受 CORS 限制，能加载就说明网络已恢复
+        function probe() {
+          var img = new Image();
+          var done = false;
+          var timer = setTimeout(function () {
+            if (done) return;
+            done = true;
+            left = 5;
+            render();
+          }, 4000);
+          img.onload = function () {
+            if (done) return;
+            done = true;
+            clearTimeout(timer);
+            statusEl.textContent = "网络已恢复，正在重新进入…";
+            location.replace(SITE);
+          };
+          img.onerror = function () {
+            if (done) return;
+            done = true;
+            clearTimeout(timer);
+            left = 5;
+            render();
+          };
+          img.src = SITE + "/favicon.ico?_=" + Date.now();
+        }
+        document.getElementById("retry").addEventListener("click", function () {
+          statusEl.textContent = "正在重试…";
+          location.replace(SITE);
+        });
+        render();
+        setInterval(function () {
+          left -= 1;
+          if (left <= 0) {
+            probe();
+            return;
+          }
+          render();
+        }, 1000);
+        window.addEventListener("online", function () {
+          statusEl.textContent = "网络已恢复，正在重新进入…";
+          location.replace(SITE);
+        });
+      })();
+    </script>
+  </body>
+</html>

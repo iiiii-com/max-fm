@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { isNativeShell, notifyNativeDownloadLimitation } from "@/lib/platform";
 import ProGate from "@/components/ProGate";
 
 const TYPES = [
@@ -37,7 +38,16 @@ export default function ExportButtons({ enabled }: { enabled: boolean }) {
             <p className="text-[10px] text-muted leading-relaxed mb-2 flex-1">{t.desc}</p>
             <a
               href={`/api/pro/export?type=${t.key}`}
-              onClick={() => setBusy(t.key)}
+              onClick={(e) => {
+                // 原生壳内 WebView 不会处理自带的下载跳转，点下去是「没反应」。
+                // 明确提示替代路径，避免用户以为专业版导出坏了。
+                if (isNativeShell()) {
+                  e.preventDefault();
+                  notifyNativeDownloadLimitation();
+                  return;
+                }
+                setBusy(t.key);
+              }}
               className="text-[10px] text-center px-2 py-1 rounded border border-primary/30 bg-primary/8 text-primary hover:bg-primary/15"
             >
               {busy === t.key ? "已开始下载…" : "下载 CSV"}

@@ -118,7 +118,7 @@ export default function MarketDashboard() {
 
   useEffect(() => {
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [refreshKey]);
 
   useEffect(() => {
@@ -175,18 +175,6 @@ export default function MarketDashboard() {
       setSortDir(1);
     }
   };
-
-  const SortTh = ({ k, children, className = "" }: { k: "changePct" | "mainNetIn" | "amount" | "mainPct"; children: React.ReactNode; className?: string }) => (
-    <button
-      onClick={() => toggleSort(k)}
-      className={`inline-flex items-center gap-1 hover:text-foreground transition-colors ${className}`}
-      title="点击排序（首次点击为降序）"
-    >
-      {children}
-      <span className="text-[9px] opacity-70" aria-hidden>{sortKey === k ? (sortDir === 1 ? "↓" : "↑") : "↕"}</span>
-      {sortKey === k && <span className="sr-only">{sortDir === 1 ? "当前降序" : "当前升序"}</span>}
-    </button>
-  );
 
   const barOption = useMemo<EChartsOption>(() => {
     const rows = sortedSectors;
@@ -307,10 +295,10 @@ export default function MarketDashboard() {
               <thead>
                 <tr className="text-xs text-muted border-b border-border">
                   <th scope="col" className="text-left py-2 pr-2">板块</th>
-                  <th scope="col" className="text-right px-2"><SortTh k="changePct">涨跌幅</SortTh></th>
-                  <th scope="col" className="text-right px-2"><SortTh k="mainNetIn">主力净流入</SortTh></th>
-                  <th scope="col" className="text-right px-2 hidden sm:table-cell"><SortTh k="mainPct">净占比</SortTh></th>
-                  <th scope="col" className="text-right px-2 hidden md:table-cell"><SortTh k="amount">成交额</SortTh></th>
+                  <th scope="col" className="text-right px-2"><SortTh k="changePct" sortKey={sortKey} sortDir={sortDir} onToggle={toggleSort}>涨跌幅</SortTh></th>
+                  <th scope="col" className="text-right px-2"><SortTh k="mainNetIn" sortKey={sortKey} sortDir={sortDir} onToggle={toggleSort}>主力净流入</SortTh></th>
+                  <th scope="col" className="text-right px-2 hidden sm:table-cell"><SortTh k="mainPct" sortKey={sortKey} sortDir={sortDir} onToggle={toggleSort}>净占比</SortTh></th>
+                  <th scope="col" className="text-right px-2 hidden md:table-cell"><SortTh k="amount" sortKey={sortKey} sortDir={sortDir} onToggle={toggleSort}>成交额</SortTh></th>
                   <th scope="col" className="text-left px-2 hidden lg:table-cell">领涨股</th>
                   <th scope="col" className="text-right pl-2"></th>
                 </tr>
@@ -539,5 +527,40 @@ function SectorRowComp({
         </tr>
       )}
     </>
+  );
+}
+
+/**
+ * 表头排序按钮。
+ *
+ * 原来它定义在 MarketDashboard 组件体内（每次渲染都是一个新组件类型），
+ * React 会把整棵子树当成新组件卸载重建；提升到模块作用域后
+ * 排序状态与回调通过 props 传入，渲染身份稳定。
+ */
+function SortTh({
+  k,
+  sortKey,
+  sortDir,
+  onToggle,
+  children,
+  className = "",
+}: {
+  k: "changePct" | "mainNetIn" | "amount" | "mainPct";
+  sortKey: "changePct" | "mainNetIn" | "amount" | "mainPct";
+  sortDir: 1 | -1;
+  onToggle: (k: "changePct" | "mainNetIn" | "amount" | "mainPct") => void;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <button
+      onClick={() => onToggle(k)}
+      className={`inline-flex items-center gap-1 hover:text-foreground transition-colors ${className}`}
+      title="点击排序（首次点击为降序）"
+    >
+      {children}
+      <span className="text-[9px] opacity-70" aria-hidden>{sortKey === k ? (sortDir === 1 ? "↓" : "↑") : "↕"}</span>
+      {sortKey === k && <span className="sr-only">{sortDir === 1 ? "当前降序" : "当前升序"}</span>}
+    </button>
   );
 }

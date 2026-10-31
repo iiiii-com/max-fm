@@ -1,7 +1,9 @@
-﻿import Link from "next/link";
-import { getFeelingAggregates, getTemperatures, getTemperatureAnalysis, getArticles, buildTempDiffView, fmtTemp, fmtDiff } from "@/lib/data/queries";
+import Link from "next/link";
+import { getFeelingAggregates, getTemperatures, getTemperatureAnalysis, getArticles, buildTempDiffView, fmtTemp, fmtDiff, getMacroProvenance } from "@/lib/data/queries";
+import { getFeelingMonthlyHistory, getFeelingDistribution } from "@/lib/data/feeling";
 import { SectionTitle, Card, Badge, AIFlag } from "@/components/ui";
-import { DualThermometer, TempTrendChart, FeelingBar } from "@/components/charts/Thermometer";
+import { DualThermometer, FeelingBar } from "@/components/charts/Thermometer";
+import { TempFeelingTrend, FeelingDistribution } from "@/components/macro/FeelingCharts";
 import Markdown from "@/components/markdown";
 import FeelingSurvey from "@/components/FeelingSurvey";
 import { fmt } from "@/lib/utils";
@@ -12,25 +14,55 @@ export const metadata = { title: "宏观温度 vs 个人体感" };
 
 export default async function FeelingPage() {
   await bootstrap();
-  const [feeling, temps, analysis, articles] = await Promise.all([
+  const [feeling, temps, analysis, articles, history, distribution, provenance] = await Promise.all([
     getFeelingAggregates(),
     getTemperatures(),
     getTemperatureAnalysis(),
     getArticles("temperature"),
+    getFeelingMonthlyHistory(12),
+    getFeelingDistribution(),
+    getMacroProvenance(),
   ]);
+  // 宏观温度是用宏观指标序列算出来的；若指标还是种子数据，这一侧就不是「真实数据」。
+  const macroSeed = provenance.seed;
   const lastTemp = temps[temps.length - 1];
   const tv = buildTempDiffView(lastTemp?.temperature, feeling.overall, feeling.sampleCount, lastTemp?.date ?? null);
   const tempReport = articles[0];
-  // 体感没有按月的时间序列（问卷只在提交时记一条当日分），旧实现用
-  // `45 + (macro-62)*0.6` 把体感线**由宏观线推导**出来——那不是体感数据。
-  // 现只画真实的宏观温度序列，体感以「当前均值参考线」呈现并明确标注无历史序列。
-  const trend = temps.slice(-12).map((t: any) => ({ date: t.date, macro: t.temperature ?? 0 }));
+  // 真实双序列：宏观温度按月留存于 macroTemperatures；体感由问卷 createdAt 按月聚合。
+  // 空月两边都留 null（图表断线），不做任何「用宏观推体感」的拟合。
+  const macroByMonth = new Map<string, number>();
+  temps.forEach((t: any) => {
+    if (t?.date != null && t.temperature != null) macroByMonth.set(String(t.date), Number(t.temperature));
+  });
+  const feelingByMonth = new Map<string, { avg: number | null; count: number }>();
+  history.forEach((h) => feelingByMonth.set(h.month, { avg: h.avg, count: h.count }));
+  const monthSet = Array.from(new Set([...history.map((h) => h.month), ...Array.from(macroByMonth.keys())])).sort();
+  const points = monthSet.slice(-12).map((month) => {
+    const f = feelingByMonth.get(month);
+    return {
+      month,
+      macro: macroByMonth.has(month) ? (macroByMonth.get(month) as number) : null,
+      feeling: f?.avg ?? null,
+      count: f?.count ?? 0,
+    };
+  });
+  const distributionTotal = distribution.reduce((sum, b) => sum + b.count, 0);
 
   return (
     <div className="mx-auto max-w-7xl px-3 sm:px-4 py-5 sm:py-6 space-y-8">
       <header>
         <h1 className="text-2xl font-bold">宏观温度 vs 个人体感</h1>
         <p className="text-sm text-muted mt-1">数据说经济在回暖，为什么很多人感觉不到？—— 温差从哪来，这里讲清楚</p>
+        {macroSeed ? (
+          <p
+            className="text-xs mt-1 rounded-md border px-3 py-2 leading-relaxed"
+            style={{ borderColor: "#d97706", background: "rgba(217,119,6,0.10)", color: "#b45309" }}
+          >
+            ⚠ 宏观温度由宏观指标序列计算，当前库中仍有 {macroSeed} 行指标是种子/示例数据
+            （未完成真实报表同步），因此「宏观温度」这一侧的绝对值仅供参考，请勿据此判断经济冷热。
+            体感数据来自真实提交的问卷样本。
+          </p>
+        ) : null}
       </header>
 
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -65,7 +97,10 @@ export default async function FeelingPage() {
           {analysis ? (
             <Markdown content={analysis.content} />
           ) : (
-            <p className="text-sm text-muted">温差报告将在温差超过 10° 时由 AI 自动生成</p>
+            <p className="text-sm text-muted">
+              暂无温差报告：报告由每日温度任务自动生成，需要「当月宏观温度」与「当月体感问卷」同时存在；
+              样本不足时不会用推导值填充。可先在右侧提交体感问卷。
+            </p>
           )}
           {tempReport && (
             <Link href={`/article/${tempReport.slug}`} className="mt-3 inline-block text-sm text-primary hover:underline">
@@ -73,12 +108,29 @@ export default async function FeelingPage() {
             </Link>
           )}
         </Card>
+        <TempFeelingTrend points={points} />
+      </section>
+
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <FeelingDistribution buckets={distribution} total={distributionTotal} />
         <Card>
-          <SectionTitle
-            title="近 12 个月宏观温度走势"
-            sub="体感问卷不保留按月历史序列，故此处只绘制真实的宏观温度；当前体感均值以参考线标注"
-          />
-          <TempTrendChart data={trend} feelingRef={tv.feeling} />
+          <SectionTitle title="温差怎么读" sub="同一把 0–100 尺子：宏观温度来自 PMI/CPI/M2，体感来自问卷均分" />
+          <ul className="text-sm text-muted space-y-3 leading-relaxed">
+            <li>
+              <b className="text-fg">温差 = 宏观温度 − 大众体感。</b>
+              为正说明「数据比感受暖」，为负说明「感受比数据暖」，绝对值越大分歧越明显。
+            </li>
+            <li>
+              <b className="text-fg">两类数据的口径不同：</b>宏观温度是加权合成指数（0.4 PMI + 0.35 CPI + 0.25 M2），
+              体感是用户自评分的等权均值；它们不是同一个东西，只用于对照而非互相校验。
+            </li>
+            <li>
+              <b className="text-fg">看趋势不看单点：</b>单月温差受样本结构影响较大；连续 3 个月同向的温差更有解释力。
+            </li>
+            <li>
+              <b className="text-fg">样本会滚动：</b>问卷按月聚合，当月样本在月内持续累计，跨月后成为历史点。
+            </li>
+          </ul>
         </Card>
       </section>
 

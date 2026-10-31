@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Max 财经 · 网络不可用</title>
+    <style>
+      :root { color-scheme: dark; }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; }
+      body {
+        margin: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 28px;
+        background: #0a0a0c;
+        color: #e8e6e3;
+        font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+        -webkit-font-smoothing: antialiased;
+        padding-top: calc(28px + env(safe-area-inset-top, 0px));
+        padding-bottom: calc(28px + env(safe-area-inset-bottom, 0px));
+      }
+      .box { max-width: 360px; text-align: center; }
+      .dot {
+        width: 46px; height: 46px; margin: 0 auto 18px; border-radius: 50%;
+        border: 1.5px solid #d4203d; position: relative;
+      }
+      .dot::after {
+        content: ""; position: absolute; left: 50%; top: 50%; width: 1.5px; height: 16px;
+        background: #d4203d; transform: translate(-50%, -70%);
+      }
+      .dot::before {
+        content: ""; position: absolute; left: 50%; bottom: 10px; width: 4px; height: 4px;
+        border-radius: 50%; background: #d4203d; transform: translateX(-50%);
+      }
+      h1 { font-size: 17px; font-weight: 600; margin: 0 0 10px; }
+      p { font-size: 13px; line-height: 1.75; color: #9a9a9f; margin: 0 0 18px; }
+      .status {
+        font-size: 12px; color: #c08552; min-height: 18px; margin-bottom: 16px;
+        font-variant-numeric: tabular-nums;
+      }
+      button {
+        appearance: none; border: 1px solid #333; background: #17171b; color: #e8e6e3;
+        font-size: 14px; padding: 11px 26px; border-radius: 10px; font-family: inherit;
+      }
+      button:active { background: #232329; }
+      button.primary { background: #d4203d; border-color: #d4203d; color: #fff; font-weight: 600; }
+      .hint { margin-top: 20px; font-size: 11.5px; line-height: 1.8; color: #6f6f7a; }
+    </style>
+  </head>
+  <body>
+    <div class="box">
+      <div class="dot" aria-hidden="true"></div>
+      <h1>当前无法连接网络</h1>
+      <p>
+        Max 财经需要实时行情数据，因此不缓存页面与价格。<br />
+        恢复网络后会自动重新进入，也可以手动重试。
+      </p>
+      <div class="status" id="status">正在等待网络恢复…</div>
+      <button class="primary" id="retry" onclick="location.replace('https://www.lune.ink')">立即重试</button>
+      <div class="hint">
+        若长时间无法连接：请确认手机已联网、或稍后再试。<br />
+        也可以用手机浏览器打开 <b>www.lune.ink</b> 使用完整功能。<br />
+        我们不会用旧价格冒充最新行情。
+      </div>
+    </div>
+    <script>
+      (function () {
+        var SITE = "https://www.lune.ink";
+        var left = 5;
+        var status = document.getElementById("status");
+        function render() {
+          status.textContent = "离线中 · " + left + " 秒后自动重试（也可点上方按钮）";
+        }
+        // 用图片探针判断网络是否恢复：<img> 不受 CORS 限制，拿不到内容也能触发 onload
+        function probe() {
+          var img = new Image();
+          var done = false;
+          var timer = setTimeout(function () {
+            if (done) return;
+            done = true;
+            left = 5;
+            render();
+          }, 4000);
+          img.onload = function () {
+            if (done) return;
+            done = true;
+            clearTimeout(timer);
+            status.textContent = "网络已恢复，正在重新进入…";
+            location.replace(SITE);
+          };
+          img.onerror = function () {
+            if (done) return;
+            done = true;
+            clearTimeout(timer);
+            left = 5;
+            render();
+          };
+          img.src = SITE + "/favicon.ico?_=" + Date.now();
+        }
+        render();
+        setInterval(function () {
+          left -= 1;
+          if (left <= 0) {
+            probe();
+            return;
+          }
+          render();
+        }, 1000);
+        window.addEventListener("online", function () {
+          status.textContent = "网络已恢复，正在重新进入…";
+          location.replace(SITE);
+        });
+      })();
+    </script>
+  </body>
+</html>

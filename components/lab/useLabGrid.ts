@@ -25,7 +25,8 @@ export interface GridItem {
 
 export type GridLayout = Record<string, GridItem>;
 
-const STORAGE_KEY = "lab-grid-v1";
+/** 布局持久化键：v2 起默认布局按「研究逻辑」重排，旧的自定义布局不再沿用 */
+const STORAGE_KEY = "lab-grid-v2";
 
 export interface PresetDef {
   key: string;
@@ -140,6 +141,18 @@ export function useLabGrid(presets: PresetDef[], defaultKey = "ALL") {
     [persist]
   );
 
+  /** 导入外部布局（专业版「研究留档」用）：校验后整体替换并持久化 */
+  const importLayout = useCallback(
+    (next: GridLayout) => {
+      setZoomed(null);
+      setLayout(() => {
+        persist(next);
+        return JSON.parse(JSON.stringify(next)) as GridLayout;
+      });
+    },
+    [persist]
+  );
+
   const removedIds = useMemo(
     () => Object.keys(layout).filter((id) => layout[id]?.visible === false),
     [layout]
@@ -175,5 +188,6 @@ export function useLabGrid(presets: PresetDef[], defaultKey = "ALL") {
     reset,
     moveMobile,
     geometry,
+    importLayout,
   };
 }

@@ -122,6 +122,33 @@ export const PRO_FEATURES: ProFeature[] = [
     modules: ["/pro/export"],
     ready: true,
   },
+  {
+    key: "etf-combo",
+    name: "ETF 组合对比与相关性",
+    group: "组合风控",
+    free: "单只 ETF 行情、K 线与基础多标的走势对比",
+    pro: "2–6 只 ETF 同窗口归一化对比 + 日收益相关矩阵 + 等权组合年化波动/最大回撤/分散度，可导出 CSV 留档",
+    modules: ["/pro/etf-combo"],
+    ready: true,
+  },
+  {
+    key: "macro-deep",
+    name: "宏观深度数据台",
+    group: "深度解读",
+    free: "宏观温度计、三因子拆解、单指标走势与 AI 月报",
+    pro: "24 项指标全量表（最新/上期/变化/日期）+ 温度三因子得分与月度序列，一键导出 CSV / Markdown",
+    modules: ["/pro/macro-deep"],
+    ready: true,
+  },
+  {
+    key: "lab-archive",
+    name: "K 线实验室留档",
+    group: "研究留档",
+    free: "单标的 K 线实验室、历史回放、画线标注与 PNG 截图",
+    pro: "K 线数据 CSV 导出 + 工作台布局配置导入/导出（JSON），换设备也能接着研究",
+    modules: ["/lab"],
+    ready: true,
+  },
 ];
 
 export const PRO_FEATURE_MAP: Record<string, ProFeature> = Object.fromEntries(

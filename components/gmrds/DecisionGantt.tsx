@@ -13,13 +13,19 @@ export default function DecisionGantt() {
   };
   // 每环节时间跨度（模拟相对耗时，展示依赖关系）
   const duration = [6, 5, 7, 6, 7, 6, 5, 4, 5, 4, 5];
-  let cursor = 0;
-  const rows = DEPTH_STEPS.map((s) => {
-    const start = cursor;
-    cursor += duration[s.no - 1] + 1;
-    return { no: s.no, title: s.title, stage: s.stage, start, span: duration[s.no - 1] };
-  });
-  const total = cursor;
+  // 累加扫描用 reduce 的不可变累加器完成：渲染期不修改任何外部可变变量。
+  const scan = DEPTH_STEPS.reduce(
+    (acc, s) => {
+      const span = duration[s.no - 1];
+      return {
+        cursor: acc.cursor + span + 1,
+        rows: [...acc.rows, { no: s.no, title: s.title, stage: s.stage, start: acc.cursor, span }],
+      };
+    },
+    { cursor: 0, rows: [] as Array<{ no: number; title: string; stage: string; start: number; span: number }> },
+  );
+  const rows = scan.rows;
+  const total = scan.cursor;
 
   const opt: EChartsOption = {
     animation: false,

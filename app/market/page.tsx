@@ -1,13 +1,38 @@
 import { Suspense } from "react";
+import nextDynamic from "next/dynamic";
 import BoardTabs from "@/components/BoardTabs";
-import MarketIndexes from "@/components/MarketIndexes";
-import StockSearch from "@/components/StockSearch";
-import EtfViewer from "@/components/EtfViewer";
 import NewsPanel from "@/components/NewsPanel";
 import WatchlistSidebar from "@/components/WatchlistSidebar";
-import FundDirections from "@/components/FundDirections";
-import NorthboundPanel from "@/components/NorthboundPanel";
 import QuoteRefreshBar from "@/components/layout/QuoteRefreshBar";
+import { LazyStockSearch, LazyEtfViewer } from "@/components/market/LazyPanels";
+
+/**
+ * 三个 Tab 的面板改为按需加载（用户任务⑥：/market、/etf 首屏 JS 过大）。
+ *
+ * 旧实现把 MarketIndexes / StockSearch / EtfViewer / FundDirections / NorthboundPanel 全部
+ * 静态 import，浏览器首屏必须下载三个 Tab 的全部代码（含 ETF 表格与图表依赖），
+ * 而用户一次只看得见一个 Tab。改为 next/dynamic 后：
+ *  - 默认 Tab（大盘指数）保留 SSR（不牺牲首屏内容与 SEO）；
+ *  - 个股/ETF 面板放进 `components/market/LazyPanels.tsx`（客户端壳）再 ssr:false 懒加载，
+ *    因为 Server Component 里不允许 ssr:false；它们本来也是客户端取数；
+ *  - 统一给骨架占位，避免切换时布局跳动（CLS）。
+ */
+const PanelSkeleton = ({ label }: { label: string }) => (
+  <div className="space-y-3" aria-busy="true" aria-label={`${label}加载中`}>
+    <div className="h-28 animate-pulse rounded-lg bg-muted/10" />
+    <div className="h-40 animate-pulse rounded-lg bg-muted/10" />
+  </div>
+);
+
+const MarketIndexes = nextDynamic(() => import("@/components/MarketIndexes"), {
+  loading: () => <PanelSkeleton label="大盘指数" />,
+});
+const FundDirections = nextDynamic(() => import("@/components/FundDirections"), {
+  loading: () => <PanelSkeleton label="资金流向" />,
+});
+const NorthboundPanel = nextDynamic(() => import("@/components/NorthboundPanel"), {
+  loading: () => <PanelSkeleton label="北向资金" />,
+});
 
 export const dynamic = "force-dynamic";
 
@@ -50,10 +75,10 @@ export default async function MarketPage({ searchParams }: { searchParams: Promi
           )}
           {active === "stocks" && (
             <Suspense fallback={<p className="text-sm text-muted">加载中…</p>}>
-              <StockSearch />
+              <LazyStockSearch />
             </Suspense>
           )}
-          {active === "etf" && <EtfViewer />}
+          {active === "etf" && <LazyEtfViewer />}
         </div>
         <aside className="space-y-4">
           <NewsPanel />

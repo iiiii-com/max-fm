@@ -10,7 +10,15 @@ export const RANGE_OPTIONS: Array<{ label: string; value: ChartRange }> = [
   { label: "全部", value: 0 },
 ];
 
+import { isNativeShell, notifyNativeDownloadLimitation } from "@/lib/platform";
+
 export function downloadCSV(filename: string, header: string[], rows: (string | number)[][]) {
+  // 原生壳（Capacitor Android/iOS）没有可用的文件系统能力，blob 下载会静默失败。
+  // 与其让用户点一个假的按钮，不如直接说明去哪儿导出。
+  if (isNativeShell()) {
+    notifyNativeDownloadLimitation();
+    return;
+  }
   const esc = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`;
   const csv = [header.map(esc).join(","), ...rows.map((r) => r.map(esc).join(","))].join("\n");
   const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });

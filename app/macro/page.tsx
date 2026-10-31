@@ -1,14 +1,17 @@
 import Link from "next/link";
-import { getIndicators, getArticles } from "@/lib/data/queries";
-import { SectionTitle, Card, Badge, AIFlag } from "@/components/ui";
+import { getIndicators, getTemperatures, getFeelingAggregates, getMacroProvenance } from "@/lib/data/queries";
+import { SectionTitle, Card } from "@/components/ui";
 import { TrendCard } from "@/components/charts/IndicatorLine";
 import MacroIndicatorBoard from "@/components/macro/MacroIndicatorBoard";
 import CompareTool from "@/components/charts/CompareTool";
 import RiskIndicators from "@/components/RiskIndicators";
 import MacroGauges from "@/components/macro/MacroGauges";
+import TemperatureBoard from "@/components/macro/TemperatureBoard";
+import MonthlyReportCard from "@/components/macro/MonthlyReportCard";
 import { MACRO_METRIC_COLORS } from "@/components/charts/palette";
 import { MACRO_INDICATORS } from "@/lib/data/macro-indicators";
-import { fmtDate, normalizeIndicatorDate } from "@/lib/utils";
+import { macroTemperatureScores } from "@/lib/data/macro-sync";
+import { normalizeIndicatorDate } from "@/lib/utils";
 import { bootstrap } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -37,7 +40,12 @@ function momOf(s: Array<{ date: string; value: number }>): number | null {
 
 export default async function MacroPage() {
   await bootstrap();
-  const [inds, articles] = await Promise.all([getIndicators(), getArticles("monthly")]);
+  const [inds, temps, feeling, provenance] = await Promise.all([
+    getIndicators(),
+    getTemperatures(),
+    getFeelingAggregates(),
+    getMacroProvenance(),
+  ]);
   // 日期在此统一归一化：上游季度指标带浮点尾巴（如 2017-Q4.666…），
   // 不清洗会直接渲染到图表 X 轴上。同时保证 latest()/同比环比 的日期匹配仍然自洽。
   const series = (type: string) =>
@@ -52,15 +60,57 @@ export default async function MacroPage() {
     const s = series(type);
     return s[s.length - 1]?.value ?? 0;
   };
-  const monthly = articles[0];
+  // ---- 宏观温度拆解数据（供 TemperatureBoard）--------------------------------
+  // 温度按月留存在 macroTemperatures；新版写入 components JSON（原始值/分项得分/权重），
+  // 历史 seed 数据的 components 是旧口径（GDP/CPI/PMI…），这里做兼容：
+  // 解析失败或字段缺失时，直接用最新 PMI/CPI/M2 按同一公式回算，绝不显示空白仪表。
+  const tempRows = ((temps as any[]) ?? []).filter((t) => t && t.date != null);
+  const lastTemp = tempRows.length ? tempRows[tempRows.length - 1] : null;
+  let tempComp: any = null;
+  if (lastTemp?.components) {
+    try {
+      tempComp = JSON.parse(lastTemp.components);
+    } catch {
+      tempComp = null;
+    }
+  }
+  const latestNullable = (type: string): number | null => {
+    const arr = inds.filter((x: any) => x.type === type && x.value != null);
+    return arr.length ? Number(arr[arr.length - 1].value) : null;
+  };
+  const scoreRaw = { pmi: latestNullable("pmi"), cpi: latestNullable("cpi"), m2: latestNullable("m2") };
+  const fallbackScore = macroTemperatureScores(scoreRaw);
+  const temperature = lastTemp?.temperature != null ? Number(lastTemp.temperature) : tempComp?.temperature ?? fallbackScore.temperature;
+  const temperatureDate = lastTemp?.date != null ? String(lastTemp.date) : null;
+  const temperatureRaw = tempComp?.raw ?? scoreRaw;
+  const temperatureScores = tempComp?.scores ?? fallbackScore.scores;
+  const temperatureSeries = tempRows.slice(-12).map((t: any) => ({
+    date: String(t.date),
+    temperature: Math.round(Number(t.temperature) * 10) / 10,
+  }));
+  const feelingOverall = (feeling as any)?.overall != null ? Number((feeling as any).overall) : null;
+  const feelingSample = Number((feeling as any)?.sampleCount ?? 0);
+  const feelingDiff =
+    temperature != null && feelingOverall != null && feelingSample > 0
+      ? Math.round((temperature - feelingOverall) * 10) / 10
+      : null;
 
   // 指标清单来自站内唯一事实来源 lib/data/macro-indicators.ts：
   // 单位与「同比/环比变动单位」此前在本文件另抄一份，导致利率变动被标成「个百分点」、
   // 金价同比被标成「+171.1 个百分点」。现在两者共用同一份定义。
-  const cards = MACRO_INDICATORS.map((c) => ({
-    ...c,
-    color: MACRO_METRIC_COLORS[c.type] ?? "#171717",
-  }));
+  //
+  // source 取库内实际来源（provenance.byType），而不是 MACRO_INDICATORS 里的声明：
+  // 目前只有 14 项换成了真实序列，其余 10 项仍是种子数据，若沿用声明就会
+  // 让「示例数据」在卡片上被标成「东方财富数据中心」，属于数据血统造假。
+  const cards = MACRO_INDICATORS.map((c) => {
+    const prov = provenance.byType[c.type];
+    const synced = prov?.synced ?? false;
+    return {
+      ...c,
+      color: MACRO_METRIC_COLORS[c.type] ?? "#171717",
+      source: synced ? c.source : "示例数据（未同步真实报表）",
+    };
+  });
 
   const linkData: Record<string, number> = {
     lpr: latest("lpr"), re: latest("realestate"), m2: latest("m2"), tsf: latest("tsf"),
@@ -84,12 +134,45 @@ export default async function MacroPage() {
     { title: "失业率 ↔ 社零", sub: "就业是消费的前置变量", keys: ["unemp", "retail"], latest: (v: Record<string, number>) => `${v.unemp}% / ${v.retail}%` },
   ];
 
+  const macroSynced = provenance.total > 0 && provenance.synced > 0;
+  const macroFullySynced = provenance.total > 0 && provenance.seed === 0;
+  // updatedAt 存的是 Date.now() 毫秒；这里按北京时间展示「最近同步时间」。
+  const lastSyncText = provenance.lastSyncedAt
+    ? new Date(provenance.lastSyncedAt + 8 * 3600_000).toISOString().slice(0, 16).replace("T", " ")
+    : null;
+
   return (
     <div className="mx-auto max-w-7xl px-3 sm:px-4 py-5 sm:py-6 space-y-8">
       <header>
         <h1 className="text-2xl font-bold">宏观经济</h1>
-        <p className="text-sm text-muted mt-1">数据来源：东方财富数据中心（GDP / CPI / PPI / PMI / M1 / M2 / 税收收入 / 70城房价）</p>
-        <p className="text-xs text-muted/70 mt-1">注：全部指标序列由东方财富数据中心真实报表同步（GDP/CPI/PPI/PMI/M2/社融/利率/汇率等 24 项，200 期/项）；行情、个股与 K 线数据来自实时公开行情接口。</p>
+        <p className="text-sm text-muted mt-1">
+          真实序列来源：东方财富数据中心（GDP / CPI / PPI / PMI / M1 / M2 / 税收 / 进出口 / 固投 / 新增贷款 / 70城房价）、
+          新浪财经行情接口（离岸人民币 / 伦敦金现货）
+        </p>
+        {!macroSynced ? (
+          <p
+            className="text-xs mt-1 rounded-md border px-3 py-2 leading-relaxed"
+            style={{ borderColor: "#d97706", background: "rgba(217,119,6,0.10)", color: "#b45309" }}
+          >
+            ⚠ 当前库中的宏观指标序列（共 {provenance.total} 行）来自 <b>种子/示例数据</b>（scripts/seed.ts 生成），
+            尚未完成真实报表同步 —— 数字仅用于界面演示，请勿用于投资判断。
+            在部署环境执行 <code>/api/tasks/run?task=all</code>（需 CRON_SECRET）完成同步后，这里会自动切换为真实数据说明。
+            行情、个股与 K 线数据仍来自实时公开行情接口。
+          </p>
+        ) : !macroFullySynced ? (
+          <p
+            className="text-xs mt-1 rounded-md border px-3 py-2 leading-relaxed"
+            style={{ borderColor: "#d97706", background: "rgba(217,119,6,0.10)", color: "#b45309" }}
+          >
+            部分指标已同步：{provenance.synced}/{provenance.total} 行来自东方财富数据中心等真实来源，
+            其余 {provenance.seed} 行仍为种子/示例数据（仅用于界面演示，请勿用于投资判断）。
+          </p>
+        ) : (
+          <p className="text-xs text-muted/70 mt-1">
+            注：指标序列由东方财富数据中心真实报表同步（24 项，200 期/项）
+            {lastSyncText ? `，最近同步 ${lastSyncText}（北京时间）` : ""}；行情、个股与 K 线数据来自实时公开行情接口。
+          </p>
+        )}
       </header>
 
       <div className="flex gap-3 flex-wrap">
@@ -103,6 +186,15 @@ export default async function MacroPage() {
       <section>
         <MacroGauges />
       </section>
+
+      <TemperatureBoard
+        temperature={temperature}
+        date={temperatureDate}
+        raw={temperatureRaw}
+        scores={temperatureScores}
+        series={temperatureSeries}
+        feeling={{ overall: feelingOverall, sampleCount: feelingSample, diff: feelingDiff }}
+      />
 
       <MacroIndicatorBoard
         cards={cards.map((c) => {
@@ -146,21 +238,7 @@ export default async function MacroPage() {
       </section>
 
       <section id="report">
-        <SectionTitle title="AI 月度报告" sub="每月自动生成，数据解读 + 趋势研判" extra={<AIFlag />} />
-        {monthly ? (
-          <Link href={`/article/${monthly.slug}`}>
-            <Card className=" transition-shadow">
-              <div className="flex items-center gap-2 mb-2">
-                <Badge>月度报告</Badge>
-                <span className="text-xs text-muted">{fmtDate(monthly.publishDate)}</span>
-              </div>
-              <h3 className="font-bold text-lg">{monthly.title}</h3>
-              <p className="text-sm text-muted mt-1 line-clamp-2">{monthly.summary}</p>
-            </Card>
-          </Link>
-        ) : (
-          <Card><p className="text-sm text-muted">月报将在每月 1 日由 AI 自动生成</p></Card>
-        )}
+        <MonthlyReportCard />
       </section>
     </div>
   );
