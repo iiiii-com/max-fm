@@ -54,6 +54,8 @@ export default function AuthForm({ mode }: { mode: Mode }) {
   const [error, setError] = useState("");
   const [fieldErr, setFieldErr] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
+  // 邮箱已注册（409）时在错误块里直接给「去登录」入口，而不是让用户自己找
+  const [conflict, setConflict] = useState(false);
 
   const isRegister = mode === "register";
   const strength = useMemo(
@@ -83,6 +85,7 @@ export default function AuthForm({ mode }: { mode: Mode }) {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setConflict(false);
     if (!validate()) return;
 
     setLoading(true);
@@ -97,13 +100,41 @@ export default function AuthForm({ mode }: { mode: Mode }) {
           remember,
         }),
       });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "操作失败");
+
+      // 关键：不能直接 res.json()。
+      // 服务端若在框架层报错（如数据库不可用、函数超时），Next 会返回空 body 或
+      // HTML 错误页，res.json() 会抛 "Unexpected end of JSON input"，
+      // 用户看到的是前端内部错误而不是「服务暂不可用」。这里按文本容错解析。
+      const text = await res.text();
+      let json: { ok?: boolean; error?: string; user?: { name?: string; email?: string } } | null = null;
+      if (text) {
+        try {
+          json = JSON.parse(text);
+        } catch {
+          json = null;
+        }
+      }
+
+      if (!res.ok || json?.ok !== true) {
+        if (res.status === 409) setConflict(true);
+        const fallback =
+          res.status === 503
+            ? "账号服务暂时不可用（服务端数据服务异常），请稍后重试"
+            : res.status >= 500
+              ? `服务暂时不可用（HTTP ${res.status}），请稍后重试`
+              : "操作失败，请稍后重试";
+        throw new Error(json?.error || fallback);
+      }
 
       router.push(nextPath);
       router.refresh();
     } catch (err: any) {
-      setError(err.message || "操作失败");
+      // fetch 本身失败（断网/DNS/被拦截）抛的是 TypeError，文案要能指导用户
+      const msg =
+        err instanceof TypeError
+          ? "网络异常，请检查网络连接后重试"
+          : err?.message || "操作失败";
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -248,12 +279,22 @@ export default function AuthForm({ mode }: { mode: Mode }) {
           )}
 
           {error && (
-            <p
+            <div
               role="alert"
-              className="rounded-md bg-red-500/10 px-3 py-2 text-[13px] text-red-600 dark:text-red-400"
+              className="rounded-md bg-red-500/10 px-3 py-2 text-[13px] text-red-600 dark:text-red-400 space-y-1.5"
             >
-              {error}
-            </p>
+              <p>{error}</p>
+              {conflict && (
+                <Link href="/login" className="inline-block text-primary hover:underline font-medium">
+                  去登录 →
+                </Link>
+              )}
+              {(error.includes("暂时不可用") || error.includes("网络异常")) && (
+                <p className="text-[12px] text-muted">
+                  这是服务端问题，不是你的输入有误；稍等一两分钟后再次提交即可。
+                </p>
+              )}
+            </div>
           )}
 
           <button

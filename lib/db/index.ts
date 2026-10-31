@@ -32,7 +32,7 @@ export interface DbDegradedState {
 
 let degraded: DbDegradedState | null = null;
 
-function isDegradableError(e: any): boolean {
+export function isDegradableError(e: any): boolean {
   const msg = String(e?.message ?? "");
   const code = String(e?.code ?? "");
   if (/exceeded the quota|quota|too many connections|too many clients/i.test(msg)) return true;
