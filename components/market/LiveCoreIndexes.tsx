@@ -55,6 +55,14 @@ export default function LiveCoreIndexes({ indexes, initial }: { indexes: CoreInd
   const [auto, setAuto] = useState(true);
   const [tick, setTick] = useState(0);
   const mounted = useRef(true);
+  /**
+   * 更新时间必须等水合完成后再显示。
+   * 服务端（Vercel 跑在 UTC）与客户端（用户本地时区）用 getHours() 算出来的时刻不同，
+   * 首屏直接渲染会触发 hydration mismatch（React #418），React 随后丢弃整棵服务端树重建，
+   * 图表容器会被卸载重建——这也正是「大盘指数偶发不显示」的一个来源。
+   */
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => setHydrated(true), []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -121,7 +129,7 @@ export default function LiveCoreIndexes({ indexes, initial }: { indexes: CoreInd
         <div className="flex items-center gap-2 text-muted">
           <span className="inline-flex items-center gap-1">
             <span className={`inline-block w-1.5 h-1.5 rounded-full ${err ? "bg-amber-500" : "bg-emerald-500"} ${auto && !err ? "animate-pulse" : ""}`} />
-            {loading ? "更新中…" : `${hhmmss(time)} 更新`}
+            {loading ? "更新中…" : hydrated ? `${hhmmss(time)} 更新` : "--:--:-- 更新"}
           </span>
           <label className="inline-flex items-center gap-1 cursor-pointer select-none">
             <input type="checkbox" checked={auto} onChange={(e) => setAuto(e.target.checked)} className="accent-[var(--primary,#c0392b)]" />

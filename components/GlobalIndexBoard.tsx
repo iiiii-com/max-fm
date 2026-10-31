@@ -129,6 +129,13 @@ export default function GlobalIndexBoard({ quotes: initialQuotes, live = true }:
   const [quotes, setQuotes] = useState<Quote[]>(initialQuotes);
   const [time, setTime] = useState<number>(() => Date.now());
   const [refreshing, setRefreshing] = useState(false);
+  /**
+   * 同 LiveCoreIndexes：hhmm 由 getHours() 得到，服务端（UTC）与客户端（本地时区）
+   * 结果不同，直接渲染会触发 hydration mismatch（React #418）并让整棵服务端树被重建。
+   * 因此首屏（SSR + 水合首次渲染）统一输出占位符，挂载后再显示真实时刻。
+   */
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => setHydrated(true), []);
   const byCode = new Map(quotes.map((q) => [q.code, q]));
 
   // 国际指数同样会「页面打开就定格」：这里跟随行情接口每 30 秒自动刷新一次，
@@ -170,7 +177,7 @@ export default function GlobalIndexBoard({ quotes: initialQuotes, live = true }:
         <span>国际指数 · 行情约 15~20 秒延迟</span>
         <span className="inline-flex items-center gap-1">
           <span className={`inline-block w-1.5 h-1.5 rounded-full ${refreshing ? "bg-amber-500 animate-pulse" : "bg-emerald-500"}`} />
-          {refreshing ? "更新中…" : `${hhmm} 更新 · 每 30 秒自动刷新`}
+          {refreshing ? "更新中…" : hydrated ? `${hhmm} 更新 · 每 30 秒自动刷新` : "--:-- 更新 · 每 30 秒自动刷新"}
         </span>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
