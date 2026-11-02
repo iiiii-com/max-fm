@@ -18,17 +18,28 @@ import "./terminal.css";
 import GmtCard from "./GmtCard";
 import { GAP, ROWH, makeLayout, useLabGrid, type GridLayout } from "./useLabGrid";
 import { CmdBar, Tape, LabToolbar, Inspector, HelpOverlay, useClock, useInspectorDelegate, type InspData, type TapeQuote } from "./TermChrome";
-import { IndexListCard, BreadthCard, PulseCard, DataStatusCard } from "./RefCards";
 import KlineLab, { type LabBar, type LabMark } from "./KlineLab";
-import PatternCard from "./PatternCard";
-import RadarCard from "./RadarCard";
-import ValuationCard from "./ValuationCard";
-import ScanCard from "./ScanCard";
-import LevelsCard from "./LevelsCard";
-import TrendCard from "./TrendCard";
-import BacktestCard from "./BacktestCard";
 import { detectPatterns } from "./patterns";
 import { scanSignals } from "./signals";
+import nextDynamic from "next/dynamic";
+
+/*
+ * 02～12 号卡片各自带着图表初始化与接口请求，是 /lab 首屏 JS 的主要构成。
+ * 它们全部在首屏之下（由 GmtCard 按纵坐标延迟挂载），代码也不必进首屏 chunk——
+ * 改成动态 import 后，用户滚动到附近时才下载对应 chunk。
+ * 01 号 K 线主图保持静态引入：它是首屏要画的东西，拆开只会多一次往返。
+ */
+const PatternCard = nextDynamic(() => import("./PatternCard"), { ssr: false });
+const RadarCard = nextDynamic(() => import("./RadarCard"), { ssr: false });
+const ValuationCard = nextDynamic(() => import("./ValuationCard"), { ssr: false });
+const ScanCard = nextDynamic(() => import("./ScanCard"), { ssr: false });
+const LevelsCard = nextDynamic(() => import("./LevelsCard"), { ssr: false });
+const TrendCard = nextDynamic(() => import("./TrendCard"), { ssr: false });
+const BacktestCard = nextDynamic(() => import("./BacktestCard"), { ssr: false });
+const IndexListCard = nextDynamic(() => import("./RefCards").then((m) => m.IndexListCard), { ssr: false });
+const BreadthCard = nextDynamic(() => import("./RefCards").then((m) => m.BreadthCard), { ssr: false });
+const PulseCard = nextDynamic(() => import("./RefCards").then((m) => m.PulseCard), { ssr: false });
+const DataStatusCard = nextDynamic(() => import("./RefCards").then((m) => m.DataStatusCard), { ssr: false });
 import { isPageHidden } from "@/lib/hooks/visibility";
 
 type Kind = "stock" | "index" | "etf";
