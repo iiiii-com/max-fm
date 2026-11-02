@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import type { Quote } from "@/lib/data/quotes";
+import { fetchJson } from "@/lib/client/api-cache";
 
 export interface CoreIndexDef {
   code: string;
@@ -67,8 +68,9 @@ export default function LiveCoreIndexes({ indexes, initial }: { indexes: CoreInd
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/quotes", { cache: "no-store" });
-      const json = await res.json();
+      // 多个组件（滚动条/大盘卡/首页指数）共享同一次 /api/quotes 请求，
+      // 避免一次首屏对同一接口并发打 3～4 只冷实例。
+      const json = await fetchJson<any>("/api/quotes", { ttlMs: 8000 });
       if (Array.isArray(json?.quotes) && json.quotes.length) {
         setQuotes(json.quotes);
         setTime(typeof json.time === "number" ? json.time : Date.now());

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Quote } from "@/lib/data/quotes";
 import { fmt, fmtPct } from "@/lib/utils";
 import { guardPoll } from "@/lib/hooks/visibility";
+import { fetchJson } from "@/lib/client/api-cache";
 
 export default function Ticker() {
   const [quotes, setQuotes] = useState<Quote[]>([]);
@@ -14,8 +15,9 @@ export default function Ticker() {
     let alive = true;
     async function load() {
       try {
-        const res = await fetch("/api/quotes", { cache: "no-store" });
-        const json = await res.json();
+        // 与页面上其它行情组件共享同一次请求（见 lib/client/api-cache.ts），
+        // 避免顶部滚动条、大盘卡片、实验室各自发一份一模一样的 /api/quotes。
+        const json = await fetchJson<{ quotes?: Quote[]; global?: Quote[] }>("/api/quotes", { ttlMs: 8000 });
         if (alive && json?.quotes) setQuotes([...(json.quotes || []), ...(json.global || [])]);
       } catch {
         /* ignore */

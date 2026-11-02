@@ -59,7 +59,12 @@ export async function GET(req: Request) {
       return { ok: true, secid, name, chains };
     });
 
-    return NextResponse.json(out.data ?? { ok: false, error: "上游不可达" });
+    // 产业链归属是「公司→链」的静态映射，只在产业链数据同步时变化；
+    // 但实测线上每次 0.3–3 秒（每次请求可能落在新冷实例，进程内缓存不共享），
+    // 所以再加一层 CDN 缓存，让同一家公司 2 分钟内的重复访问直接命中边缘节点。
+    return NextResponse.json(out.data ?? { ok: false, error: "上游不可达" }, {
+      headers: { "Cache-Control": "public, max-age=0, s-maxage=120, stale-while-revalidate=300" },
+    });
   } catch (e: any) {
     return NextResponse.json({ ok: false, error: String(e?.message ?? e) }, { status: 500 });
   }

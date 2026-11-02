@@ -7,6 +7,7 @@ import { Card, Badge } from "@/components/ui";
 import { ErrorState, LoadingRegion } from "@/components/ui-state";
 import { mkMainAxis } from "@/lib/data/axis";
 import { mkKlineTooltip } from "@/lib/data/kline-tooltip";
+import { fetchJson } from "@/lib/client/api-cache";
 
 interface GlobalIndex {
   code: string;
@@ -147,8 +148,7 @@ export default function GlobalIndexBoard({ quotes: initialQuotes, live = true }:
       if (document.hidden) return;
       setRefreshing(true);
       try {
-        const res = await fetch("/api/quotes", { cache: "no-store" });
-        const json = await res.json();
+        const json = await fetchJson<any>("/api/quotes", { ttlMs: 8000 });
         if (alive && Array.isArray(json?.global) && json.global.length) {
           setQuotes(json.global);
           setTime(typeof json.time === "number" ? json.time : Date.now());

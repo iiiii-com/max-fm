@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { Quote } from "@/lib/data/quotes";
 import { fmt, fmtPct } from "@/lib/utils";
 import { guardPoll } from "@/lib/hooks/visibility";
+import { fetchJson } from "@/lib/client/api-cache";
 
 export default function MarketView({ initialQuotes, initialGlobal, initialSectors }: { initialQuotes: Quote[]; initialGlobal: Quote[]; initialSectors: Quote[] }) {
   const [quotes, setQuotes] = useState(initialQuotes);
@@ -19,8 +20,7 @@ export default function MarketView({ initialQuotes, initialGlobal, initialSector
   useEffect(() => {
     const timer = setInterval(guardPoll(async () => {
       try {
-        const res = await fetch("/api/quotes", { cache: "no-store" });
-        const json = await res.json();
+        const json = await fetchJson<any>("/api/quotes", { ttlMs: 8000 });
         if (json?.quotes) setQuotes(json.quotes);
         if (json?.global) setGlobal(json.global);
         if (json?.sectors) setSectors(json.sectors);

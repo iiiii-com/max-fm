@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { guardPoll } from "@/lib/hooks/visibility";
+import { fetchJson } from "@/lib/client/api-cache";
 
 interface Q {
   code: string;
@@ -32,8 +33,7 @@ export default function MarketOverviewCard() {
 
   const load = async () => {
     try {
-      const res = await fetch("/api/quotes", { cache: "no-store" });
-      const j = await res.json();
+      const j = await fetchJson<any>("/api/quotes", { ttlMs: 8000 });
       if (!Array.isArray(j?.quotes)) throw new Error("empty");
       setQuotes(j.quotes);
       setUpdated(new Date().toLocaleTimeString("zh-CN", { hour12: false }));

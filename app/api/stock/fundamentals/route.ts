@@ -27,7 +27,14 @@ export async function GET(req: Request) {
   }
   const hit = cache.get(secid);
   if (hit && Date.now() - hit.at < TTL_MS) {
-    return NextResponse.json(hit.body, { headers: { "X-Cache": "HIT" } });
+    // 命中进程缓存也带上 CDN 缓存头：线上请求常落在新冷实例，进程缓存不共享，
+    // 真正跨用户复用的是边缘节点（s-maxage）。
+    return NextResponse.json(hit.body, {
+      headers: {
+        "X-Cache": "HIT",
+        "Cache-Control": "public, max-age=0, s-maxage=60, stale-while-revalidate=120",
+      },
+    });
   }
   const fields = "f57,f58,f43,f3,f116,f117,f162,f167,f92,f168,f164,f60";
   const url = `https://push2.eastmoney.com/api/qt/stock/get?secid=${secid}&fields=${fields}&fltt=2&invt=2`;
@@ -58,7 +65,9 @@ export async function GET(req: Request) {
       },
     };
     cache.set(secid, { at: Date.now(), body });
-    return NextResponse.json(body);
+    return NextResponse.json(body, {
+      headers: { "Cache-Control": "public, max-age=0, s-maxage=60, stale-while-revalidate=120" },
+    });
   } catch (e: any) {
     return NextResponse.json({ ok: false, error: e?.message ?? "上游接口不可用" }, { status: 502 });
   }

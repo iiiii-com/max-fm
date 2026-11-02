@@ -9,6 +9,7 @@
    全部数据基于真实行情与财报接口，严禁虚构。
    ============================================================ */
 import { cstToday as cstDateKey } from "@/lib/data/ym";
+import { fetchJson, fetchKline } from "@/lib/client/api-cache";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -354,8 +355,8 @@ export default function LabTerminal({ pro = false }: { pro?: boolean }) {
     (silent = false) => {
       if (!silent) setLoading(true);
       setErr("");
-      fetch(`/api/stock/kline?secid=${symbol.secid}&period=${period}&days=8000`, { cache: "no-store" })
-        .then((r) => r.json())
+      // 同参 K 线请求合并：主图 / 形态卡 / 扫描器可能同时要同一个 secid 的同一批 K 线
+      fetchKline<any>(symbol.secid, period as "day" | "week" | "month", 8000)
         .then((j) => {
           if (Array.isArray(j?.klines) && j.klines.length) {
             setBars(j.klines);
@@ -529,10 +530,10 @@ export default function LabTerminal({ pro = false }: { pro?: boolean }) {
   useEffect(() => {
     let dead = false;
     const fetchTape = () =>
-      fetch("/api/quotes")
-        .then((r) => r.json())
-        .then((j) => {
-          if (dead) return;
+      // 与顶部滚动条/大盘卡片共享同一次 /api/quotes（5s 本地复用），
+      // 否则打开实验室会同时发出 3 份相同请求，各自命中冷实例等上游。
+      fetchJson<any>("/api/quotes", { ttlMs: 5000 }).then((j) => {
+        if (dead || !j) return;
           const pick = (a: any[]): TapeQuote[] =>
             (Array.isArray(a) ? a : []).slice(0, 12).map((x) => ({ code: x.code, secid: x.secid ?? toSecid(x.code), name: x.name, price: x.price, changePct: x.changePct }));
           const g = pick(j.global);
@@ -541,8 +542,7 @@ export default function LabTerminal({ pro = false }: { pro?: boolean }) {
           setTapeItems([...idx, ...g, ...sec]);
           setGlobalQuotes(g);
           setQuotesAsOf(new Date(j.time ?? Date.now()).toLocaleString("zh-CN", { hour12: false }));
-        })
-        .catch(() => {});
+        });
     fetchTape();
     const t = setInterval(() => {
       if (isPageHidden()) return;

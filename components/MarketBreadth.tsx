@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Activity, Flame, Snowflake, Minus } from "lucide-react";
 import { guardPoll } from "@/lib/hooks/visibility";
+import { fetchJson } from "@/lib/client/api-cache";
 
 interface Breadth {
   up: number;
@@ -21,15 +22,14 @@ export default function MarketBreadth() {
 
   useEffect(() => {
     let cancelled = false;
+    // 首页/市场页/实验室都会各挂一个宽度卡，共享一次请求（含 5s 本地复用）
     const load = () =>
-      fetch("/api/market/breadth", { cache: "no-store" })
-        .then((r) => r.json())
+      fetchJson<Breadth & { ok?: boolean; error?: string }>("/api/market/breadth", { ttlMs: 5000 })
         .then((j) => {
           if (cancelled) return;
           if (j?.ok) setD(j);
-          else setErr(j?.error ?? "加载失败");
-        })
-        .catch(() => !cancelled && setErr("加载失败"));
+          else setErr((j as any)?.error ?? "加载失败");
+        });
     load();
     const t = setInterval(guardPoll(load), 60000);
     return () => { cancelled = true; clearInterval(t); };

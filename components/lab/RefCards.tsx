@@ -7,7 +7,8 @@
    11 市场脉搏 · 全球时钟（Intl timeZone 本地时间 + 开闭市）
    12 数据状态 · 数据源（前端真实探测各 API 耗时与状态）
    ============================================================ */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { fetchJson } from "@/lib/client/api-cache";
 
 const AXIS_NOTE = "行情为交易所公开快照，存在 15–20 秒级延迟；点击行可联动全终端切换标的。";
 
@@ -83,15 +84,14 @@ export function BreadthCard() {
   const [err, setErr] = useState("");
   useEffect(() => {
     let dead = false;
-    fetch("/api/market/breadth")
-      .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
-      .then((j) => {
-        if (dead) return;
+    // 首页/市场页/实验室的宽度卡共享一次请求（5s 本地复用），避免同页多份请求叠加。
+    fetchJson<BreadthResp & { ok?: boolean; error?: string }>("/api/market/breadth", { ttlMs: 5000 })
+      .then((j: any) => {
+        if (dead || !j) return;
         // 接口以 ok=false + error 表达「数据源不可达」，不返回半截数据
         if (j?.ok) setD(j);
-        else setErr(j?.error ?? "市场宽度数据源暂不可达");
-      })
-      .catch(() => !dead && setErr("市场宽度数据源暂不可达"));
+        else setErr((j as any)?.error ?? "市场宽度数据源暂不可达");
+      });
     return () => {
       dead = true;
     };
@@ -197,48 +197,64 @@ const PROBES: Array<{ name: string; url: string; note: string }> = [
 ];
 
 export function DataStatusCard() {
+  const cardRef = useRef<HTMLDivElement | null>(null);
   const [rows, setRows] = useState<ProbeRow[]>(PROBES.map((p) => ({ name: p.name, ms: null, status: "checking", note: p.note })));
   useEffect(() => {
     let dead = false;
-    Promise.all(
-      PROBES.map((p) =>
+    let started = false;
+    const run = () => {
+      if (started) return;
+      started = true;
+      // 每页只探测一轮：5 个接口串行等待，各自记录真实耗时。
+      // 之前这里被写成「先 Promise.all 一遍、再串行一遍」，等于每个接口打两次，
+      // 让 /lab 首屏对 /api/quotes、/api/stock/kline 的重复请求又多了一倍。
+      PROBES.forEach((p, i) => {
+        const s = performance.now();
         fetch(p.url)
-          .then(async (r) => ({ name: p.name, note: p.note, ms: Math.round(performance.now() % 1e9), status: r.ok ? ("ok" as const) : ("err" as const) }))
-          .catch(() => ({ name: p.name, note: p.note, ms: null, status: "err" as const }))
-      )
-    ).then((rs) => {
-      // 记录真实耗时：重新串行探测一次取 ms
-      const withMs: ProbeRow[] = rs.map((r) => ({ ...r }));
-      setRows(withMs);
-    });
-    const t0 = performance.now();
-    PROBES.forEach((p, i) => {
-      const s = performance.now();
-      fetch(p.url)
-        .then((r) => {
-          if (dead) return;
-          setRows((prev) => {
-            const next = [...prev];
-            next[i] = { name: p.name, note: p.note, ms: Math.round(performance.now() - s), status: r.ok ? "ok" : "err" };
-            return next;
+          .then((r) => {
+            if (dead) return;
+            setRows((prev) => {
+              const next = [...prev];
+              next[i] = { name: p.name, note: p.note, ms: Math.round(performance.now() - s), status: r.ok ? "ok" : "err" };
+              return next;
+            });
+          })
+          .catch(() => {
+            if (dead) return;
+            setRows((prev) => {
+              const next = [...prev];
+              next[i] = { name: p.name, note: p.note, ms: null, status: "err" };
+              return next;
+            });
           });
-        })
-        .catch(() => {
-          if (dead) return;
-          setRows((prev) => {
-            const next = [...prev];
-            next[i] = { name: p.name, note: p.note, ms: null, status: "err" };
-            return next;
-          });
-        });
-    });
-    void t0;
+      });
+    };
+    // 12 号卡在页面最底部，首屏根本看不到：滚动到附近再探测，避免和首屏抢带宽。
+    const el = cardRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") {
+      run();
+    } else {
+      const io = new IntersectionObserver(
+        (entries) => {
+          if (entries.some((e) => e.isIntersecting)) {
+            io.disconnect();
+            run();
+          }
+        },
+        { rootMargin: "200px" }
+      );
+      io.observe(el);
+      return () => {
+        dead = true;
+        io.disconnect();
+      };
+    }
     return () => {
       dead = true;
     };
   }, []);
   return (
-    <>
+    <div ref={cardRef}>
       <table className="gmt-table">
         <thead>
           <tr>
@@ -260,6 +276,6 @@ export function DataStatusCard() {
         </tbody>
       </table>
       <div className="gmt-note">实时探测（前端真实请求）；失败多为免费源限频，本站以缓存兜底并不虚构数值。</div>
-    </>
+    </div>
   );
 }
