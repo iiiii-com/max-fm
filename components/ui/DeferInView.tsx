@@ -21,7 +21,7 @@ export default function DeferInView({
   rootMargin = "300px",
 }: {
   children: ReactNode;
-  height?: number;
+  height?: number | string;
   label?: string;
   rootMargin?: string;
 }) {
