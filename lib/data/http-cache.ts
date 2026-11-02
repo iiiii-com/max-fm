@@ -13,6 +13,9 @@ import { cachedMeta } from "./cache";
  * 现在的策略：
  *  - 进程内 TTL 缓存（single-flight）：同一实例上并发/重复请求只打一次上游；
  *  - 响应头改成 `s-maxage=<ttl>`：允许 Vercel CDN 在 TTL 内直接命中，跨用户复用；
+ *  - 浏览器侧给一个小的 `max-age`（默认 20 秒，且不超过 s-maxage）：这样页面里
+ *    `<link rel="preload" as="fetch">` 先把 K 线拉起来、组件真正挂载时的 fetch
+ *    能直接命中浏览器缓存，而不是再走一次 160ms 的边缘往返；
  *  - `X-Data-Age` 回传这份数据的年龄，前端/排查时能判断是不是缓存；
  *  - **只缓存 200**：4xx/5xx（上游抖动、参数错误）绝不缓存，避免把一次失败固化 TTL 那么久。
  *
@@ -21,11 +24,14 @@ import { cachedMeta } from "./cache";
 export async function cachedJsonResponse(
   key: string,
   ttlMs: number,
-  build: () => Promise<NextResponse>
+  build: () => Promise<NextResponse>,
+  /** 浏览器可复用的秒数（默认 20）；用于 preload + 组件 fetch 命中同一次响应 */
+  browserMaxAgeSec = 20
 ): Promise<NextResponse> {
   const ttlSec = Math.max(1, Math.round(ttlMs / 1000));
+  const browserMaxAge = Math.min(ttlSec, Math.max(0, Math.round(browserMaxAgeSec)));
   const cacheHeaders = {
-    "Cache-Control": `public, max-age=0, s-maxage=${ttlSec}, stale-while-revalidate=60`,
+    "Cache-Control": `public, max-age=${browserMaxAge}, s-maxage=${ttlSec}, stale-while-revalidate=60`,
   };
 
   // 非 200 的响应不缓存：用 sentinel 把它带出来，由下面原样返回
