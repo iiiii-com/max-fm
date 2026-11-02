@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { emJson } from "@/lib/data/eastmoney";
+import { saveSnapshot, loadSnapshot } from "@/lib/data/snapshots";
 
 export const dynamic = "force-dynamic";
 
@@ -17,9 +18,44 @@ const MARKETS = [
  * 这里做 15 秒进程内缓存，并把并发请求合并成一次上游访问。
  */
 const TTL_MS = 15_000;
+/**
+ * 上游超时 → 落库快照兜底。
+ *
+ * 本接口只有在「冷实例 + 上游抖动」时才会慢到 2～3 秒（线上实测 3.02s），
+ * 而 K 线实验室首屏拿不到它就只能一直显示占位。给上游 4 秒硬截止，
+ * 超时返回 market_snapshots 里最近一份并标注 stale，首屏框架先出来。
+ */
+const UPSTREAM_DEADLINE_MS = Math.max(1, Number(process.env.BREADTH_UPSTREAM_DEADLINE_MS ?? 4_000) || 4_000);
+const SNAPSHOT_KEY = "api:breadth";
+const SNAPSHOT_MAX_AGE_MS = 24 * 3600_000;
+const SNAPSHOT_MIN_INTERVAL_MS = 5 * 60_000;
 let cacheAt = 0;
 let cacheBody: any = null;
 let inflight: Promise<any> | null = null;
+let lastSnapshotAt = 0;
+
+async function withDeadline<T>(p: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const deadline = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`upstream deadline ${ms}ms`)), ms);
+  });
+  try {
+    return await Promise.race([p, deadline]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+/** 成功取数后落一份库快照（限频，失败不影响主流程）。 */
+async function maybeSnapshot(body: Record<string, any>) {
+  if (Date.now() - lastSnapshotAt < SNAPSHOT_MIN_INTERVAL_MS) return;
+  lastSnapshotAt = Date.now();
+  try {
+    await saveSnapshot(SNAPSHOT_KEY, body, body?.updated ?? new Date().toISOString(), "市场宽度（涨跌家数/成交额）");
+  } catch {
+    /* 快照写库失败不影响主流程 */
+  }
+}
 
 
 async function getJson<T>(url: string, timeoutMs = 9000): Promise<T | null> {
@@ -45,26 +81,39 @@ export async function GET() {
   if (cacheBody && now - cacheAt < TTL_MS) {
     return NextResponse.json(cacheBody, { headers: { "Cache-Control": "public, max-age=15, s-maxage=15", "X-Cache": "HIT" } });
   }
-  if (inflight) {
-    try {
-      const body = await inflight;
-      return NextResponse.json(body, { headers: { "Cache-Control": "public, max-age=15, s-maxage=15", "X-Cache": "HIT" } });
-    } catch {
-      return NextResponse.json({ ok: false, error: "市场宽度数据源暂不可达" }, { status: 503 });
-    }
+  if (!inflight) {
+    inflight = loadBreadth()
+      .then((body) => {
+        cacheBody = body;
+        cacheAt = Date.now();
+        return body;
+      })
+      .finally(() => {
+        inflight = null;
+      });
   }
-  inflight = loadBreadth();
   try {
-    const body = await inflight;
-    cacheBody = body;
-    cacheAt = Date.now();
+    const body = await withDeadline(inflight, UPSTREAM_DEADLINE_MS);
+    void maybeSnapshot(body);
     return NextResponse.json(body, { headers: { "Cache-Control": "public, max-age=15, s-maxage=15", "X-Cache": "MISS" } });
   } catch (e) {
-    // 上游确实取不到时明确失败，不以 0 家数冒充（原实现返回 503 + error）
+    // 上游慢/挂：先返回落库快照（标注 stale + dataAt），别让首屏一直占位。
+    const snap = await loadSnapshot<Record<string, any>>(SNAPSHOT_KEY, SNAPSHOT_MAX_AGE_MS);
+    if (snap) {
+      return NextResponse.json(
+        { ...snap.body, ok: true, stale: true, dataAt: snap.dataAt },
+        {
+          headers: {
+            "Cache-Control": "public, max-age=10, s-maxage=10",
+            "X-Cache": "STALE",
+            "X-Data-Age": String(Math.round(snap.ageMs / 1000)),
+          },
+        }
+      );
+    }
+    // 没有任何快照时明确失败，不以 0 家数冒充（原实现返回 503 + error）
     const msg = e instanceof Error ? e.message : "市场宽度数据源暂不可达";
     return NextResponse.json({ ok: false, error: msg }, { status: 503 });
-  } finally {
-    inflight = null;
   }
 }
 

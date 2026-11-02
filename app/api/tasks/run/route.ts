@@ -15,6 +15,9 @@ import { invalidateDataCache } from "@/lib/data/cache";
 import { GET as fundRankGET } from "@/app/api/market/fund-rank/route";
 import { GET as surgeGET } from "@/app/api/market/surge/route";
 import { GET as sectorBoardGET } from "@/app/api/sector/board/route";
+// 行情快照与市场宽度：一起预取，保证「冷实例 + 上游抖动」时首屏还有落库快照可读。
+import { GET as quotesGET } from "@/app/api/quotes/route";
+import { GET as breadthGET } from "@/app/api/market/breadth/route";
 
 export const maxDuration = 300;
 
@@ -200,6 +203,10 @@ export async function GET(req: Request) {
       ["fund-rank", () => fundRankGET()],
       ["surge", () => surgeGET()],
       ["sector-board", () => sectorBoardGET(new Request("http://internal/api/sector/board?top=60"))],
+      // 首屏两件套：指数/全球/板块行情 + 市场宽度。预取后落库快照，
+      // 冷实例上游超时就能直接读快照（见各路由的 UPSTREAM_DEADLINE_MS）。
+      ["quotes", () => quotesGET()],
+      ["breadth", () => breadthGET()],
     ];
     const out: string[] = [];
     for (const [name, fn] of calls) {
