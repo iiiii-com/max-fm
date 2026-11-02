@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import EChart from "@/components/charts/EChart";
+import { warmECharts } from "@/lib/client/warm-echarts";
 import { downloadCSV } from "@/components/charts/ChartToolbar";
 import type { EChartsOption } from "echarts";
 import type { KlineBar } from "@/app/api/stock/kline/route";
@@ -73,6 +74,12 @@ export default function CompareCenter() {
   const [failed, setFailed] = useState<string[]>([]);
   const [err, setErr] = useState("");
   const abortRef = useRef<AbortController | null>(null);
+
+  // 首屏就是对比图：提前把 ECharts chunk（约 820KB）的下载跑起来，
+  // 与「K 线数据请求 + React 水合」重叠，移动端 4G 下能省 2～4 秒。
+  useEffect(() => {
+    warmECharts();
+  }, []);
 
   // 跨页深链：/compare?codes=512480,159995 —— ETF 专区与产业链面板会把已选 ETF 带过来。
   // 用 window.location 而不是 useSearchParams，避免静态页触发 Suspense 边界要求。

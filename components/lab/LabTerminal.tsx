@@ -10,6 +10,7 @@
    ============================================================ */
 import { cstToday as cstDateKey } from "@/lib/data/ym";
 import { fetchJson, fetchKline } from "@/lib/client/api-cache";
+import { warmECharts } from "@/lib/client/warm-echarts";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -314,6 +315,9 @@ export default function LabTerminal({ pro = false }: { pro?: boolean }) {
   const [guideOpen, setGuideOpen] = useState(true);
 
   useEffect(() => {
+    // 首屏就要画 K 线图：提前把 ECharts chunk（约 820KB）下载跑起来，
+    // 与「K 线数据请求 + React 水合」重叠。移动端 4G 下这一步能省 2～4 秒。
+    warmECharts();
     try {
       if (localStorage.getItem("lab-guide-v1") === "off") setGuideOpen(false);
     } catch {
