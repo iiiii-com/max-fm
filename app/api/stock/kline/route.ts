@@ -3,6 +3,8 @@ import { aggregateBars } from "@/lib/data/indicators";
 import { fetchSinaUsIndex, fetchTencentIndex, fetchEastmoneyIndex, TENCENT_SYMBOLS } from "@/lib/data/index-kline";
 import { fetchStockQuote, type Quote } from "@/lib/data/quotes";
 import { emJson } from "@/lib/data/eastmoney";
+import { cachedJsonResponse } from "@/lib/data/http-cache";
+import { klineTtlMs } from "@/lib/data/market-hours";
 
 export const dynamic = "force-dynamic";
 
@@ -53,17 +55,21 @@ export async function GET(req: Request) {
   if (!/^\d+\.\w+$/.test(secid)) return NextResponse.json({ error: "参数错误" }, { status: 400 });
   const periodRaw = (searchParams.get("period") ?? "day").trim();
   const period: KlinePeriod = periodRaw === "week" ? "week" : periodRaw === "month" ? "month" : "day";
-  /**
-   * 天数上限由此处决定。
-   * 实测东财 push2his：lmt 参数对该接口无效（lmt=500 与 lmt=10000 返回同样的 6015 根），
-   * 真正的限制是 beg。原先 beg=20200101 + lmt<=500 把 25 年历史砍到 2 年，
-   * 导致个股 K 线"只有一年"。现 beg 放到 1990 并把天数上限提到 8000，
-   * 日线可覆盖 A 股全历史（茅台 2001 上市起约 6015 根 / 25 年）。
-   */
-  // 默认只回 500 根（约 2 年日线），够算 MA250 等技术指标；需要更长历史的调用方
-  // 必须显式传 days（K 线实验室/个股深度页传 8000）。原先默认 2500 会让每个不带
-  // days 的请求都返回 ~200KB，而绝大多数调用点其实只需要近期走势。
   const days = Math.min(8000, Math.max(10, Number(searchParams.get("days") ?? 500)));
+  /**
+   * 并发/重复请求缓存（2026-11-02 线上实测：本接口在 Vercel 上每次 1.9–4.3 秒，
+   * 且响应不允许 CDN 缓存，于是「每换一只标的、每刷新一次」都要重新打上游，
+   * K 线实验室首屏 6–8 秒才出图）。缓存键包含全部影响结果的参数；
+   * TTL 按交易时段分档（盘中 20s / 非盘中 10min），见 lib/data/market-hours.ts。
+   * 缓存里存的是「最终 JSON」，所以前端的实时 bar 合成、复权口径说明都原样复用。
+   */
+  return cachedJsonResponse(`kline:stock:${secid}:${period}:${days}`, klineTtlMs(), () =>
+    buildKline(secid, period, days)
+  );
+}
+
+/** 真正的取数逻辑（多源容错）。与缓存解耦，便于单独推理/测试。 */
+async function buildKline(secid: string, period: KlinePeriod, days: number) {
   const [mkt, code] = secid.split(".");
 
   // ---- 源1：东方财富（fqt=1 前复权优先，失败再试 fqt=0 不复权）----

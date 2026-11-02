@@ -56,16 +56,35 @@ export interface CacheOptions {
  * @param ttlMs  有效期；数据更新频率越低可以越长
  * @param fn     真正的取数函数
  */
-export async function cached<T>(key: string, ttlMs: number, fn: () => Promise<T>, opts?: CacheOptions): Promise<T> {
+export interface CachedResult<T> {
+  value: T;
+  /** 这份数据已经在缓存里放了多久（毫秒）；未命中时为 0 */
+  ageMs: number;
+  /** 是否来自缓存（命中或复用在飞请求） */
+  hit: boolean;
+}
+
+/**
+ * 与 cached 相同，但额外返回「命中信息与数据年龄」。
+ *
+ * HTTP 层需要它：把 age 写进 X-Data-Age 响应头，用户/排查时能一眼看出
+ * 「这份 K 线是 3 秒前的还是 4 分钟前的」，而不是把缓存误当实时行情。
+ */
+export async function cachedMeta<T>(
+  key: string,
+  ttlMs: number,
+  fn: () => Promise<T>,
+  opts?: CacheOptions
+): Promise<CachedResult<T>> {
   // 命中：仍在有效期内直接返回
   const hit = store.get(key);
   if (hit && Date.now() - hit.at < ttlMs) {
-    return hit.value as T;
+    return { value: hit.value as T, ageMs: Date.now() - hit.at, hit: true };
   }
 
-  // 单飞：同一键已有请求在飞，直接复用，避免并发穿透
+  // 单飞：同一键已有请求在飞，直接复用，避免并发穿透（多个图表同时要同一份 K 线）
   const pending = inflight.get(key);
-  if (pending) return pending as Promise<T>;
+  if (pending) return { value: (await pending) as T, ageMs: 0, hit: true };
 
   const task = (async () => {
     try {
@@ -81,5 +100,17 @@ export async function cached<T>(key: string, ttlMs: number, fn: () => Promise<T>
   })();
 
   inflight.set(key, task);
-  return task;
+  return { value: await task, ageMs: 0, hit: false };
+}
+
+/**
+ * 带 TTL 与单飞的读缓存。
+ *
+ * @param key    缓存键（含参数，如 `macro:series`、`policy:list`）
+ * @param ttlMs  有效期；数据更新频率越低可以越长
+ * @param fn     真正的取数函数
+ */
+export async function cached<T>(key: string, ttlMs: number, fn: () => Promise<T>, opts?: CacheOptions): Promise<T> {
+  const res = await cachedMeta(key, ttlMs, fn, opts);
+  return res.value;
 }

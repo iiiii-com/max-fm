@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { fetchIndexKlineMulti, type IndexKlineBar } from "@/lib/data/index-kline";
 import { fetchStockQuote } from "@/lib/data/quotes";
+import { cachedJsonResponse } from "@/lib/data/http-cache";
+import { klineTtlMs } from "@/lib/data/market-hours";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +32,15 @@ export async function GET(req: Request) {
    * 现上限 8000 根，日线可覆盖指数全历史。
    */
   const days = Math.min(8000, Math.max(5, Number(searchParams.get("days") ?? 60)));
+  /**
+   * 与 /api/stock/kline 同因同治：线上实测本接口每次约 1.8 秒，且不允许 CDN 缓存，
+   * 全球指数面板/大盘卡片每刷新都要重打一次上游。TTL 按交易时段分档
+   * （盘中 20s / 非盘中 10min）：指数历史同样只在盘中变动，收盘后缓存久一点无副作用。
+   */
+  return cachedJsonResponse(`kline:index:${secid}:${days}`, klineTtlMs(), () => buildIndexKline(secid, days));
+}
 
+async function buildIndexKline(secid: string, days: number) {
   const { bars, source } = await fetchIndexKlineMulti(secid, days);
 
   /**
