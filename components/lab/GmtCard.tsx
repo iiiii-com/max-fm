@@ -141,10 +141,12 @@ export default function GmtCard(props: GmtCardProps) {
             视口内再挂载：实验室首屏只有 01（K 线主图）落在可视区，
             02～12 号卡在 900px 之下。它们各自持有图表实例与独立接口请求，
             一开机就全部挂载会让首屏多打 5～8 个接口、初始化 6～9 个图表。
-            这里按网格纵坐标判断：y < 6 视为首屏，直接挂载；其余等滚动到附近再挂。
-            （放大/最小化状态下列外——放大后必须立刻有内容。）
+            这里除了主图 01，其余全部交给 IntersectionObserver（提前 300px 预取）：
+            进入视口才渲染 children，动态 chunk 也才下载 —— 移动端首屏因此不用
+            为下面 11 张卡背 1MB+ 的 JS。
+            （放大状态例外——放大后必须立刻有内容。）
           */}
-          {!zoomed && layout.y >= 6 ? (
+          {!zoomed && num !== "01" ? (
             <DeferInView height="100%" label={`${title} 加载中`}>
               {children}
             </DeferInView>
