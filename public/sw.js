@@ -14,9 +14,12 @@
  *
  * 3) 其余 /api/**（登录、自选、提交、导出、AI…）→ **不拦截、不缓存**
  *
- * 4) 页面导航 → **network-only**，失败落自包含的 /offline.html
- *    **不缓存整页 HTML**：站点页面普遍带登录态与实时价格，回放旧 HTML 会让用户
+ * 4) 页面导航 → **network-first + 重试**，3 次都失败才落自包含的 /offline.html
+ *    **不长期缓存整页 HTML**：站点页面普遍带登录态与实时价格，回放旧 HTML 会让用户
  *    看到上一个账号的用户名与隔夜价格，且没有任何"这是缓存"的提示。
+ *    但「一次网络抖动就判离线」同样是事故：v4 起每次导航最多试 3 次（9s 超时 +
+ *    350/700ms 退避），边缘瞬时 5xx 也重试，只有彻底连不上才显示离线页。
+ *    另外支持 `?nosw=1` 绕过 Service Worker 直连网络，供离线页排障/自救。
  *
  * 离线页用 public/offline.html 而不是 /offline 这个 Next 路由：后者依赖
  * /_next/static 的 JS/CSS chunk，用户若从未在线打开过它，断网时这些 chunk 不存在，
@@ -26,8 +29,9 @@
  * （改完 bug 用户还是看到老页面，是最难排查的一类问题）。
  */
 
-// v3：新增只读接口快照回放 + 自包含离线页；activate 会清掉 v1/v2 的 max-* 旧缓存。
-const VERSION = "v3";
+// v4：页面导航失败前先重试（网络抖动时不再「一次失败就判离线」），并支持 ?nosw=1 绕过 SW。
+// v3：新增只读接口快照回放 + 自包含离线页；activate 会清掉旧版 max-* 缓存。
+const VERSION = "v4";
 const STATIC_CACHE = `max-static-${VERSION}`;
 const API_CACHE = `max-api-${VERSION}`;
 const OFFLINE_URL = "/offline.html";
@@ -148,6 +152,53 @@ async function apiNetworkFirst(request) {
   }
 }
 
+/** 导航最多试 3 次：网络抖动/边缘瞬时 5xx 不该被当成「离线」。 */
+const NAV_ATTEMPTS = 3;
+const NAV_TIMEOUT_MS = 9000;
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function fetchWithTimeout(request, timeoutMs) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(request, { signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** 导航：network-first + 重试；彻底失败才回落到离线页。 */
+async function navigateWithRetry(request) {
+  for (let attempt = 0; attempt < NAV_ATTEMPTS; attempt += 1) {
+    try {
+      const res = await fetchWithTimeout(request, NAV_TIMEOUT_MS);
+      // 502/503/504 多为边缘瞬时故障，重试；其它状态（含 404、登录 302）都是有效响应
+      if (res.status >= 500 && attempt < NAV_ATTEMPTS - 1) {
+        await sleep(350 * (attempt + 1));
+        continue;
+      }
+      return res;
+    } catch {
+      if (attempt < NAV_ATTEMPTS - 1) await sleep(350 * (attempt + 1));
+    }
+  }
+
+  const cache = await caches.open(STATIC_CACHE);
+  const offline = await cache.match(OFFLINE_URL);
+  if (offline) return offline;
+  return new Response(
+    "<!doctype html><meta charset='utf-8'><title>网络不可用</title>" +
+      "<body style='background:#050505;color:#e8e8ea;font-family:system-ui;padding:40px;line-height:1.7'>" +
+      "<h1 style='font-size:18px'>网络不可用</h1>" +
+      "<p style='color:#8a8a93;font-size:13px'>离线页尚未缓存成功，请联网后重新打开一次本站。</p>" +
+      "<p><a href='/?nosw=1' style='color:#5eead4'>绕过缓存重试</a></p></body>",
+    { status: 503, headers: { "Content-Type": "text/html; charset=utf-8" } },
+  );
+}
+
 self.addEventListener("fetch", (event) => {
   const req = event.request;
 
@@ -158,6 +209,9 @@ self.addEventListener("fetch", (event) => {
 
   // 跨域：交给浏览器（地图瓦片、字体等），不介入
   if (url.origin !== self.location.origin) return;
+
+  // 显式绕过：离线页自救、排障时用 `?nosw=1` 让浏览器直连网络，SW 完全不拦
+  if (url.searchParams.get("nosw") === "1") return;
 
   // 1) 静态资源：cache-first
   if (isStaticAsset(url)) {
@@ -184,25 +238,8 @@ self.addEventListener("fetch", (event) => {
   // 3) 其余 /api/**：不拦截、不缓存（登录态、写入、导出、AI 等）
   if (url.pathname.startsWith("/api/")) return;
 
-  // 4) 页面导航：network-only，失败落离线快照页
+  // 4) 页面导航：network-first + 重试，失败落离线页（v4 起不再一次失败就判离线）
   if (req.mode === "navigate") {
-    event.respondWith(
-      (async () => {
-        try {
-          return await fetch(req);
-        } catch {
-          const cache = await caches.open(STATIC_CACHE);
-          const offline = await cache.match(OFFLINE_URL);
-          if (offline) return offline;
-          return new Response(
-            "<!doctype html><meta charset='utf-8'><title>网络不可用</title>" +
-              "<body style='background:#050505;color:#e8e8ea;font-family:system-ui;padding:40px;line-height:1.7'>" +
-              "<h1 style='font-size:18px'>网络不可用</h1>" +
-              "<p style='color:#8a8a93;font-size:13px'>离线页尚未缓存成功，请联网后重新打开一次本站。</p></body>",
-            { status: 503, headers: { "Content-Type": "text/html; charset=utf-8" } },
-          );
-        }
-      })(),
-    );
+    event.respondWith(navigateWithRetry(req));
   }
 });

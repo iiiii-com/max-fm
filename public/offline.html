@@ -85,6 +85,7 @@
     <div class="row">
       <button class="primary" id="retry">立即重试</button>
       <button id="manual">手动恢复</button>
+      <button id="reset">清除缓存并重试</button>
       <span class="sub" id="countdown"></span>
     </div>
   </div>
@@ -242,7 +243,7 @@
       if (xhr.readyState !== 4) return;
       if (xhr.status >= 200 && xhr.status < 400) {
         $("status").textContent = "网络已恢复，正在返回在线页面…";
-        location.replace("/");
+        goOnline();
       } else {
         $("status").textContent = "离线中：以上数据为上次在线快照，不是最新行情。";
       }
@@ -259,9 +260,27 @@
   setCountdown();
   window.setTimeout(probe, 1500);
   timer = window.setInterval(tick, 1000);
-  window.addEventListener("online", function () { location.replace("/"); });
-  $("retry").addEventListener("click", function () { location.replace("/"); });
-  $("manual").addEventListener("click", function () { location.replace("/"); });
+  // 恢复时带 ?nosw=1：绕过 Service Worker 直接走网络，避免旧 SW / 坏缓存继续把人钉在离线页
+  function goOnline() {
+    location.replace("/?nosw=1&t=" + Date.now());
+  }
+  function resetAndReload() {
+    $("status").textContent = "正在清除本地缓存…";
+    var jobs = [];
+    try {
+      jobs.push(navigator.serviceWorker.getRegistrations().then(function (rs) {
+        return Promise.all(rs.map(function (r) { return r.unregister(); }));
+      }));
+    } catch (e) {}
+    try {
+      if (window.caches) jobs.push(caches.keys().then(function (ks) { return Promise.all(ks.map(function (k) { return caches.delete(k); })); }));
+    } catch (e) {}
+    Promise.all(jobs).then(goOnline, goOnline);
+  }
+  window.addEventListener("online", goOnline);
+  $("retry").addEventListener("click", goOnline);
+  $("manual").addEventListener("click", goOnline);
+  $("reset").addEventListener("click", resetAndReload);
 })();
 </script>
 </body>
