@@ -16,6 +16,7 @@ import { db, dbDegradedReason, dbDegradedRecently } from "@/lib/db";
 import * as s from "@/lib/db/schema";
 import { cached } from "@/lib/data/cache";
 import { getMacroProvenance } from "@/lib/data/queries";
+import { loadHousePriceSnapshot } from "@/lib/data/housePriceSnapshot";
 import {
   CADENCE,
   formatAge,
@@ -70,10 +71,16 @@ export interface DataSourceSpec {
   fixedStatus?: ProvenanceStatus;
   /** 固定状态的解释文案（会显示在卡片的「当前状态」里） */
   fixedNote?: string;
+  /** 用仓库内快照文件判定（如 70 城房价：线上表可能为空，实际返回的是提交进仓库的 JSON） */
+  snapshotFile?: "house-price";
+  /** 补齐数据的命令（脚本导入类数据集） */
+  backfill?: string;
   /** 说明：这类数据的来龙去脉 */
   note: string;
   /** 失真风险：什么情况下这个数字会不可信 */
   risk?: string;
+  /** 非关键数据集（缓存/按需计算/专业版表）：空表不算问题，不计入「需关注」 */
+  optional?: boolean;
 }
 
 const monthSpec: MetricSpec = { table: s.articles, cols: [s.articles.updatedAt, s.articles.createdAt] };
@@ -303,10 +310,12 @@ export const DATA_SOURCES: DataSourceSpec[] = [
     group: "行情与 ETF",
     kind: "market",
     cadence: "intraday",
-    api: "/api/tasks/run?task=daily-review",
+    api: "/api/stock/kline",
     storage: "daily_bars 表",
     metric: { table: s.dailyBars, cols: [s.dailyBars.fetchedAt, s.dailyBars.updatedAt] },
-    note: "把当日 K 线快照落库，用于离线可用与上游故障时的历史兜底。",
+    // 二级缓存：为空只代表还没写过，不影响行情可用性（边缘缓存 + 上游兜底仍在）
+    optional: true,
+    note: "K 线的数据库二级缓存：上游取数成功后落库，用于上游抖动时兜底。",
     risk: "落库的是抓取当时的数据；除权除息后需要重抓，历史值可能与最新复权结果不一致。",
   },
 
@@ -330,9 +339,10 @@ export const DATA_SOURCES: DataSourceSpec[] = [
     kind: "official",
     cadence: "quarterly",
     api: "/api/chain/compare",
-    storage: "chain_metrics 表",
+    storage: "chain_metrics 表（脚本导入）",
     metric: { table: s.chainMetrics, cols: [s.chainMetrics.updatedAt, s.chainMetrics.createdAt] },
-    note: "规上工业增加值、营收增速等季度指标，按产业链归并。",
+    backfill: "npx tsx scripts/chain-metric-upsert.ts",
+    note: "规上工业增加值、营收增速等季度指标，按产业链归并（由脚本导入，不走定时任务）。",
     risk: "官方数据按季度发布且有修订，最新一季可能在下一季度被上修。",
   },
   {
@@ -368,8 +378,10 @@ export const DATA_SOURCES: DataSourceSpec[] = [
     kind: "official",
     cadence: "monthly",
     api: "/api/city/house-price",
-    storage: "city_house_price 表",
-    metric: { table: s.cityHousePrice, cols: [s.cityHousePrice.fetchedAt, s.cityHousePrice.updatedAt] },
+    storage: "city_house_price 表；表空时回退 data/snapshots/house-price-70.json",
+    // 表只在跑过导入脚本时才有数据，线上实际返回的是仓库内快照文件 → 用快照文件的 fetchedAt 判定
+    snapshotFile: "house-price",
+    backfill: "npx tsx scripts/import-house-price.ts",
     note: "国家统计局 70 城商品住宅销售价格指数（上月=100 / 上年同月=100），不是成交价。",
     risk: "指数与绝对值容易被混淆；本站全部字段都是指数口径。",
   },
@@ -430,6 +442,11 @@ export interface ProvenanceItem {
   note: string;
   risk?: string;
   issue?: string;
+  /**
+   * 非关键数据集：本身是缓存/按需计算/仅专业版写入，空表或停更不代表用户看到的数据失真。
+   * 仍会如实展示状态，但不计入「需关注」、不生成待办，避免制造噪音。
+   */
+  optional?: boolean;
 }
 
 export interface ProvenanceTask {
@@ -541,6 +558,22 @@ async function collectMonthlyMetric(): Promise<{ metric: Metric; latestYm: strin
   }
 }
 
+/**
+ * 70 城房价：线上库表可能是空的（导入脚本才写），但接口实际返回的是仓库内快照文件。
+ * 所以按快照文件的 fetchedAt / rows 判定，才和用户真正看到的数据一致。
+ */
+function collectHousePriceMetric(): Metric {
+  try {
+    const snap = loadHousePriceSnapshot();
+    if (!snap) return EMPTY_METRIC;
+    const rows = Array.isArray(snap.rows) ? snap.rows.length : null;
+    const fetchedAt = toMillis(snap.fetchedAt);
+    return { rows, lastUpdated: fetchedAt };
+  } catch {
+    return EMPTY_METRIC;
+  }
+}
+
 async function collectTasks(): Promise<ProvenanceTask[]> {
   try {
     const rows = (await db
@@ -618,6 +651,7 @@ export async function buildProvenanceReport(): Promise<ProvenanceReport> {
     const cadence = CADENCE[spec.cadence];
     let metric: Metric | null = null;
     if (spec.id === "monthly-report") metric = monthly.metric;
+    else if (spec.snapshotFile === "house-price") metric = collectHousePriceMetric();
     else if (spec.metric) metric = tableMetrics[spec.id] ?? EMPTY_METRIC;
     else if (spec.snapshotCode || spec.snapshotPrefix) {
       metric = pickSnapshotMetric(snapshotMetrics, spec.snapshotCode, spec.snapshotPrefix);
@@ -650,6 +684,7 @@ export async function buildProvenanceReport(): Promise<ProvenanceReport> {
               : "表里没有数据，任务可能从未成功跑过。"
         );
         if (spec.task) issues.push(`可手动触发：task=${spec.task}。`);
+        else if (spec.backfill) issues.push(`可补数据：${spec.backfill}。`);
       } else if (status === "stale") {
         issues.push(`已经 ${formatAge(ageMs)} 没有更新，超过「${cadence.label}」节奏。`);
       } else if (status === "delayed") {
@@ -699,10 +734,16 @@ export async function buildProvenanceReport(): Promise<ProvenanceReport> {
       note: spec.note,
       risk: spec.risk,
       issue: issues.length > 0 ? issues.join(" ") : undefined,
+      optional: spec.optional,
     };
   });
 
   const summary = summarizeProvenance(items);
+  // 「需关注」只统计真正需要动手的：排除缓存/按需计算类，以及上游已停止披露的固定状态
+  const fixedIds = new Set(DATA_SOURCES.filter((spec) => spec.fixedStatus).map((spec) => spec.id));
+  summary.problems = items.filter(
+    (item) => !item.optional && !fixedIds.has(item.id) && needsAttention(item.status)
+  ).length;
 
   if (summary.seed > 0) {
     notes.push(`${summary.seed} 个数据集仍是示例数据：图表会照常展示，但不能当作真实统计。`);
@@ -717,13 +758,17 @@ export async function buildProvenanceReport(): Promise<ProvenanceReport> {
 
   const nextActions: string[] = [];
   const ranked = items
-    .filter((item) => needsAttention(item.status))
+    .filter((item) => !item.optional && needsAttention(item.status))
     // 固定状态（如上游已停止披露的北向资金）不是故障，不需要用户动手
     .filter((item) => !DATA_SOURCES.find((spec) => spec.id === item.id)?.fixedStatus)
     .sort((a, b) => SEVERITY[a.status] - SEVERITY[b.status] || (b.ageMs ?? 0) - (a.ageMs ?? 0));
   for (const item of ranked.slice(0, 4)) {
     const spec = DATA_SOURCES.find((s2) => s2.id === item.id);
-    const action = spec?.task ? `重跑 task=${spec.task}` : "检查上游接口与存储";
+    const action = spec?.task
+      ? `重跑 task=${spec.task}`
+      : spec?.backfill
+        ? `运行 ${spec.backfill}`
+        : "检查上游接口与存储";
     nextActions.push(`${item.name}：${item.issue ?? "需要人工确认"} → ${action}`);
   }
 

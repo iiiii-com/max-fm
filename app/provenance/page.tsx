@@ -170,6 +170,7 @@ export default async function ProvenancePage({
                     <div className="flex items-center gap-1.5 shrink-0">
                       <Badge tone={STATUS_TONE[item.status]}>{STATUS_LABEL[item.status]}</Badge>
                       <Badge tone="gray">{KIND_LABEL[item.kind]}</Badge>
+                      {item.optional && <Badge tone="cyan">非关键</Badge>}
                     </div>
                   </div>
 
