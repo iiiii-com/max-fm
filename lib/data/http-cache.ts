@@ -75,6 +75,27 @@ export async function cachedJsonResponse(
       ...cacheHeaders,
       "X-Cache": meta.hit ? "HIT" : "MISS",
       "X-Data-Age": (Math.round(meta.ageMs / 100) / 10).toFixed(1),
+      // 溯源：把这份响应和 /provenance 页面里的某一行对上号（见 lib/data/provenance.ts）
+      ...dataTraceHeaders(key),
     },
   });
+}
+
+/**
+ * 缓存键 → 数据集 id 的映射。
+ *
+ * 只映射「有明确单一行情来源」的接口；映射不到的接口不编造溯源信息
+ * （宁可没有，也不要给用户一个假的来源）。
+ */
+export function dataTraceHeaders(key: string): Record<string, string> {
+  const map: Array<[prefix: string, dataset: string, trace: string]> = [
+    ["kline:stock:", "kline-stock", "/api/stock/kline"],
+    ["kline:index:", "kline-index", "/api/index/kline"],
+  ];
+  for (const [prefix, dataset, trace] of map) {
+    if (key.startsWith(prefix)) {
+      return { "X-Data-Dataset": dataset, "X-Data-Trace": trace };
+    }
+  }
+  return {};
 }

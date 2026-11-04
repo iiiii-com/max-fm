@@ -150,6 +150,9 @@ export default async function MacroPage() {
         <p className="text-sm text-muted mt-1">
           真实序列来源：东方财富数据中心（GDP / CPI / PPI / PMI / M1 / M2 / 税收 / 进出口 / 固投 / 新增贷款 / 70城房价）、
           新浪财经行情接口（离岸人民币 / 伦敦金现货）
+          <Link href="/provenance" className="ml-2 text-primary hover:underline underline-offset-2">
+            查看全站数据溯源 →
+          </Link>
         </p>
         {!macroSynced ? (
           <p

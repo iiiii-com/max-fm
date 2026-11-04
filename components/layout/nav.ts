@@ -145,6 +145,7 @@ export const UTILITY_LINKS: { href: string; label: string; icon: LucideIcon }[] 
 
 /** 页脚工具 / 说明链接 */
 export const FOOTER_UTILITY: { href: string; label: string }[] = [
+  { href: "/provenance", label: "数据溯源" },
   { href: "/about", label: "关于我们" },
   { href: "/disclaimer", label: "免责声明" },
   { href: "/privacy", label: "隐私政策" },
