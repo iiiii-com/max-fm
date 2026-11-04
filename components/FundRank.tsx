@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { RefreshCw, TrendingUp, TrendingDown } from "lucide-react";
 import SectorFundHistory from "@/components/SectorFundHistory";
+import FundFlowBars from "@/components/FundFlowBars";
 import { toNum } from "@/lib/utils";
 
 interface RankItem { code: string; name: string; mainFlow: number | null; pct: number | null }
@@ -12,6 +13,7 @@ interface RankData {
   sectorIn?: RankItem[];
   sectorOut?: RankItem[];
   stockIn?: RankItem[];
+  stockOut?: RankItem[];
   updated?: string;
   /** 数据抓取时间（服务端落库快照里的 dataAt）：只用来标注「这份榜单是什么时候的」 */
   dataAt?: string;
@@ -81,6 +83,7 @@ export default function FundRank() {
               sectorIn: normalizeRank(j.sectorIn),
               sectorOut: normalizeRank(j.sectorOut),
               stockIn: normalizeRank(j.stockIn),
+              stockOut: normalizeRank(j.stockOut),
             })
           : setErr(j?.error ?? "加载失败")
       )
@@ -127,11 +130,19 @@ export default function FundRank() {
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} /> 刷新
         </button>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      {/* 主内容列在桌面端只有 ~830px，4 列会把「+93.8亿」挤成两行；2×2 更易读 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <RankTable title="板块流入 Top10" items={d?.sectorIn ?? []} tone="in" icon={<TrendingUp className="w-3.5 h-3.5" />} />
         <RankTable title="板块流出/最弱 Top10" items={d?.sectorOut ?? []} tone="out" icon={<TrendingDown className="w-3.5 h-3.5" />} />
         <RankTable title="个股流入 Top10" items={d?.stockIn ?? []} tone="in" icon={<TrendingUp className="w-3.5 h-3.5" />} />
+        <RankTable title="个股流出/最弱 Top10" items={d?.stockOut ?? []} tone="out" icon={<TrendingDown className="w-3.5 h-3.5" />} />
       </div>
+      <FundFlowBars
+        sets={[
+          { key: "sector", label: "板块", inflow: d?.sectorIn ?? [], outflow: d?.sectorOut ?? [] },
+          { key: "stock", label: "个股", inflow: d?.stockIn ?? [], outflow: d?.stockOut ?? [] },
+        ]}
+      />
       <SectorFundHistory sectors={(d?.sectorIn ?? []).map((s) => ({ code: s.code, name: s.name, mainFlow: s.mainFlow }))} />
       <p className="text-[10px] text-muted">数据源：东方财富实时资金流 · 20 秒级延迟 · 上游不可用时展示最近一次成功快照并标注「数据陈旧」及快照时间 · 点击个股进入深度页（板块跳转产业链）</p>
     </div>

@@ -6,6 +6,28 @@ import { EM_UT, emJson } from "@/lib/data/eastmoney";
 
 export const dynamic = "force-dynamic";
 
+/** 去掉层级后缀，得到归一化板块名，用于跨层级去重（与 /api/sector/board 同一口径） */
+function baseName(name: string): string {
+  return String(name ?? "").replace(/[ⅠⅡⅢ]$/, "");
+}
+
+/**
+ * 板块榜单跨层级去重。
+ *
+ * 东财同时返回「白酒Ⅱ / 白酒Ⅲ」这类不同层级命名的同一板块，直接展示会出现两行数值
+ * 几乎相同的记录，对比图里也会变成两根重复的条。按归一化名称只保留主力净流入绝对值
+ * 最大的一个分册，再截取 Top N —— 因此上游要多取几条（pz=14）留出被去重吃掉的名额。
+ */
+function dedupeByBase<T extends { name: string; mainFlow: number | null }>(rows: T[], limit = 10): T[] {
+  const byBase = new Map<string, T>();
+  for (const row of rows) {
+    const key = baseName(row.name);
+    const prev = byBase.get(key);
+    if (!prev || Math.abs(row.mainFlow ?? 0) > Math.abs(prev.mainFlow ?? 0)) byBase.set(key, row);
+  }
+  return [...byBase.values()].slice(0, limit);
+}
+
 async function fetchRank(fid: string, fs: string, po: 0 | 1, pz = 10) {
   const url =
     `https://push2.eastmoney.com/api/qt/clist/get?pn=1&pz=${pz}&po=${po}&np=1&fltt=2&invt=2` +
@@ -38,12 +60,14 @@ export async function GET() {
   try {
     const STOCK_FS = "m:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23";
     const SECTOR_FS = "m:90+t:2+f:!50";
-    const [sectorIn, sectorOut, stockIn, stockOut] = await Promise.all([
-      fetchRank("f62", SECTOR_FS, 1), // 板块流入 Top（降序）
-      fetchRank("f62", SECTOR_FS, 0), // 板块流出 Top（升序 = 净流出最多在前）
+    const [sectorInRaw, sectorOutRaw, stockIn, stockOut] = await Promise.all([
+      fetchRank("f62", SECTOR_FS, 1, 14), // 板块流入 Top（降序，多取 4 条留给跨层级去重）
+      fetchRank("f62", SECTOR_FS, 0, 14), // 板块流出 Top（升序 = 净流出最多在前）
       fetchRank("f62", STOCK_FS, 1), // 个股流入 Top
       fetchRank("f62", STOCK_FS, 0), // 个股流出 Top
     ]);
+    const sectorIn = dedupeByBase(sectorInRaw);
+    const sectorOut = dedupeByBase(sectorOutRaw);
     const payload = {
       ok: true,
       updated: new Date().toISOString(),

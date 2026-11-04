@@ -77,7 +77,7 @@ export default async function MarketIndexes() {
       </section>
 
       <section>
-        <SectionTitle title="资金流向排名" sub="板块/个股主力资金流入流出 Top10（东财实时 f62 口径）" />
+        <SectionTitle title="资金流向排名" sub="板块/个股主力资金流入流出 Top10 · 红绿对比条形图（东财实时 f62 口径）" />
         <FundRank />
       </section>
 
